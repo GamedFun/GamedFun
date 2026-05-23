@@ -68,8 +68,6 @@ const rankProgressFill = document.getElementById('rankProgressFill');
 const prestigeBtn     = document.getElementById('prestigeBtn');
 const xpEarned        = document.getElementById('xpEarned');
 const feedbackList    = document.getElementById('feedbackList');
-const weakWordList    = document.getElementById('weakWordList');
-const weakResult      = document.getElementById('weakResult');
 const setupModeLabel  = document.getElementById('setupModeLabel');
 const dailyDateLabel  = document.getElementById('dailyDateLabel');
 const dailyBestLabel  = document.getElementById('dailyBestLabel');
@@ -648,7 +646,6 @@ function applyProgressionResults(wpm, accuracy, consistency, elapsed) {
 
   xpEarned.textContent = '+' + xp + ' xp';
   renderFeedback(wpm, accuracy, consistency);
-  renderWeakWords();
   updateProfileUi();
 }
 
@@ -680,7 +677,6 @@ function updateProfileUi() {
     xpText.textContent = profile.xp + ' xp';
     prestigeBtn.classList.toggle('hidden', profile.xp < PRESTIGE_XP_RESET);
   }
-  renderWeakWords();
 }
 
 function updateDailyUi() {
@@ -737,32 +733,6 @@ async function shareResult() {
   } catch {
     shareStatus.textContent = 'Share canceled';
   }
-}
-
-function renderWeakWords() {
-  const weak = getWeakWords(8);
-  weakWordList.innerHTML = '';
-  weakResult.innerHTML = '';
-
-  if (!weak.length) {
-    weakWordList.textContent = 'No weak words yet';
-    weakResult.textContent = 'Missed words will appear here after a few tests.';
-    return;
-  }
-
-  weak.forEach(item => {
-    const chip = document.createElement('span');
-    chip.className = 'weak-word-chip';
-    chip.textContent = item.word + ' (' + item.misses + ')';
-    weakWordList.appendChild(chip);
-  });
-
-  weak.slice(0, 5).forEach(item => {
-    const chip = document.createElement('span');
-    chip.className = 'weak-word-chip';
-    chip.textContent = item.word;
-    weakResult.appendChild(chip);
-  });
 }
 
 function calculateConsistency(values) {

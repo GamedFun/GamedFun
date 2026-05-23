@@ -378,18 +378,11 @@ main {
   transition: width 0.25s ease;
 }
 .prestige-btn { margin-top: 0.9rem; }
-.weak-words-panel {
-  margin-top: 1rem;
-  padding-top: 0.9rem;
-  border-top: 1px solid var(--border);
-}
 .daily-records-panel {
   margin-top: 1rem;
   padding-top: 0.9rem;
   border-top: 1px solid var(--border);
 }
-.weak-word-list,
-.weak-result,
 .daily-record-list {
   display: flex;
   flex-wrap: wrap;
@@ -397,16 +390,8 @@ main {
   color: var(--text-dim);
   font-size: 0.78rem;
 }
-.weak-word-list,
 .daily-record-list {
   margin-top: 0.45rem;
-}
-.weak-word-chip {
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  padding: 0.28rem 0.5rem;
 }
 .daily-record-item {
   color: var(--text);
@@ -488,10 +473,6 @@ main {
   font-size: 0.82rem;
   line-height: 1.45;
   text-align: left;
-}
-.weak-result {
-  justify-content: center;
-  width: min(640px, 100%);
 }
 .result-actions {
   display: flex;
