@@ -317,6 +317,55 @@
       background-clip: text;
     }
 
+    .scramble-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .scramble-mark {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #22c55e 0%, #14b8a6 100%);
+      color: #fff;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 4px;
+      padding: 9px;
+      box-shadow: 0 12px 24px -14px rgba(34, 197, 94, 0.7);
+      flex: 0 0 auto;
+      transition: transform 0.18s ease;
+    }
+
+    .scramble-mark span {
+      background: rgba(255,255,255,0.18);
+      border-radius: 5px;
+      display: grid;
+      place-items: center;
+      font-size: 0.72rem;
+      font-weight: 900;
+    }
+
+    .card:hover .scramble-mark {
+      transform: scale(1.08) rotate(5deg);
+    }
+
+    .scramble-word {
+      font-size: 1.18rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.04;
+    }
+
+    .scramble-word span {
+      background: linear-gradient(135deg, #16a34a 0%, #14b8a6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
     .card-title {
       font-size: 1.05rem;
       font-weight: 700;
@@ -423,6 +472,7 @@
     <div class="quick-actions" aria-label="Quick game links">
       <a class="quick-action" href="/typeflow/">Play TypeFlow</a>
       <a class="quick-action" href="/universe-clicker/">Play Universe Destroyer</a>
+      <a class="quick-action" href="/word-scramble/">Play Word Scramble</a>
     </div>
   </header>
 
@@ -454,6 +504,19 @@
         </div>
         <div class="card-desc">Crack open the cosmos, collect energy, and push through cosmic eras.</div>
         <div class="card-cta">Play Universe Destroyer</div>
+        <span class="card-arrow">↗</span>
+      </a>
+
+      <!-- Daily Word Scramble -->
+      <a class="card card--green" href="/word-scramble/">
+        <div class="scramble-logo" aria-label="Daily Word Scramble">
+          <div class="scramble-mark" aria-hidden="true">
+            <span>W</span><span>R</span><span>D</span><span>?</span>
+          </div>
+          <div class="scramble-word"><span>Daily Word Scramble</span> <span class="badge">new</span></div>
+        </div>
+        <div class="card-desc">Unscramble the same daily words as everyone else and chase a perfect score.</div>
+        <div class="card-cta">Play Word Scramble</div>
         <span class="card-arrow">↗</span>
       </a>
 

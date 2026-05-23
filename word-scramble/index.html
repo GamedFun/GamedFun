@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Word Scramble</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #101828;
+      --panel: #182338;
+      --panel-2: #22314d;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #22c55e;
+      --accent-2: #38bdf8;
+      --wrong: #fb7185;
+      --border: rgba(255,255,255,0.1);
+    }
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 20% 10%, rgba(34,197,94,0.18), transparent 28rem),
+        radial-gradient(circle at 85% 20%, rgba(56,189,248,0.15), transparent 24rem),
+        var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.1rem 1.4rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .brand {
+      color: var(--accent);
+      font-size: 1.1rem;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      text-decoration: none;
+    }
+    .home-link {
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.45rem 0.7rem;
+      text-decoration: none;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+    main {
+      width: min(760px, 100%);
+      margin: 0 auto;
+      padding: 2.2rem 1.1rem 4rem;
+      display: grid;
+      gap: 1rem;
+    }
+    .setup, .game, .records {
+      background: rgba(24,35,56,0.92);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 18px 42px rgba(0,0,0,0.28);
+    }
+    .setup {
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .label {
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 900;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      margin-bottom: 0.22rem;
+    }
+    .value {
+      color: var(--text);
+      font-size: 1rem;
+      font-weight: 800;
+    }
+    .game {
+      padding: 1.3rem;
+      display: grid;
+      gap: 1rem;
+    }
+    .top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 1rem;
+    }
+    .score {
+      color: var(--accent);
+      font-size: 2rem;
+      font-weight: 900;
+      line-height: 1;
+    }
+    .scrambled {
+      min-height: 5.4rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--accent-2);
+      font-size: clamp(2rem, 8vw, 4.4rem);
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 1rem;
+      overflow-wrap: anywhere;
+    }
+    .answer-row {
+      display: flex;
+      gap: 0.6rem;
+    }
+    input {
+      flex: 1;
+      min-width: 0;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font: inherit;
+      font-size: 1rem;
+      padding: 0.78rem 0.9rem;
+      outline: none;
+    }
+    input:focus { border-color: var(--accent); }
+    button {
+      background: var(--accent);
+      border: none;
+      border-radius: 10px;
+      color: #052e16;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 900;
+      padding: 0.78rem 1rem;
+    }
+    button.secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .feedback {
+      min-height: 1.4rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .feedback.good { color: var(--accent); }
+    .feedback.bad { color: var(--wrong); }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+    .records {
+      padding: 1rem;
+      display: grid;
+      gap: 0.7rem;
+    }
+    .record-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .chip {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.82rem;
+      font-weight: 800;
+      padding: 0.42rem 0.6rem;
+    }
+    @media (max-width: 540px) {
+      .answer-row { flex-direction: column; }
+      button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="brand" href="/">gamed.fun</a>
+    <a class="home-link" href="/">All games</a>
+  </header>
+
+  <main>
+    <section class="setup">
+      <div>
+        <div class="label">Daily Word Scramble</div>
+        <div class="value" id="dailyLabel">Today</div>
+      </div>
+      <div>
+        <div class="label">Goal</div>
+        <div class="value">Solve 10 words</div>
+      </div>
+      <div>
+        <div class="label">Streak</div>
+        <div class="value" id="streakVal">0</div>
+      </div>
+    </section>
+
+    <section class="game">
+      <div class="top-row">
+        <div>
+          <div class="label">Score</div>
+          <div class="score"><span id="scoreVal">0</span>/10</div>
+        </div>
+        <div>
+          <div class="label">Word</div>
+          <div class="value"><span id="wordIndex">1</span> of 10</div>
+        </div>
+      </div>
+
+      <div class="scrambled" id="scrambledWord">READY</div>
+
+      <form class="answer-row" id="answerForm">
+        <input id="answerInput" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Unscramble the word">
+        <button type="submit">Submit</button>
+      </form>
+
+      <div class="feedback" id="feedback">Same challenge for everyone until midnight Eastern.</div>
+      <div class="actions">
+        <button class="secondary" id="restartBtn" type="button">Restart</button>
+        <button class="secondary" id="shareBtn" type="button">Share Result</button>
+      </div>
+    </section>
+
+    <section class="records">
+      <div class="label">Records</div>
+      <div class="record-list">
+        <span class="chip" id="todayRecord">Today: none</span>
+        <span class="chip" id="bestRecord">Best: none</span>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const WORDS = [
+      'planet','rocket','galaxy','keyboard','signal','puzzle','energy','future','silver','forest',
+      'window','school','dragon','comet','button','memory','typing','stream','bridge','castle',
+      'orange','winter','summer','launch','meteor','shadow','friend','secret','wonder','bright',
+      'system','random','cookie','flower','danger','travel','marble','circle','number','legend'
+    ];
+    const TOTAL = 10;
+    const STORE_KEY = 'daily_scramble_records';
+
+    const scrambledWord = document.getElementById('scrambledWord');
+    const answerForm = document.getElementById('answerForm');
+    const answerInput = document.getElementById('answerInput');
+    const scoreVal = document.getElementById('scoreVal');
+    const wordIndex = document.getElementById('wordIndex');
+    const feedback = document.getElementById('feedback');
+    const restartBtn = document.getElementById('restartBtn');
+    const shareBtn = document.getElementById('shareBtn');
+    const todayRecord = document.getElementById('todayRecord');
+    const bestRecord = document.getElementById('bestRecord');
+    const dailyLabel = document.getElementById('dailyLabel');
+    const streakVal = document.getElementById('streakVal');
+
+    let dayKey = getDailyKey();
+    let words = [];
+    let index = 0;
+    let score = 0;
+    let finished = false;
+
+    function getDailyKey(date = new Date()) {
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/New_York',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).formatToParts(date);
+      const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+      return `${values.year}-${values.month}-${values.day}`;
+    }
+
+    function seedFrom(text) {
+      let hash = 2166136261;
+      for (let i = 0; i < text.length; i++) {
+        hash ^= text.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+      }
+      return hash >>> 0;
+    }
+
+    function rng(seed) {
+      let value = seed >>> 0;
+      return () => {
+        value = Math.imul(1664525, value) + 1013904223;
+        return (value >>> 0) / 4294967296;
+      };
+    }
+
+    function shuffle(items, random) {
+      const arr = [...items];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function scramble(word, random) {
+      let scrambled = word;
+      let attempts = 0;
+      while (scrambled === word && attempts < 12) {
+        scrambled = shuffle(word.split(''), random).join('');
+        attempts++;
+      }
+      return scrambled;
+    }
+
+    function loadRecords() {
+      try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch { return {}; }
+    }
+
+    function saveRecords(records) {
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(records)); } catch {}
+    }
+
+    function start() {
+      dayKey = getDailyKey();
+      const random = rng(seedFrom(dayKey));
+      words = shuffle(WORDS, random).slice(0, TOTAL).map(word => ({
+        answer: word,
+        scrambled: scramble(word, random)
+      }));
+      index = 0;
+      score = 0;
+      finished = false;
+      dailyLabel.textContent = dayKey;
+      scoreVal.textContent = score;
+      answerInput.disabled = false;
+      renderWord();
+      renderRecords();
+      answerInput.focus();
+    }
+
+    function renderWord() {
+      if (index >= words.length) {
+        finish();
+        return;
+      }
+      scrambledWord.textContent = words[index].scrambled;
+      wordIndex.textContent = index + 1;
+      answerInput.value = '';
+      feedback.className = 'feedback';
+      feedback.textContent = 'Unscramble the daily word.';
+    }
+
+    function finish() {
+      finished = true;
+      answerInput.disabled = true;
+      scrambledWord.textContent = score === TOTAL ? 'PERFECT' : 'DONE';
+      feedback.className = 'feedback good';
+      feedback.textContent = `You solved ${score} of ${TOTAL}.`;
+      saveResult();
+      renderRecords();
+    }
+
+    function saveResult() {
+      const records = loadRecords();
+      records.days ||= {};
+      records.days[dayKey] = Math.max(records.days[dayKey] || 0, score);
+      records.best = Math.max(records.best || 0, score);
+      if (score === TOTAL) records.streak = (records.lastPerfect === previousDay(dayKey) ? (records.streak || 0) + 1 : 1);
+      if (score === TOTAL) records.lastPerfect = dayKey;
+      saveRecords(records);
+    }
+
+    function previousDay(key) {
+      const [year, month, day] = key.split('-').map(Number);
+      const date = new Date(Date.UTC(year, month - 1, day));
+      date.setUTCDate(date.getUTCDate() - 1);
+      return date.toISOString().slice(0, 10);
+    }
+
+    function renderRecords() {
+      const records = loadRecords();
+      todayRecord.textContent = `Today: ${records.days?.[dayKey] || 0}/${TOTAL}`;
+      bestRecord.textContent = `Best: ${records.best || 0}/${TOTAL}`;
+      streakVal.textContent = records.streak || 0;
+    }
+
+    answerForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (finished) return;
+      const guess = answerInput.value.trim().toLowerCase();
+      const correct = words[index].answer;
+      if (guess === correct) {
+        score++;
+        scoreVal.textContent = score;
+        feedback.className = 'feedback good';
+        feedback.textContent = 'Correct.';
+      } else {
+        feedback.className = 'feedback bad';
+        feedback.textContent = `Wrong. It was "${correct}".`;
+      }
+      index++;
+      setTimeout(renderWord, 550);
+    });
+
+    restartBtn.addEventListener('click', start);
+
+    shareBtn.addEventListener('click', async () => {
+      const text = `Daily Word Scramble\n${score}/${TOTAL} solved\nhttps://gamed.fun/word-scramble/`;
+      try {
+        if (navigator.share) await navigator.share({ title: 'Daily Word Scramble', text });
+        else await navigator.clipboard.writeText(text);
+        feedback.className = 'feedback good';
+        feedback.textContent = 'Result copied.';
+      } catch {
+        feedback.className = 'feedback';
+        feedback.textContent = 'Share canceled.';
+      }
+    });
+
+    start();
+  </script>
+</body>
+</html>
