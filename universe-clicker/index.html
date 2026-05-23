@@ -184,7 +184,6 @@
   <video id="tidal-vid" src="file:///Users/rebeccafarley/Downloads/IT_S_VERIFIED_Tidal_Wave_NEW_TOP_1_in_Perfect_Quality_4K_60fps_Geometry_Dash.mp4" muted playsinline loop></video>
 </div>
 <div id="flashbang-overlay"></div>
-<audio id="epic-audio" src="file:///Users/rebeccafarley/Downloads/epic.mp3" preload="auto"></audio>
 <div id="elixir-bar"><span id="elixir-drops"></span><span id="elixir-label">ELIXIR</span></div>
 
 <div id="game">
@@ -368,9 +367,6 @@ const FUN_UPGRADES = [
 
   { id:'gameover', name:'Game Over',         icon:'💀', desc:'classic game over sound',     costFactor:6,  epsFactor:1.8,
     onBuy() { showPopup('GAME OVER... jk 💀', 'gameover-popup'); } },
-
-  { id:'rick',      name:'Rick Roll',          icon:'🎵', desc:'you know the rules',            costFactor:7,  epsFactor:2,
-    onBuy() { playRickRoll(); } },
 
   { id:'flashbang', name:'Flashbang',         icon:'💡', desc:'blinding white flash',          costFactor:5,  epsFactor:1.5,
     onBuy() { doFlashbang(); } },
@@ -795,15 +791,6 @@ function doFlashbang() {
   el.classList.add('bang');
   setTimeout(() => el.classList.remove('bang'), 1200);
 }
-
-// ── Rick Roll ────────────────────────────────
-const rickAudio = document.getElementById('epic-audio');
-function playRickRoll() {
-  rickAudio.currentTime = 0;
-  rickAudio.play().catch(() => {});
-  showPopup('🎵 Never Gonna Give You Up 🎵', 'toast-popup');
-}
-setInterval(() => { if (!G.awaitingMs && !G.gameOver && Math.random() < 0.4) playRickRoll(); }, 90000);
 
 // ── Generic popup ────────────────────────────
 function showPopup(text, cls) {
