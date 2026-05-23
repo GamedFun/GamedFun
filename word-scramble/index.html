@@ -370,6 +370,12 @@
 
     function start() {
       dayKey = getDailyKey();
+      const attempt = getTodayAttempt();
+      if (attempt) {
+        showLockedAttempt(attempt);
+        renderRecords();
+        return;
+      }
       const random = rng(seedFrom(`${dayKey}:${difficulty}`));
       words = shuffle(WORDS[difficulty], random).slice(0, TOTAL).map(word => ({
         answer: word,
@@ -381,9 +387,31 @@
       dailyLabel.textContent = `${difficulty} / ${dayKey}`;
       scoreVal.textContent = score;
       answerInput.disabled = false;
+      restartBtn.disabled = false;
       renderWord();
       renderRecords();
       answerInput.focus();
+    }
+
+    function getTodayAttempt() {
+      const records = migrateOldRecords(loadRecords());
+      const modeRecords = records[difficulty] || {};
+      return modeRecords.attempts?.[dayKey] || null;
+    }
+
+    function showLockedAttempt(attempt) {
+      finished = true;
+      score = attempt.score || 0;
+      index = attempt.index || TOTAL;
+      dailyLabel.textContent = `${difficulty} / ${dayKey}`;
+      scoreVal.textContent = score;
+      wordIndex.textContent = Math.min(index + 1, TOTAL);
+      answerInput.value = '';
+      answerInput.disabled = true;
+      restartBtn.disabled = true;
+      scrambledWord.textContent = 'PLAYED';
+      feedback.className = 'feedback';
+      feedback.textContent = `You already used today's ${difficulty} attempt. Score: ${score}/${TOTAL}.`;
     }
 
     function renderWord() {
@@ -401,6 +429,7 @@
     function finish() {
       finished = true;
       answerInput.disabled = true;
+      restartBtn.disabled = true;
       scrambledWord.textContent = score === TOTAL ? 'PERFECT' : 'DONE';
       feedback.className = 'feedback good';
       feedback.textContent = `You solved ${score} of ${TOTAL}.`;
@@ -412,7 +441,9 @@
       const records = migrateOldRecords(loadRecords());
       records[difficulty] ||= {};
       const modeRecords = records[difficulty];
+      modeRecords.attempts ||= {};
       modeRecords.days ||= {};
+      modeRecords.attempts[dayKey] = { score, index: TOTAL, finished: true };
       modeRecords.days[dayKey] = Math.max(modeRecords.days[dayKey] || 0, score);
       modeRecords.best = Math.max(modeRecords.best || 0, score);
       if (score === TOTAL) modeRecords.streak = (modeRecords.lastPerfect === previousDay(dayKey) ? (modeRecords.streak || 0) + 1 : 1);
@@ -424,11 +455,13 @@
       if (records.days || records.best || records.streak) {
         records.medium = {
           days: records.days || {},
+          attempts: records.attempts || {},
           best: records.best || 0,
           streak: records.streak || 0,
           lastPerfect: records.lastPerfect,
         };
         delete records.days;
+        delete records.attempts;
         delete records.best;
         delete records.streak;
         delete records.lastPerfect;
@@ -450,6 +483,17 @@
       todayRecord.textContent = `Today: ${modeRecords.days?.[dayKey] || 0}/${TOTAL}`;
       bestRecord.textContent = `Best: ${modeRecords.best || 0}/${TOTAL}`;
       streakVal.textContent = modeRecords.streak || 0;
+    }
+
+    function saveCurrentAttempt() {
+      const records = migrateOldRecords(loadRecords());
+      records[difficulty] ||= {};
+      const modeRecords = records[difficulty];
+      modeRecords.attempts ||= {};
+      modeRecords.days ||= {};
+      modeRecords.attempts[dayKey] = { score, index, finished: false };
+      modeRecords.days[dayKey] = Math.max(modeRecords.days[dayKey] || 0, score);
+      saveRecords(records);
     }
 
     difficultyBtns.forEach(btn => {
@@ -476,6 +520,7 @@
         feedback.textContent = `Wrong. It was "${correct}".`;
       }
       index++;
+      saveCurrentAttempt();
       setTimeout(renderWord, 550);
     });
 
