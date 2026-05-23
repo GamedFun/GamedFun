@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Universe Destroyer</title>
+  <title>Universe Clicker</title>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     :root { --era: #ff6b35; --bg: #07070f; }
@@ -153,9 +153,6 @@
     .clash-popup { background: rgba(0,0,0,.92); border: 2px solid #b44fcc; color: #e080ff; font-size: 1.1rem; letter-spacing: .04em; }
     .levelup-popup { background: rgba(0,40,0,.92); border: 2px solid #00ff88; color: #00ff88; font-size: 1.2rem; letter-spacing: .06em; }
     .gameover-popup { background: rgba(20,0,0,.95); border: 2px solid #ff3333; color: #ff5555; font-size: 1.1rem; letter-spacing: .04em; }
-    .upg.rick { background: linear-gradient(135deg,rgba(255,0,0,.07),rgba(255,140,0,.07),rgba(0,180,255,.07)); border: 1.5px solid; border-image: linear-gradient(135deg,#ff4444,#ff8800,#00ccff) 1; animation: rickGlow 2s ease-in-out infinite; }
-    @keyframes rickGlow { 0%,100%{box-shadow:0 0 6px rgba(255,100,0,.3)} 50%{box-shadow:0 0 14px rgba(0,200,255,.35)} }
-    .rick-popup { background: rgba(10,10,10,.96); border: 2px solid #ff4444; color: #ff8800; font-size: 1rem; letter-spacing: .05em; }
     /* TIDAL WAVE */
     #tidal-bg { display:none; position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
     #tidal-bg.on { display:block; }
@@ -171,6 +168,10 @@
     .tidal-popup { background:rgba(0,20,60,.95); border:2px solid #00aaff; color:#00eeff; font-size:1.1rem; letter-spacing:.06em; }
     .upg.tidal-upg { background:linear-gradient(135deg,rgba(0,80,180,.1),rgba(0,200,255,.07)); border:1.5px solid #00aaff; animation:twGlow 2s ease-in-out infinite; }
     @keyframes twGlow { 0%,100%{box-shadow:0 0 6px rgba(0,150,255,.3)} 50%{box-shadow:0 0 16px rgba(0,220,255,.5)} }
+    /* FLASHBANG */
+    #flashbang-overlay { display:none; position:fixed; inset:0; z-index:9999; background:#fff; pointer-events:none; }
+    #flashbang-overlay.bang { display:block; animation:flashOut 1.1s ease-out forwards; }
+    @keyframes flashOut { 0%{opacity:1} 100%{opacity:0} }
 
   </style>
 </head>
@@ -182,6 +183,8 @@
 <div id="tidal-overlay">
   <video id="tidal-vid" src="file:///Users/rebeccafarley/Downloads/IT_S_VERIFIED_Tidal_Wave_NEW_TOP_1_in_Perfect_Quality_4K_60fps_Geometry_Dash.mp4" muted playsinline loop></video>
 </div>
+<div id="flashbang-overlay"></div>
+<audio id="epic-audio" src="file:///Users/rebeccafarley/Downloads/epic.mp3" preload="auto"></audio>
 <div id="elixir-bar"><span id="elixir-drops"></span><span id="elixir-label">ELIXIR</span></div>
 
 <div id="game">
@@ -255,178 +258,6 @@
 
 <script>
 'use strict';
-
-// ══════════════════════════════════════════════
-//  SOUND ENGINE  (Web Audio API synthesis)
-// ══════════════════════════════════════════════
-const SFX = (() => {
-  let ctx = null;
-  let lastWhoosh = 0;
-
-  function ac() {
-    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
-    if (ctx.state === 'suspended') ctx.resume();
-    return ctx;
-  }
-
-  // One tone: freq, waveform, start-time, duration, volume
-  function tone(freq, wave, t, dur, vol = 0.22) {
-    const c = ac();
-    const osc = c.createOscillator(), g = c.createGain();
-    osc.type = wave; osc.frequency.value = freq;
-    g.gain.setValueAtTime(vol, t);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    osc.connect(g); g.connect(c.destination);
-    osc.start(t); osc.stop(t + dur + 0.05);
-  }
-
-  // Frequency sweep
-  function sweep(f0, f1, wave, t, dur, vol = 0.22) {
-    const c = ac();
-    const osc = c.createOscillator(), g = c.createGain();
-    osc.type = wave;
-    osc.frequency.setValueAtTime(f0, t);
-    osc.frequency.exponentialRampToValueAtTime(f1, t + dur);
-    g.gain.setValueAtTime(vol, t);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    osc.connect(g); g.connect(c.destination);
-    osc.start(t); osc.stop(t + dur + 0.05);
-  }
-
-  // Filtered noise hit (for whooshes and thuds)
-  function noiseHit(t, dur, freq, q = 2, vol = 0.3) {
-    const c = ac();
-    const buf = c.createBuffer(1, Math.ceil(c.sampleRate * dur), c.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-    const src  = c.createBufferSource(); src.buffer = buf;
-    const filt = c.createBiquadFilter(); filt.type = 'bandpass'; filt.frequency.value = freq; filt.Q.value = q;
-    const g = c.createGain();
-    g.gain.setValueAtTime(vol, t);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    src.connect(filt); filt.connect(g); g.connect(c.destination);
-    src.start(t);
-  }
-
-  return {
-    // ── Subway Surfers ──────────────────────────
-    // Coin collect: two quick ascending "ding" notes
-    coin() {
-      const c = ac(), now = c.currentTime;
-      tone(880,  'sine', now,        0.09, 0.3);
-      tone(1320, 'sine', now + 0.10, 0.14, 0.28);
-    },
-    // Whoosh when a runner crosses (throttled)
-    whoosh() {
-      const now = Date.now();
-      if (now - lastWhoosh < 400) return;
-      lastWhoosh = now;
-      const c = ac(), t = c.currentTime;
-      const buf = c.createBuffer(1, Math.ceil(c.sampleRate * 0.22), c.sampleRate);
-      const d = buf.getChannelData(0);
-      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-      const src  = c.createBufferSource(); src.buffer = buf;
-      const filt = c.createBiquadFilter(); filt.type = 'bandpass';
-      filt.frequency.setValueAtTime(3200, t);
-      filt.frequency.exponentialRampToValueAtTime(250, t + 0.2);
-      filt.Q.value = 1.5;
-      const g = c.createGain();
-      g.gain.setValueAtTime(0.32, t);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
-      src.connect(filt); filt.connect(g); g.connect(c.destination);
-      src.start(t);
-    },
-
-    // ── Clash Royale ────────────────────────────
-    // Card deploy: high whoosh descending + low thud
-    cardDeploy() {
-      const c = ac(), now = c.currentTime;
-      sweep(1100, 110, 'sawtooth', now,        0.18, 0.28);
-      noiseHit(now + 0.14, 0.14, 80, 3, 0.4);
-      sweep(110, 55, 'sine', now + 0.14, 0.12, 0.25);
-    },
-    // Elixir collect: ascending bubbling pings
-    elixir() {
-      const c = ac(), now = c.currentTime;
-      [300, 420, 560, 700, 880].forEach((f, i) =>
-        tone(f, 'sine', now + i * 0.065, 0.1, 0.18));
-    },
-    // Clash fanfare: short medieval horn-feel ascending phrase
-    fanfare() {
-      const c = ac(), now = c.currentTime;
-      // G4 C5 E5 G5 — triumphant rising
-      const notes = [392, 523, 659, 784];
-      notes.forEach((f, i) => {
-        sweep(f * 1.04, f, 'square', now + i * 0.13, 0.14, 0.18);
-        // Add a sine undertone for warmth
-        tone(f / 2, 'sine', now + i * 0.13, 0.14, 0.08);
-      });
-      // Final chord
-      [392, 523, 784].forEach(f => tone(f, 'sine', now + 0.58, 0.45, 0.1));
-    },
-
-
-    // ── Other game SFX ──────────────────────────
-    // Among Us task complete: two ascending tones
-    taskComplete() {
-      const c = ac(), now = c.currentTime;
-      tone(660, 'sine', now,        0.1,  0.25);
-      tone(990, 'sine', now + 0.12, 0.15, 0.25);
-    },
-    // Minecraft diamond: magical ascending sparkle
-    diamondFind() {
-      const c = ac(), now = c.currentTime;
-      [523, 659, 784, 1047, 1319].forEach((f, i) =>
-        tone(f, 'sine', now + i * 0.09, 0.14, 0.2));
-    },
-    // Nyan Cat: short snippet of the melody (D D A A B B A)
-    nyanMelody() {
-      const c = ac(), now = c.currentTime;
-      [587, 587, 880, 880, 988, 988, 880].forEach((f, i) =>
-        tone(f, 'square', now + i * 0.1, 0.09, 0.14));
-    },
-    // Cat meow: rising then falling glide
-    meow() {
-      const c = ac(), now = c.currentTime;
-      sweep(580, 820, 'sine', now,        0.12, 0.2);
-      sweep(820, 520, 'sine', now + 0.12, 0.16, 0.18);
-    },
-    // Level up: fast ascending scale
-    levelUp() {
-      const c = ac(), now = c.currentTime;
-      [523, 659, 784, 1047, 1319].forEach((f, i) =>
-        tone(f, 'square', now + i * 0.08, 0.09, 0.18));
-      // Final big note
-      tone(1568, 'square', now + 0.44, 0.3, 0.18);
-    },
-    // Power up: rising sweep
-    powerUp() {
-      const c = ac(), now = c.currentTime;
-      sweep(180, 900, 'sine', now, 0.28, 0.22);
-    },
-    // Game over: descending foreboding
-    gameOver() {
-      const c = ac(), now = c.currentTime;
-      [392, 330, 277, 220, 185].forEach((f, i) =>
-        tone(f, 'square', now + i * 0.2, 0.22, 0.18));
-    },
-    rickSong() {
-      const c = ac(), now = c.currentTime;
-      // "Never Gonna Give You Up" chorus melody (sawtooth = cheesy synth)
-      const notes = [
-        [440, 0,    0.18], // A4
-        [494, 0.22, 0.18], // B4
-        [587, 0.44, 0.28], // D5
-        [494, 0.76, 0.16], // B4
-        [659, 0.96, 0.36], // E5
-        [587, 1.36, 0.52], // D5 (held)
-        [523, 2.0,  0.18], // C5
-        [587, 2.22, 0.5],  // D5 (held)
-      ];
-      for (const [freq, t, dur] of notes) tone(freq, 'sawtooth', now + t, dur, 0.14);
-    },
-  };
-})();
 
 // ══════════════════════════════════════════════
 //  ERA DATA
@@ -505,44 +336,46 @@ const FUN_BASE = 100;
 
 const FUN_UPGRADES = [
   { id:'subway',   name:'Subway Surfers',    icon:'🛹', desc:'adds a runner',             costFactor:3,  epsFactor:1,
-    onBuy() { addCritter('subway'); addCritter('subway'); SFX.coin(); showSubwayCorner(); } },
+    onBuy() { addCritter('subway'); addCritter('subway'); showSubwayCorner(); } },
 
   { id:'clash',    name:'Clash Royale',      icon:'⚔️', desc:'deploy a card!',            costFactor:8,  epsFactor:2.5,
-    onBuy() { SFX.cardDeploy(); setTimeout(() => SFX.fanfare(), 280); startElixir(); addCritter('clash'); showPopup('⚔️ Clash Royale! ⚔️', 'clash-popup'); } },
+    onBuy() { startElixir(); addCritter(randCR()); showPopup('⚔️ Clash Royale! ⚔️', 'clash-popup'); } },
 
 
   { id:'amogus',   name:'Among Us',          icon:'🫐', desc:'find the impostor',           costFactor:4,  epsFactor:1.5,
-    onBuy() { SFX.taskComplete(); addCritter('amogus'); addCritter('amogus'); } },
+    onBuy() { addCritter('amogus'); addCritter('amogus'); } },
 
   { id:'minecraft',name:'Minecraft',         icon:'⛏️', desc:'you found diamonds!',       costFactor:10, epsFactor:3,
-    onBuy() { diamondRain(); SFX.diamondFind(); } },
+    onBuy() { diamondRain(); } },
 
   { id:'rainbow',  name:'Rainbow Mode',      icon:'🌈', desc:'very colorful',              costFactor:8,  epsFactor:2,
     onBuy() { document.body.classList.add('rainbow'); G.fx.rainbow = true; } },
 
   { id:'nyan',     name:'Nyan Cat',          icon:'🐱', desc:'rainbow trail on every click',costFactor:6, epsFactor:1.8,
-    onBuy() { G.fx.nyan = true; SFX.nyanMelody(); addCritter('nyan'); addCritter('rainbow'); } },
+    onBuy() { G.fx.nyan = true; addCritter('nyan'); } },
 
   { id:'cats',     name:'Cat Tax',           icon:'🐈', desc:'cats own everything',         costFactor:4,  epsFactor:1,
-    onBuy() { addCritter('cat'); addCritter('cat'); SFX.meow(); } },
+    onBuy() { addCritter('cat'); addCritter('cat'); } },
 
   { id:'levelup',  name:'Level Up',          icon:'🎮', desc:'classic game sound',          costFactor:5,  epsFactor:1.5,
-    onBuy() { SFX.levelUp(); showPopup('LEVEL UP! 🎮', 'levelup-popup'); } },
+    onBuy() { showPopup('LEVEL UP! 🎮', 'levelup-popup'); } },
 
   { id:'darkmode', name:'Dark Mode',         icon:'🌙', desc:'nothing changes lol',         costFactor:1,  epsFactor:0.2,
     onBuy() { showPopup('Already in dark mode 💀', 'toast-popup'); } },
 
   { id:'dogs',     name:'Dog Pack',          icon:'🐕', desc:'unleash the dogs',            costFactor:5,  epsFactor:1.2,
-    onBuy() { addCritter('dog'); addCritter('dog'); SFX.meow(); } },
+    onBuy() { addCritter('dog'); addCritter('dog'); } },
 
   { id:'gameover', name:'Game Over',         icon:'💀', desc:'classic game over sound',     costFactor:6,  epsFactor:1.8,
-    onBuy() { SFX.gameOver(); showPopup('GAME OVER... jk 💀', 'gameover-popup'); } },
+    onBuy() { showPopup('GAME OVER... jk 💀', 'gameover-popup'); } },
 
-  { id:'rick',     name:'Rick Roll',         icon:'🎵', desc:'you know the rules',           costFactor:7,  epsFactor:2,
-    extraClass:'rick',
-    onBuy() { SFX.rickSong(); showPopup('🎵 Never Gonna Give You Up 🎵', 'rick-popup'); } },
+  { id:'rick',      name:'Rick Roll',          icon:'🎵', desc:'you know the rules',            costFactor:7,  epsFactor:2,
+    onBuy() { playRickRoll(); } },
 
-  { id:'tidal',    name:'Tidal Wave',        icon:'🌊', desc:'new top 1 · geometry dash',    costFactor:12, epsFactor:3.5,
+  { id:'flashbang', name:'Flashbang',         icon:'💡', desc:'blinding white flash',          costFactor:5,  epsFactor:1.5,
+    onBuy() { doFlashbang(); } },
+
+  { id:'tidal',    name:'Tidal Wave',        icon:'🌊', desc:'new top 1',                     costFactor:12, epsFactor:3.5,
     extraClass:'tidal-upg',
     onBuy() { playTidalWave(); } },
 ];
@@ -808,15 +641,26 @@ function addCritter(emoji) {
 }
 
 const CRITTER_DEFS = {
-  subway:  { gif:'https://media1.tenor.com/m/NmtI99JHKj0AAAAd/save-me-subway-surfer.gif', h:'90px',  mult:6,  label:'🛹', sfx:'coin',         glow:'#ffcc00' },
-  nyan:    { gif:'https://media.tenor.com/8lR3_1m-i94AAAAj/cat.gif',                       h:'56px',  mult:10, label:'🌈', sfx:'nyanMelody',   glow:'#ff88ff' },
-  amogus:  { gif:'https://media1.tenor.com/m/hidiIuFkoJsAAAAd/among-us-oh-lawd.gif',       h:'70px',  mult:5,  label:'📋', sfx:'taskComplete', glow:'#ff4444' },
-  clash:   { gif:'https://media1.tenor.com/m/eFvRa3oPiocAAAAd/electro-giant-clash-royale.gif', h:'80px', mult:7, label:'⚔️', sfx:'cardDeploy', glow:'#aa44ff' },
-  cat:     { gif:'https://media.tenor.com/_nR-1FLTOAwAAAAj/pixel-cat.gif',                 h:'50px',  mult:8,  label:'🐾', sfx:'meow',         glow:'#ffaa44' },
-  dog:     { gif:'https://media.tenor.com/_G4aFMQseZ8AAAAj/running-coming.gif',            h:'70px',  mult:5,  label:'🐕', sfx:'meow',         glow:'#ffdd88' },
-  diamond: { gif:'https://media.tenor.com/hI1WS8vXTykAAAAj/minecraft-diamonds.gif',        h:'50px',  mult:6,  label:'💎', sfx:'diamondFind',  glow:'#44ddff' },
-  rainbow: { gif:'https://media1.tenor.com/m/P7iZw3CO17gAAAAd/rainbow-sparkle.gif',        h:'55px',  mult:6,  label:'🌈', sfx:'coin',         glow:'#ffaaff' },
+  subway:     { gif:'https://media1.tenor.com/m/NmtI99JHKj0AAAAd/save-me-subway-surfer.gif',        h:'90px', mult:6,  label:'🛹', glow:'#ffcc00' },
+  nyan:       { gif:'https://media.tenor.com/8lR3_1m-i94AAAAj/cat.gif',                              h:'56px', mult:10, label:'🌈', glow:'#ff88ff' },
+  amogus:     { gif:'https://media1.tenor.com/m/hidiIuFkoJsAAAAd/among-us-oh-lawd.gif',              h:'70px', mult:5,  label:'📋', glow:'#ff4444' },
+  clash:      { gif:'https://media1.tenor.com/m/eFvRa3oPiocAAAAd/electro-giant-clash-royale.gif',    h:'80px', mult:7,  label:'⚡', glow:'#aa44ff' },
+  cr_knight:  { gif:'https://media1.tenor.com/m/aAIW1nNFq14AAAAd/clash-royale-knight.gif',           h:'72px', mult:6,  label:'⚔️', glow:'#cc9944' },
+  cr_hogrider:{ gif:'https://media1.tenor.com/m/-vSgLEtUtesAAAAd/clash-royale-hog-rider.gif',        h:'76px', mult:8,  label:'🐗', glow:'#ff7700' },
+  cr_goblin:  { gif:'https://media1.tenor.com/m/NOlLx4EFkbUAAAAd/clash-royale-goblin.gif',           h:'60px', mult:5,  label:'👺', glow:'#55dd44' },
+  cr_pekka:   { gif:'https://media1.tenor.com/m/QSNAKjW2OJAAAAAd/clash-royale.gif',                  h:'88px', mult:9,  label:'🤖', glow:'#6644ff' },
+  cr_balloon: { gif:'https://media1.tenor.com/m/pWZMGJzy4vwAAAAd/balloon-clash-royale.gif',          h:'70px', mult:7,  label:'🎈', glow:'#ff44aa' },
+  cr_witch:   { gif:'https://media1.tenor.com/m/g5S859JZyMwAAAAd/clash-royale-night-witch.gif',      h:'74px', mult:8,  label:'🧙', glow:'#aa22ff' },
+  cr_giant:   { gif:'https://media1.tenor.com/m/SlY91gTh7EIAAAAd/clash-royale-giant.gif',            h:'90px', mult:7,  label:'👊', glow:'#bb7744' },
+  cr_dragon:  { gif:'https://media1.tenor.com/m/ZQT-nW3xysIAAAAd/clash-royale-baby-dragon.gif',      h:'68px', mult:9,  label:'🐉', glow:'#ff5500' },
+  cat:        { gif:'https://media.tenor.com/_nR-1FLTOAwAAAAj/pixel-cat.gif',                        h:'50px', mult:8,  label:'🐾', glow:'#ffaa44' },
+  dog:        { gif:'https://media.tenor.com/_G4aFMQseZ8AAAAj/running-coming.gif',                   h:'70px', mult:5,  label:'🐕', glow:'#ffdd88' },
+  diamond:    { gif:'https://media.tenor.com/hI1WS8vXTykAAAAj/minecraft-diamonds.gif',               h:'50px', mult:6,  label:'💎', glow:'#44ddff' },
+  rainbow:    { gif:'https://media1.tenor.com/m/P7iZw3CO17gAAAAd/rainbow-sparkle.gif',               h:'55px', mult:6,  label:'🌈', glow:'#ffaaff' },
 };
+
+const CR_CARDS = ['clash','cr_knight','cr_hogrider','cr_goblin','cr_pekka','cr_balloon','cr_witch','cr_giant','cr_dragon'];
+const randCR = () => CR_CARDS[Math.floor(Math.random() * CR_CARDS.length)];
 function spawnOneCritter(id) {
   const def = CRITTER_DEFS[id] || CRITTER_DEFS.cat;
   const el  = document.createElement('div');
@@ -836,10 +680,9 @@ function spawnOneCritter(id) {
     const bonus = Math.max(1, Math.floor(clickPow() * def.mult));
     G.energy += bonus; G.progress += bonus * 0.5;
     spawnFloat(ev.clientX, ev.clientY, def.label + ' +' + fmt(bonus));
-    SFX[def.sfx]?.(); el.remove();
+    el.remove();
     checkProgress(); updateHUD();
   }, { once: true });
-  if (['subway','clash','amogus'].includes(id)) SFX.whoosh();
 }
 
 // ── Tidal Wave ───────────────────────────────
@@ -936,16 +779,31 @@ function startElixir() {
       drop.className = 'elixir-drop';
       drop.textContent = '💜';
       elixirDrops.appendChild(drop);
-      SFX.elixir();
     } else {
-      // Spend elixir
       elixirDrops.innerHTML = '';
       elixirLevel = 0;
-      SFX.cardDeploy();
-      addCritter('clash');
+      addCritter(randCR());
     }
   }, 1800);
 }
+
+// ── Flashbang ────────────────────────────────
+function doFlashbang() {
+  const el = document.getElementById('flashbang-overlay');
+  el.classList.remove('bang');
+  void el.offsetWidth;
+  el.classList.add('bang');
+  setTimeout(() => el.classList.remove('bang'), 1200);
+}
+
+// ── Rick Roll ────────────────────────────────
+const rickAudio = document.getElementById('epic-audio');
+function playRickRoll() {
+  rickAudio.currentTime = 0;
+  rickAudio.play().catch(() => {});
+  showPopup('🎵 Never Gonna Give You Up 🎵', 'toast-popup');
+}
+setInterval(() => { if (!G.awaitingMs && !G.gameOver && Math.random() < 0.4) playRickRoll(); }, 90000);
 
 // ── Generic popup ────────────────────────────
 function showPopup(text, cls) {
@@ -1076,31 +934,9 @@ setInterval(save, 15_000);
 // ══════════════════════════════════════════════
 //  SAVE / LOAD
 // ══════════════════════════════════════════════
-function save() {
-  try { localStorage.setItem('uc_v1', JSON.stringify(G)); } catch(_) {}
-}
-function load() {
-  try {
-    const raw = localStorage.getItem('uc_v1'); if (!raw) return;
-    const d = JSON.parse(raw);
-    G.energy     = d.energy     ?? 0;
-    G.eraIdx     = Math.min(d.eraIdx ?? 0, ERAS.length-1);
-    G.progress   = d.progress   ?? 0;
-    G.multActive = d.multActive ?? false;
-    G.multTimer  = d.multTimer  ?? 0;
-    G.awaitingMs = d.awaitingMs ?? false;
-    G.gameOver   = d.gameOver   ?? false;
-    G.funCounts  = FUN_UPGRADES.map((_,i) => d.funCounts?.[i] ?? 0);
-    G.funEps     = d.funEps ?? 0;
-    G.fx         = { rainbow:false, nyan:false, ...(d.fx ?? {}) };
-    G.counts     = ERAS.map((e,ei) => e.upgrades.map((_,ui) => d.counts?.[ei]?.[ui] ?? 0));
-    G.visible    = ERAS.map((e,ei) => {
-      const sv = d.visible?.[ei];
-      if (Array.isArray(sv) && sv.length===3) return sv.map(i => (i < e.upgrades.length ? i : 0));
-      return [0,1,2];
-    });
-  } catch(_) {}
-}
+function save() {}
+function load() {}
+window.addEventListener('beforeunload', () => localStorage.removeItem('uc_v1'));
 
 // ══════════════════════════════════════════════
 //  INIT
