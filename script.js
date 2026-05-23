@@ -58,6 +58,7 @@ const typingContainer = document.getElementById('typingContainer');
 const settingsOverlay = document.getElementById('settingsOverlay');
 const progressFill   = document.getElementById('progressFill');
 const wpmChart        = document.getElementById('wpmChart');
+const chartTooltip    = document.getElementById('chartTooltip');
 const rankName        = document.getElementById('rankName');
 const prestigeBadge   = document.getElementById('prestigeBadge');
 const xpText          = document.getElementById('xpText');
@@ -77,6 +78,7 @@ const privacyBtn      = document.getElementById('privacyBtn');
 const closePrivacy    = document.getElementById('closePrivacy');
 
 let profile = loadProfile();
+let chartState = null;
 
 /* ── Audio ── */
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -84,6 +86,7 @@ let audioCtx = null;
 function playClick() {
   if (!state.sound) return;
   if (!audioCtx) audioCtx = new AudioCtx();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
   const o = audioCtx.createOscillator();
   const g = audioCtx.createGain();
   o.connect(g); g.connect(audioCtx.destination);
@@ -721,6 +724,7 @@ function drawWpmChart() {
   const ySpeed = (value) => height - pad - (plotH * value) / maxSpeed;
   const yPercent = (value) => height - pad - (plotH * value) / 100;
   const yErrors = (value) => height - pad - (plotH * value) / maxErrors;
+  chartState = { samples, pad, plotW, width, height, xFor, ySpeed, yPercent };
 
   function drawLine(key, color, yScale, widthPx = 2) {
     ctx.strokeStyle = color;
@@ -771,10 +775,68 @@ function drawWpmChart() {
     ctx.fillText(label, lx + 12, height - 5);
     lx += ctx.measureText(label).width + 42;
   });
+
+  const activeIndex = Number(wpmChart.dataset.activeIndex);
+  if (!Number.isNaN(activeIndex) && samples[activeIndex]) {
+    drawChartMarker(activeIndex);
+  }
+}
+
+function drawChartMarker(index) {
+  if (!chartState) return;
+  const ctx = wpmChart.getContext('2d');
+  const style = getComputedStyle(document.documentElement);
+  const accent = style.getPropertyValue('--accent').trim();
+  const sample = chartState.samples[index];
+  const x = chartState.xFor(index);
+  const y = chartState.yPercent(sample.consistency || 0);
+
+  ctx.save();
+  ctx.strokeStyle = accent;
+  ctx.globalAlpha = 0.65;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x, chartState.pad);
+  ctx.lineTo(x, chartState.height - chartState.pad);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = accent;
+  ctx.beginPath();
+  ctx.arc(x, y, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function showChartPoint(clientX) {
+  if (!chartState || !chartState.samples.length) return;
+  const rect = wpmChart.getBoundingClientRect();
+  const x = Math.min(Math.max(clientX - rect.left, chartState.pad), chartState.width - chartState.pad);
+  const rawIndex = chartState.samples.length === 1
+    ? 0
+    : Math.round(((x - chartState.pad) / chartState.plotW) * (chartState.samples.length - 1));
+  const index = Math.max(0, Math.min(chartState.samples.length - 1, rawIndex));
+  const sample = chartState.samples[index];
+  wpmChart.dataset.activeIndex = String(index);
+  drawWpmChart();
+
+  chartTooltip.classList.remove('hidden');
+  chartTooltip.innerHTML = `
+    <span>${sample.second || 0}s</span>
+    <span>${sample.consistency || 0}% consistency</span>
+    <span>${sample.wpm || 0} wpm</span>
+    <span>${sample.raw || 0} raw</span>
+    <span>${sample.acc || 100}% acc</span>
+    <span>${sample.errors || 0} errors</span>
+  `;
 }
 
 /* ── Focus / Shortcuts ── */
 typingContainer.addEventListener('click', () => typingInput.focus());
+wpmChart.addEventListener('click', (e) => showChartPoint(e.clientX));
+wpmChart.addEventListener('touchstart', (e) => {
+  if (!e.touches.length) return;
+  showChartPoint(e.touches[0].clientX);
+}, { passive: true });
 
 let tabDown = false;
 document.addEventListener('keydown', (e) => {
