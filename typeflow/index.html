@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TypeFlow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anonymous+Pro:wght@400;700&family=Azeret+Mono:wght@400;700&family=Cousine:wght@400;700&family=Courier+Prime:wght@400;700&family=DM+Mono:wght@400;500&family=Fira+Code:wght@400;700&family=IBM+Plex+Mono:wght@400;700&family=Inconsolata:wght@400;700&family=JetBrains+Mono:wght@400;700&family=Kode+Mono:wght@400;700&family=Major+Mono+Display&family=Nova+Mono&family=Overpass+Mono:wght@400;700&family=Pixelify+Sans:wght@400;700&family=Press+Start+2P&family=Red+Hat+Mono:wght@400;700&family=Roboto+Mono:wght@400;700&family=Share+Tech+Mono&family=Silkscreen:wght@400;700&family=Source+Code+Pro:wght@400;700&family=Space+Mono:wght@400;700&family=Ubuntu+Mono:wght@400;700&family=VT323&family=Victor+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-theme="dark" data-cursor="line">
+
+  <header>
+    <button class="logo" id="logoReset" title="Reset test">TypeFlow</button>
+    <div class="header-right">
+      <button class="ghost-btn header-signout" id="privacyBtn">Privacy</button>
+      <button class="icon-btn" id="settingsBtn" title="Settings">&#9881;</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Mode + Options Bar -->
+    <div class="options-bar">
+      <div class="setup-title">
+        <span>Challenge setup</span>
+        <strong id="setupModeLabel">Words</strong>
+      </div>
+      <div class="setup-section">
+        <span class="setup-label">format</span>
+        <div class="mode-group">
+          <button class="mode-btn active" data-mode="words">words</button>
+          <button class="mode-btn" data-mode="time">time</button>
+          <button class="mode-btn" data-mode="daily">daily</button>
+          <button class="mode-btn" data-mode="ai">paragraph</button>
+          <button class="mode-btn" data-mode="weak">weak words</button>
+        </div>
+      </div>
+      <div class="setup-section">
+        <span class="setup-label">target</span>
+        <div class="sub-options" id="wordCountOptions">
+          <button class="sub-btn active" data-count="25">25</button>
+          <button class="sub-btn" data-count="50">50</button>
+          <button class="sub-btn" data-count="100">100</button>
+        </div>
+        <div class="sub-options hidden" id="timeOptions">
+          <button class="sub-btn active" data-time="15">15 sec</button>
+          <button class="sub-btn" data-time="30">30 sec</button>
+          <button class="sub-btn" data-time="60">60 sec</button>
+        </div>
+        <div class="sub-options hidden" id="aiOptions">
+          <button class="sub-btn active" data-ai="random">random</button>
+          <button class="sub-btn" data-ai="story">story</button>
+          <button class="sub-btn" data-ai="tech">tech</button>
+        </div>
+        <div class="sub-options hidden" id="dailyOptions">
+          <span class="daily-chip" id="dailyBestLabel">no record</span>
+        </div>
+        <div class="sub-options hidden" id="weakOptions">
+          <button class="sub-btn active" data-weak-count="25">25</button>
+          <button class="sub-btn" data-weak-count="50">50</button>
+        </div>
+      </div>
+      <div class="setup-section">
+        <span class="setup-label">modifiers</span>
+        <div class="toggle-group" id="modeToggles">
+          <button class="toggle-btn" id="punctBtn">@ punct</button>
+          <button class="toggle-btn" id="numbersBtn"># numbers</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Stats -->
+    <div class="live-stats" id="liveStats">
+      <div class="stat-item">
+        <span class="stat-val" id="liveWpm">0</span>
+        <span class="stat-label">wpm</span>
+      </div>
+      <div class="stat-item timer-item hidden" id="timerItem">
+        <span class="stat-val" id="timerDisplay">15</span>
+        <span class="stat-label">sec</span>
+      </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+
+    <!-- Typing Area -->
+    <div class="typing-container" id="typingContainer">
+      <div class="words-display" id="wordsDisplay"></div>
+      <input
+        type="text"
+        id="typingInput"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+      />
+    </div>
+
+    <!-- Restart Button -->
+    <div class="controls">
+      <button class="restart-btn" id="restartBtn" title="Restart (Tab + Enter)">&#8635; restart</button>
+    </div>
+
+    <!-- Progression -->
+    <section class="progression-panel" id="progressionPanel">
+      <div class="profile-card">
+        <div class="profile-top">
+          <div>
+            <div class="panel-label">rank</div>
+            <div class="rank-name" id="rankName">Novice I</div>
+          </div>
+          <div class="prestige-badge" id="prestigeBadge">P0</div>
+        </div>
+        <div class="xp-row">
+          <span id="xpText">0 / 500 xp</span>
+          <span id="totalTests">0 tests</span>
+        </div>
+        <div class="rank-progress">
+          <div class="rank-progress-fill" id="rankProgressFill"></div>
+        </div>
+        <button class="ghost-btn prestige-btn hidden" id="prestigeBtn">Prestige</button>
+        <div class="daily-records-panel">
+          <div class="panel-label">today's record</div>
+          <div class="daily-record-list" id="dailyRecordList"></div>
+        </div>
+        <div class="personal-bests-panel">
+          <div class="panel-label">personal bests</div>
+          <button class="ghost-btn personal-best-toggle" id="personalBestBtn">Show personal bests</button>
+          <div class="personal-best-list hidden" id="personalBestList"></div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Results Screen -->
+    <div class="results hidden" id="results">
+      <div class="results-header">Results</div>
+      <div class="results-grid">
+        <div class="result-card main-stat">
+          <div class="result-val" id="resWpm">—</div>
+          <div class="result-label">wpm</div>
+        </div>
+        <div class="result-card main-stat">
+          <div class="result-val" id="resAcc">—</div>
+          <div class="result-label">accuracy</div>
+        </div>
+        <div class="result-card">
+          <div class="result-val" id="resRaw">—</div>
+          <div class="result-label">raw</div>
+        </div>
+        <div class="result-card">
+          <div class="result-val" id="resConsistency">—</div>
+          <div class="result-label">consistency</div>
+        </div>
+        <div class="result-card">
+          <div class="result-val" id="resCorrect">—</div>
+          <div class="result-label">correct</div>
+        </div>
+        <div class="result-card">
+          <div class="result-val" id="resWrong">—</div>
+          <div class="result-label">incorrect</div>
+        </div>
+        <div class="result-card">
+          <div class="result-val" id="resTime">—</div>
+          <div class="result-label">time</div>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="wpmChart"></canvas>
+        <div class="chart-tooltip hidden" id="chartTooltip"></div>
+      </div>
+      <div class="result-extra">
+        <div class="xp-earned" id="xpEarned">+0 xp</div>
+        <div class="feedback-list" id="feedbackList"></div>
+      </div>
+      <div class="result-actions">
+        <button class="restart-btn large" id="shareResultBtn">Share Result</button>
+        <button class="restart-btn large" id="resultsRestartBtn">Try Again</button>
+      </div>
+      <div class="share-status" id="shareStatus"></div>
+    </div>
+  </main>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay hidden" id="settingsOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <span>Settings</span>
+        <button class="close-btn" id="closeSettings">&times;</button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="modal-tabs">
+        <button class="tab-btn active" data-tab="appearance">Appearance</button>
+        <button class="tab-btn" data-tab="font">Font</button>
+        <button class="tab-btn" data-tab="behavior">Behavior</button>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- ── Appearance Tab ── -->
+        <div class="tab-content active" id="tab-appearance">
+
+          <div class="setting-group">
+            <div class="setting-label">Theme</div>
+            <div class="theme-grid">
+              <button class="theme-btn active" data-theme="dark"
+                style="--t-accent:#e94560">dark</button>
+              <button class="theme-btn" data-theme="light"
+                style="--t-accent:#6366f1">light</button>
+              <button class="theme-btn" data-theme="dracula"
+                style="--t-accent:#ff79c6">dracula</button>
+              <button class="theme-btn" data-theme="nord"
+                style="--t-accent:#88c0d0">nord</button>
+              <button class="theme-btn" data-theme="catppuccin"
+                style="--t-accent:#cba6f7">catppuccin</button>
+              <button class="theme-btn" data-theme="solarized"
+                style="--t-accent:#268bd2">solarized</button>
+              <button class="theme-btn" data-theme="mocha"
+                style="--t-accent:#f9a825">mocha</button>
+              <button class="theme-btn" data-theme="ocean"
+                style="--t-accent:#00b4d8">ocean</button>
+              <button class="theme-btn" data-theme="forest"
+                style="--t-accent:#52b788">forest</button>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">Custom Colors
+              <span class="setting-hint">overrides theme</span>
+            </div>
+            <div class="color-grid">
+              <div class="color-item">
+                <input type="color" id="colorBg" value="#1a1a2e" />
+                <label for="colorBg">Background</label>
+              </div>
+              <div class="color-item">
+                <input type="color" id="colorSurface" value="#16213e" />
+                <label for="colorSurface">Surface</label>
+              </div>
+              <div class="color-item">
+                <input type="color" id="colorText" value="#e0e0e0" />
+                <label for="colorText">Text</label>
+              </div>
+              <div class="color-item">
+                <input type="color" id="colorAccent" value="#e94560" />
+                <label for="colorAccent">Accent</label>
+              </div>
+              <div class="color-item">
+                <input type="color" id="colorCorrect" value="#4ade80" />
+                <label for="colorCorrect">Correct</label>
+              </div>
+              <div class="color-item">
+                <input type="color" id="colorWrong" value="#f87171" />
+                <label for="colorWrong">Error</label>
+              </div>
+            </div>
+            <button class="ghost-btn" id="applyColors">Apply custom colors</button>
+            <button class="ghost-btn" id="resetColors">Reset to theme</button>
+          </div>
+
+        </div>
+
+        <!-- ── Font Tab ── -->
+        <div class="tab-content" id="tab-font">
+
+          <div class="setting-group">
+            <div class="setting-label">Font Family</div>
+            <div class="font-grid">
+              <button class="font-btn active" data-family="Roboto Mono"
+                style="font-family:'Roboto Mono',monospace">Roboto Mono</button>
+              <button class="font-btn" data-family="JetBrains Mono"
+                style="font-family:'JetBrains Mono',monospace">JetBrains Mono</button>
+              <button class="font-btn" data-family="Fira Code"
+                style="font-family:'Fira Code',monospace">Fira Code</button>
+              <button class="font-btn" data-family="Source Code Pro"
+                style="font-family:'Source Code Pro',monospace">Source Code Pro</button>
+              <button class="font-btn" data-family="Inconsolata"
+                style="font-family:'Inconsolata',monospace">Inconsolata</button>
+              <button class="font-btn" data-family="Space Mono"
+                style="font-family:'Space Mono',monospace">Space Mono</button>
+              <button class="font-btn" data-family="Pixelify Sans"
+                style="font-family:'Pixelify Sans',monospace">Pixelify Sans</button>
+              <button class="font-btn" data-family="Minecraftia"
+                style="font-family:'Minecraftia','Pixelify Sans',monospace">Minecraftia</button>
+              <button class="font-btn" data-family="Press Start 2P"
+                style="font-family:'Press Start 2P',monospace">Press Start 2P</button>
+              <button class="font-btn" data-family="Silkscreen"
+                style="font-family:'Silkscreen',monospace">Silkscreen</button>
+              <button class="font-btn" data-family="VT323"
+                style="font-family:'VT323',monospace">VT323</button>
+              <button class="font-btn" data-family="Share Tech Mono"
+                style="font-family:'Share Tech Mono',monospace">Share Tech Mono</button>
+              <button class="font-btn" data-family="IBM Plex Mono"
+                style="font-family:'IBM Plex Mono',monospace">IBM Plex Mono</button>
+              <button class="font-btn" data-family="Ubuntu Mono"
+                style="font-family:'Ubuntu Mono',monospace">Ubuntu Mono</button>
+              <button class="font-btn" data-family="DM Mono"
+                style="font-family:'DM Mono',monospace">DM Mono</button>
+              <button class="font-btn" data-family="Anonymous Pro"
+                style="font-family:'Anonymous Pro',monospace">Anonymous Pro</button>
+              <button class="font-btn" data-family="Cousine"
+                style="font-family:'Cousine',monospace">Cousine</button>
+              <button class="font-btn" data-family="Courier Prime"
+                style="font-family:'Courier Prime',monospace">Courier Prime</button>
+              <button class="font-btn" data-family="Azeret Mono"
+                style="font-family:'Azeret Mono',monospace">Azeret Mono</button>
+              <button class="font-btn" data-family="Kode Mono"
+                style="font-family:'Kode Mono',monospace">Kode Mono</button>
+              <button class="font-btn" data-family="Overpass Mono"
+                style="font-family:'Overpass Mono',monospace">Overpass Mono</button>
+              <button class="font-btn" data-family="Red Hat Mono"
+                style="font-family:'Red Hat Mono',monospace">Red Hat Mono</button>
+              <button class="font-btn" data-family="Victor Mono"
+                style="font-family:'Victor Mono',monospace">Victor Mono</button>
+              <button class="font-btn" data-family="Nova Mono"
+                style="font-family:'Nova Mono',monospace">Nova Mono</button>
+              <button class="font-btn" data-family="Major Mono Display"
+                style="font-family:'Major Mono Display',monospace">Major Mono Display</button>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">
+              Font Size
+              <span class="setting-value" id="fontSizeVal">22px</span>
+            </div>
+            <input type="range" class="slider" id="fontSizeSlider"
+              min="14" max="36" step="1" value="22" />
+            <div class="slider-labels">
+              <span>14</span><span>36</span>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">
+              Letter Spacing
+              <span class="setting-value" id="letterSpacingVal">0px</span>
+            </div>
+            <input type="range" class="slider" id="letterSpacingSlider"
+              min="-1" max="6" step="0.5" value="0" />
+            <div class="slider-labels">
+              <span>tight</span><span>wide</span>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">
+              Word Spacing
+              <span class="setting-value" id="wordSpacingVal">0px</span>
+            </div>
+            <input type="range" class="slider" id="wordSpacingSlider"
+              min="0" max="16" step="1" value="0" />
+            <div class="slider-labels">
+              <span>normal</span><span>wide</span>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">
+              Text Opacity
+              <span class="setting-value" id="textOpacityVal">100%</span>
+            </div>
+            <input type="range" class="slider" id="textOpacitySlider"
+              min="35" max="100" step="5" value="100" />
+            <div class="slider-labels">
+              <span>soft</span><span>clear</span>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">
+              Test Width
+              <span class="setting-value" id="testWidthVal">900px</span>
+            </div>
+            <input type="range" class="slider" id="testWidthSlider"
+              min="620" max="1240" step="20" value="900" />
+            <div class="slider-labels">
+              <span>compact</span><span>wide</span>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">
+              Panel Roundness
+              <span class="setting-value" id="panelRoundnessVal">16px</span>
+            </div>
+            <input type="range" class="slider" id="panelRoundnessSlider"
+              min="0" max="28" step="2" value="16" />
+            <div class="slider-labels">
+              <span>sharp</span><span>round</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ── Behavior Tab ── -->
+        <div class="tab-content" id="tab-behavior">
+
+          <div class="setting-group">
+            <div class="setting-label">Cursor Style</div>
+            <div class="setting-row">
+              <button class="sub-btn active" data-cursor="line">line</button>
+              <button class="sub-btn" data-cursor="block">block</button>
+              <button class="sub-btn" data-cursor="underline">underline</button>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">Smooth Caret</div>
+            <div class="setting-row">
+              <button class="sub-btn active" data-smooth="on">on</button>
+              <button class="sub-btn" data-smooth="off">off</button>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">Sound on Keypress</div>
+            <div class="setting-row">
+              <button class="sub-btn" data-sound="on">on</button>
+              <button class="sub-btn active" data-sound="off">off</button>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">Sound Style</div>
+            <div class="setting-row">
+              <button class="sub-btn active" data-sound-style="click">click</button>
+              <button class="sub-btn" data-sound-style="clack">clack</button>
+              <button class="sub-btn" data-sound-style="pop">pop</button>
+              <button class="sub-btn" data-sound-style="beep">beep</button>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">Live WPM</div>
+            <div class="setting-row">
+              <button class="sub-btn active" data-live-wpm="on">on</button>
+              <button class="sub-btn" data-live-wpm="off">off</button>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">Progress Bar</div>
+            <div class="setting-row">
+              <button class="sub-btn active" data-progress-vis="on">on</button>
+              <button class="sub-btn" data-progress-vis="off">off</button>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">Focus Mode</div>
+            <div class="setting-row">
+              <button class="sub-btn" data-focus-mode="on">on</button>
+              <button class="sub-btn active" data-focus-mode="off">off</button>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">Result Chart</div>
+            <div class="setting-row">
+              <button class="sub-btn active" data-chart-style="multi">multi line</button>
+              <button class="sub-btn" data-chart-style="bars">bars</button>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">
+              Caret Thickness
+              <span class="setting-value" id="caretThicknessVal">2px</span>
+            </div>
+            <input type="range" class="slider" id="caretThicknessSlider"
+              min="1" max="8" step="1" value="2" />
+            <div class="slider-labels">
+              <span>thin</span><span>bold</span>
+            </div>
+          </div>
+
+        </div>
+
+      </div><!-- modal-body -->
+    </div><!-- modal -->
+  </div><!-- modal-overlay -->
+
+  <div class="modal-overlay hidden" id="privacyOverlay">
+    <div class="modal privacy-modal">
+      <div class="modal-header">
+        <span>Privacy Policy</span>
+        <button class="close-btn" id="closePrivacy">&times;</button>
+      </div>
+      <div class="modal-body privacy-body">
+        <p>TypeFlow stores progress data only in this browser using local storage. This includes XP, rank, prestige, test count, settings, weak words, and daily challenge records.</p>
+        <p>This version does not send scores to a server and does not share score data online. A production online version would need server authentication, rate limiting, abuse detection, and server-side score validation.</p>
+        <p>The page loads fonts from Google Fonts. Clearing this browser's site data for TypeFlow will remove local progress, results, ranks, and settings.</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="words.js"></script>
+  <script src="progression.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

@@ -772,7 +772,7 @@ function getModeShareLabel(mode) {
 
 function buildShareText() {
   if (!lastResult) return '';
-  const url = 'https://gamed.fun';
+  const url = 'https://gamed.fun/typeflow/';
   const dailyLine = lastResult.mode === 'daily' ? `\nDaily: ${lastResult.dayKey}` : '';
   return `TypeFlow ${getModeShareLabel(lastResult.mode)}${dailyLine}\n${lastResult.wpm} WPM | ${lastResult.accuracy}% accuracy | ${lastResult.consistency}% consistency\nRank: ${getRankForXp(profile.xp).name}\n${url}`;
 }
