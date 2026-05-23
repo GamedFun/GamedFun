@@ -31,6 +31,7 @@
         <div class="mode-group">
           <button class="mode-btn active" data-mode="words">words</button>
           <button class="mode-btn" data-mode="time">time</button>
+          <button class="mode-btn" data-mode="daily">daily</button>
           <button class="mode-btn" data-mode="ai">paragraph</button>
           <button class="mode-btn" data-mode="weak">weak words</button>
         </div>
@@ -51,6 +52,10 @@
           <button class="sub-btn active" data-ai="random">random</button>
           <button class="sub-btn" data-ai="story">story</button>
           <button class="sub-btn" data-ai="tech">tech</button>
+        </div>
+        <div class="sub-options hidden" id="dailyOptions">
+          <span class="daily-chip" id="dailyDateLabel">today</span>
+          <span class="daily-chip" id="dailyBestLabel">no record</span>
         </div>
         <div class="sub-options hidden" id="weakOptions">
           <button class="sub-btn active" data-weak-count="25">25</button>
@@ -123,6 +128,10 @@
           <div class="panel-label">words to practice</div>
           <div class="weak-word-list" id="weakWordList"></div>
         </div>
+        <div class="daily-records-panel">
+          <div class="panel-label">daily records</div>
+          <div class="daily-record-list" id="dailyRecordList"></div>
+        </div>
       </div>
 
     </section>
@@ -169,7 +178,11 @@
         <div class="feedback-list" id="feedbackList"></div>
         <div class="weak-result" id="weakResult"></div>
       </div>
-      <button class="restart-btn large" id="resultsRestartBtn">Try Again</button>
+      <div class="result-actions">
+        <button class="restart-btn large" id="shareResultBtn">Share Result</button>
+        <button class="restart-btn large" id="resultsRestartBtn">Try Again</button>
+      </div>
+      <div class="share-status" id="shareStatus"></div>
     </div>
   </main>
 
@@ -481,7 +494,7 @@
         <button class="close-btn" id="closePrivacy">&times;</button>
       </div>
       <div class="modal-body privacy-body">
-        <p>TypeFlow stores progress data only in this browser using local storage. This includes XP, rank, prestige, test count, settings, and local results.</p>
+        <p>TypeFlow stores progress data only in this browser using local storage. This includes XP, rank, prestige, test count, settings, weak words, and daily challenge records.</p>
         <p>This version does not send scores to a server and does not share score data online. A production online version would need server authentication, rate limiting, abuse detection, and server-side score validation.</p>
         <p>The page loads fonts from Google Fonts. Clearing this browser's site data for TypeFlow will remove local progress, results, ranks, and settings.</p>
       </div>

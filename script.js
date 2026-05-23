@@ -25,6 +25,7 @@ const state = {
   punctuation: false,
   numbers: false,
   customColors: {},
+  dailyKey: null,
 
   words: [],
   letterEls: [],
@@ -65,20 +66,23 @@ const xpText          = document.getElementById('xpText');
 const totalTests      = document.getElementById('totalTests');
 const rankProgressFill = document.getElementById('rankProgressFill');
 const prestigeBtn     = document.getElementById('prestigeBtn');
-const leaderboardTitle = document.getElementById('leaderboardTitle');
-const leaderboardList = document.getElementById('leaderboardList');
-const speedBoardModes = document.getElementById('speedBoardModes');
 const xpEarned        = document.getElementById('xpEarned');
 const feedbackList    = document.getElementById('feedbackList');
 const weakWordList    = document.getElementById('weakWordList');
 const weakResult      = document.getElementById('weakResult');
 const setupModeLabel  = document.getElementById('setupModeLabel');
+const dailyDateLabel  = document.getElementById('dailyDateLabel');
+const dailyBestLabel  = document.getElementById('dailyBestLabel');
+const dailyRecordList = document.getElementById('dailyRecordList');
+const shareResultBtn  = document.getElementById('shareResultBtn');
+const shareStatus     = document.getElementById('shareStatus');
 const privacyOverlay  = document.getElementById('privacyOverlay');
 const privacyBtn      = document.getElementById('privacyBtn');
 const closePrivacy    = document.getElementById('closePrivacy');
 
 let profile = loadProfile();
 let chartState = null;
+let lastResult = null;
 
 /* ── Audio ── */
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -140,7 +144,53 @@ function formatWord(word, index) {
   return next;
 }
 
+function getDailyKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function dailySeed(dayKey) {
+  let hash = 2166136261;
+  for (let i = 0; i < dayKey.length; i++) {
+    hash ^= dayKey.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function seededRandom(seed) {
+  let value = seed >>> 0;
+  return () => {
+    value = Math.imul(1664525, value) + 1013904223;
+    return (value >>> 0) / 4294967296;
+  };
+}
+
+function seededShuffle(arr, seed) {
+  const a = [...arr];
+  const random = seededRandom(seed);
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function getDailyWords() {
+  const dayKey = getDailyKey();
+  state.dailyKey = dayKey;
+  const source = seededShuffle(WORD_LIST, dailySeed(dayKey));
+  const words = [];
+  while (words.length < 50) words.push(...source);
+  return words.slice(0, 50);
+}
+
 function getWords() {
+  if (state.mode === 'daily') {
+    return getDailyWords();
+  }
   if (state.mode === 'weak') {
     const weak = getWeakWords(20).map(item => item.word);
     const fallback = shuffle(WORD_LIST).slice(0, state.weakCount);
@@ -302,6 +352,9 @@ function reset() {
   typingInput.value = '';
   results.classList.add('hidden');
   typingContainer.style.display = '';
+  shareStatus.textContent = '';
+  lastResult = null;
+  updateDailyUi();
 
   buildDisplay();
 
@@ -544,6 +597,18 @@ function finish() {
   const acc = total > 0 ? Math.round((state.correctChars / total) * 100) : 100;
   const raw = mins > 0 ? Math.round((total / 5) / mins) : 0;
   const consistency = calculateConsistency();
+  const result = {
+    mode: state.mode,
+    dayKey: state.dailyKey,
+    wpm,
+    accuracy: acc,
+    raw,
+    consistency,
+    correct: state.correctWords,
+    wrong: state.wrongWords,
+    time: Math.round(elapsed),
+    rank: getRankForXp(profile.xp).name,
+  };
   const finalMetrics = getCurrentMetrics(elapsed || 0.001);
   if (!state.wpmSamples.length || state.wpmSamples[state.wpmSamples.length - 1].second !== Math.floor(elapsed)) {
     state.wpmSamples.push({ second: Math.floor(elapsed), ...finalMetrics });
@@ -556,6 +621,15 @@ function finish() {
   document.getElementById('resCorrect').textContent = state.correctWords;
   document.getElementById('resWrong').textContent   = state.wrongWords;
   document.getElementById('resTime').textContent    = Math.round(elapsed) + 's';
+
+  lastResult = result;
+  if (state.mode === 'daily') {
+    const saved = saveDailyResult(state.dailyKey, result);
+    if (saved.isBest) {
+      shareStatus.textContent = 'New daily record';
+    }
+    updateDailyUi();
+  }
 
   applyProgressionResults(wpm, acc, consistency, elapsed);
   updateProgress();
@@ -609,6 +683,62 @@ function updateProfileUi() {
   renderWeakWords();
 }
 
+function updateDailyUi() {
+  const dayKey = getDailyKey();
+  const records = loadDailyRecords();
+  const today = records[dayKey];
+  dailyDateLabel.textContent = dayKey;
+  dailyBestLabel.textContent = today
+    ? `${today.wpm} wpm / ${today.accuracy}%`
+    : 'no record';
+
+  dailyRecordList.innerHTML = '';
+  const recordList = getDailyRecordList(7);
+  if (!recordList.length) {
+    dailyRecordList.textContent = 'No daily records yet';
+    return;
+  }
+
+  recordList.forEach(record => {
+    const item = document.createElement('span');
+    item.className = 'daily-record-item';
+    item.textContent = `${record.day}: ${record.wpm} wpm / ${record.accuracy}%`;
+    dailyRecordList.appendChild(item);
+  });
+}
+
+function getModeShareLabel(mode) {
+  if (mode === 'daily') return 'Daily Challenge';
+  if (mode === 'time') return `${state.timeLimit}s`;
+  if (mode === 'words') return `${state.wordCount} words`;
+  if (mode === 'weak') return 'Weak Words';
+  return 'Paragraph';
+}
+
+function buildShareText() {
+  if (!lastResult) return '';
+  const url = window.location.href.split('#')[0];
+  const dailyLine = lastResult.mode === 'daily' ? `\nDaily: ${lastResult.dayKey}` : '';
+  return `TypeFlow ${getModeShareLabel(lastResult.mode)}${dailyLine}\n${lastResult.wpm} WPM | ${lastResult.accuracy}% accuracy | ${lastResult.consistency}% consistency\nRank: ${getRankForXp(profile.xp).name}\n${url}`;
+}
+
+async function shareResult() {
+  const text = buildShareText();
+  if (!text) return;
+  shareStatus.textContent = '';
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: 'TypeFlow result', text });
+      shareStatus.textContent = 'Shared';
+      return;
+    }
+    await navigator.clipboard.writeText(text);
+    shareStatus.textContent = 'Copied result';
+  } catch {
+    shareStatus.textContent = 'Share canceled';
+  }
+}
+
 function renderWeakWords() {
   const weak = getWeakWords(8);
   weakWordList.innerHTML = '';
@@ -632,49 +762,6 @@ function renderWeakWords() {
     chip.className = 'weak-word-chip';
     chip.textContent = item.word;
     weakResult.appendChild(chip);
-  });
-}
-
-function renderLeaderboard() {
-  if (!leaderboardList || !speedBoardModes || !leaderboardTitle) return;
-  const lb = loadLeaderboard();
-  const entries = activeBoard === 'rank'
-    ? (lb._ranks || [])
-    : (lb[activeSpeedMode] || []);
-
-  speedBoardModes.classList.toggle('hidden', activeBoard !== 'speed');
-  leaderboardTitle.textContent = activeBoard === 'rank'
-    ? 'highest rank'
-    : getModeLabel(activeSpeedMode) + ' speed';
-
-  leaderboardList.innerHTML = '';
-  if (!entries.length) {
-    const empty = document.createElement('li');
-    empty.className = 'leaderboard-empty';
-    empty.textContent = 'No scores yet';
-    leaderboardList.appendChild(empty);
-    return;
-  }
-
-  entries.forEach(entry => {
-    const item = document.createElement('li');
-    const main = document.createElement('span');
-    const meta = document.createElement('span');
-    main.textContent = entry.name;
-    if (activeBoard === 'rank') {
-      meta.textContent = 'P' + entry.prestige + ' · ' + entry.rankName + ' · ' + entry.xp + ' xp';
-    } else {
-      meta.textContent = entry.wpm + ' wpm · ' + entry.accuracy + '%';
-    }
-    item.append(main, meta);
-    leaderboardList.appendChild(item);
-  });
-}
-
-function setActiveSpeedMode(modeKey) {
-  activeSpeedMode = modeKey;
-  document.querySelectorAll('[data-mode-key]').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.modeKey === modeKey);
   });
 }
 
@@ -873,6 +960,7 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
 	    document.getElementById('wordCountOptions').classList.toggle('hidden', state.mode !== 'words');
 	    document.getElementById('timeOptions').classList.toggle('hidden', state.mode !== 'time');
 	    document.getElementById('aiOptions').classList.toggle('hidden', state.mode !== 'ai');
+	    document.getElementById('dailyOptions').classList.toggle('hidden', state.mode !== 'daily');
 	    document.getElementById('weakOptions').classList.toggle('hidden', state.mode !== 'weak');
 	    timerItem.classList.toggle('hidden', state.mode !== 'time');
 	    reset();
@@ -917,6 +1005,7 @@ document.querySelectorAll('#weakOptions .sub-btn').forEach(btn => {
 document.getElementById('logoReset').addEventListener('click', reset);
 document.getElementById('restartBtn').addEventListener('click', reset);
 document.getElementById('resultsRestartBtn').addEventListener('click', reset);
+shareResultBtn.addEventListener('click', shareResult);
 
 document.getElementById('punctBtn').addEventListener('click', () => {
   state.punctuation = !state.punctuation;
@@ -943,24 +1032,6 @@ prestigeBtn.addEventListener('click', () => {
   profile.xp = 0;
   saveProfile(profile);
   updateProfileUi();
-});
-
-document.querySelectorAll('[data-board]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('[data-board]').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    activeBoard = btn.dataset.board;
-    renderLeaderboard();
-  });
-});
-
-document.querySelectorAll('[data-mode-key]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('[data-mode-key]').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    activeSpeedMode = btn.dataset.modeKey;
-    renderLeaderboard();
-  });
 });
 
 /* ── Settings Modal ── */
@@ -1425,4 +1496,3 @@ function loadSettings() {
 loadSettings();
 reset();
 updateProfileUi();
-renderLeaderboard();

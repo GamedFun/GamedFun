@@ -148,49 +148,44 @@ function calcXpEarned(wpm, accuracy, elapsedSeconds) {
   return Math.max(1, Math.round((base + timeBonus + accBonus) * penalty));
 }
 
-/* ── Leaderboard ── */
-function loadLeaderboard() {
-  try { return JSON.parse(localStorage.getItem('typeflow_leaderboard') || '{}'); } catch { return {}; }
+/* ── Daily Records ── */
+function loadDailyRecords() {
+  try { return JSON.parse(localStorage.getItem('typeflow_daily_records') || '{}'); } catch { return {}; }
 }
 
-function saveLeaderboard(lb) {
-  try { localStorage.setItem('typeflow_leaderboard', JSON.stringify(lb)); } catch {}
+function saveDailyRecords(records) {
+  try { localStorage.setItem('typeflow_daily_records', JSON.stringify(records)); } catch {}
 }
 
-function submitScore(name, wpm, accuracy, modeKey) {
-  const lb = loadLeaderboard();
-  if (!lb[modeKey]) lb[modeKey] = [];
-  lb[modeKey].push({ name, wpm, accuracy, date: new Date().toLocaleDateString() });
-  lb[modeKey].sort((a, b) => b.wpm - a.wpm);
-  lb[modeKey] = lb[modeKey].slice(0, 10);
-  saveLeaderboard(lb);
+function saveDailyResult(dayKey, result) {
+  const records = loadDailyRecords();
+  const previous = records[dayKey];
+  const isBest = !previous
+    || result.wpm > previous.wpm
+    || (result.wpm === previous.wpm && result.accuracy > previous.accuracy)
+    || (result.wpm === previous.wpm && result.accuracy === previous.accuracy && result.consistency > previous.consistency);
+
+  if (isBest) {
+    records[dayKey] = {
+      wpm: result.wpm,
+      accuracy: result.accuracy,
+      consistency: result.consistency,
+      raw: result.raw,
+      time: result.time,
+      date: new Date().toISOString(),
+    };
+    saveDailyRecords(records);
+  }
+
+  return { records, isBest, best: records[dayKey] };
 }
 
-function submitRankScore(name, xp, prestige, rankName) {
-  const lb = loadLeaderboard();
-  if (!lb['_ranks']) lb['_ranks'] = [];
-  // remove old entry for this name
-  lb['_ranks'] = lb['_ranks'].filter(e => e.name !== name);
-  lb['_ranks'].push({ name, xp, prestige, rankName, date: new Date().toLocaleDateString() });
-  lb['_ranks'].sort((a, b) => (b.prestige * 1e9 + b.xp) - (a.prestige * 1e9 + a.xp));
-  lb['_ranks'] = lb['_ranks'].slice(0, 10);
-  saveLeaderboard(lb);
-}
-
-function getModeKey(mode, wordCount, timeLimit) {
-  if (mode === 'words') return `words_${wordCount}`;
-  if (mode === 'time')  return `time_${timeLimit}`;
-  return 'ai';
-}
-
-function getModeLabel(modeKey) {
-  const map = {
-    words_25: '25 words', words_50: '50 words', words_100: '100 words',
-    time_15: '15 sec', time_30: '30 sec', time_60: '60 sec',
-    ai: 'AI paragraph',
-    weak: 'Weak words',
-  };
-  return map[modeKey] || modeKey;
+function getDailyRecordList(limit = 7) {
+  const records = loadDailyRecords();
+  return Object.entries(records)
+    .sort(([a], [b]) => b.localeCompare(a))
+    .slice(0, limit)
+    .map(([day, result]) => ({ day, ...result }));
 }
 
 /* ── Feedback Engine ── */

@@ -193,6 +193,14 @@ main {
 .divider { width: 1px; height: 1.4rem; background: var(--border); }
 .sub-options { display: flex; gap: 0.35rem; flex-wrap: wrap; }
 .sub-options.hidden { display: none; }
+.daily-chip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  padding: 0.42rem 0.7rem;
+}
 .toggle-group { display: flex; gap: 0.3rem; }
 .toggle-btn {
   background: var(--surface); border: 1px solid transparent; color: var(--text-dim);
@@ -317,15 +325,13 @@ main {
   justify-content: center;
   gap: 1rem;
 }
-.profile-card,
-.leaderboard-card {
+.profile-card {
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: var(--panel-radius);
   padding: 1rem;
 }
 .profile-top,
-.leaderboard-head,
 .xp-row {
   display: flex;
   align-items: center;
@@ -339,8 +345,7 @@ main {
   text-transform: uppercase;
   margin-bottom: 0.2rem;
 }
-.rank-name,
-.leaderboard-title {
+.rank-name {
   font-size: 1.1rem;
   font-weight: 700;
 }
@@ -378,15 +383,24 @@ main {
   padding-top: 0.9rem;
   border-top: 1px solid var(--border);
 }
+.daily-records-panel {
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+}
 .weak-word-list,
-.weak-result {
+.weak-result,
+.daily-record-list {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
   color: var(--text-dim);
   font-size: 0.78rem;
 }
-.weak-word-list { margin-top: 0.45rem; }
+.weak-word-list,
+.daily-record-list {
+  margin-top: 0.45rem;
+}
 .weak-word-chip {
   color: var(--text);
   background: var(--surface);
@@ -394,52 +408,13 @@ main {
   border-radius: 7px;
   padding: 0.28rem 0.5rem;
 }
-.leaderboard-tabs,
-.leaderboard-modes {
-  display: flex;
-  gap: 0.3rem;
-  flex-wrap: wrap;
-}
-.leaderboard-modes { margin-top: 0.8rem; }
-.mini-tab {
-  background: none;
+.daily-record-item {
+  color: var(--text);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 7px;
-  color: var(--text-dim);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 0.72rem;
-  padding: 0.28rem 0.55rem;
+  padding: 0.28rem 0.5rem;
 }
-.mini-tab:hover,
-.mini-tab.active {
-  color: var(--accent);
-  border-color: var(--accent);
-}
-.leaderboard-list {
-  list-style-position: inside;
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  margin-top: 0.9rem;
-  color: var(--text);
-}
-.leaderboard-list li {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  color: var(--text);
-  font-size: 0.82rem;
-}
-.leaderboard-list li span:last-child {
-  color: var(--text-dim);
-  text-align: right;
-}
-.leaderboard-list .leaderboard-empty {
-  color: var(--text-dim);
-  justify-content: center;
-}
-
 /* ── Results ── */
 .results {
   width: 100%; background: var(--bg2); border: 1px solid var(--border);
@@ -517,6 +492,17 @@ main {
 .weak-result {
   justify-content: center;
   width: min(640px, 100%);
+}
+.result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}
+.share-status {
+  min-height: 1rem;
+  color: var(--text-dim);
+  font-size: 0.78rem;
 }
 
 /* ── Settings Modal ── */
@@ -699,7 +685,4 @@ main {
   }
   .setup-section:last-child { border-bottom: none; }
   .progression-panel { grid-template-columns: 1fr; }
-  .leaderboard-head { align-items: flex-start; flex-direction: column; }
-  .leaderboard-list li { flex-direction: column; gap: 0.15rem; }
-  .leaderboard-list li span:last-child { text-align: left; }
 }
