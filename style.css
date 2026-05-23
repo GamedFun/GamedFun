@@ -15,6 +15,10 @@
   --font-family: 'Roboto Mono', monospace;
   --letter-spacing: 0px;
   --word-spacing: 0px;
+  --text-opacity: 1;
+  --panel-radius: 16px;
+  --test-width: 900px;
+  --caret-thickness: 2px;
 }
 
 [data-theme="light"] {
@@ -88,7 +92,23 @@ header {
   padding: 1.2rem 2.5rem;
   border-bottom: 1px solid var(--border);
 }
-.logo { font-size: 1.5rem; font-weight: 700; color: var(--accent); letter-spacing: 0.05em; }
+.logo {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 0;
+}
+.logo:hover { filter: brightness(1.15); }
+.logo:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
 .header-right { display: flex; align-items: center; gap: 0.65rem; }
 .header-signout { align-self: auto; }
 .icon-btn {
@@ -97,12 +117,25 @@ header {
   border-radius: 6px; transition: color 0.2s, background 0.2s;
 }
 .icon-btn:hover { color: var(--accent); background: var(--surface); }
+body.focus-mode-active header,
+body.focus-mode-active .options-bar,
+body.focus-mode-active .progression-panel,
+body.focus-mode-active .controls {
+  opacity: 0.22;
+  transition: opacity 0.2s ease;
+}
+body.focus-mode-active header:hover,
+body.focus-mode-active .options-bar:hover,
+body.focus-mode-active .progression-panel:hover,
+body.focus-mode-active .controls:hover {
+  opacity: 1;
+}
 
 /* ── Main ── */
 main {
   flex: 1; display: flex; flex-direction: column;
   align-items: center; padding: 2.5rem 1.5rem;
-  max-width: 900px; width: 100%; margin: 0 auto; gap: 1.5rem;
+  max-width: var(--test-width); width: 100%; margin: 0 auto; gap: 1.5rem;
 }
 
 /* ── Options Bar ── */
@@ -196,7 +229,7 @@ main {
 /* ── Typing Container ── */
 .typing-container {
   width: 100%; background: var(--bg2);
-  border: 1px solid var(--border); border-radius: 16px;
+  border: 1px solid var(--border); border-radius: var(--panel-radius);
   padding: 2rem 2.5rem; box-shadow: 0 4px 24px var(--shadow);
   cursor: text;
 }
@@ -208,6 +241,7 @@ main {
   letter-spacing: var(--letter-spacing);
   word-spacing: var(--word-spacing);
   color: var(--text-dim);
+  opacity: var(--text-opacity);
   position: relative;
   user-select: none;
   overflow: hidden;
@@ -245,7 +279,7 @@ main {
   will-change: left, top;
 }
 [data-cursor="line"] .caret {
-  width: 2px; background: var(--caret); border-radius: 1px;
+  width: var(--caret-thickness); background: var(--caret); border-radius: 1px;
 }
 [data-cursor="block"] .caret {
   width: calc(var(--font-size) * 0.62);
@@ -287,7 +321,7 @@ main {
 .leaderboard-card {
   background: var(--bg2);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--panel-radius);
   padding: 1rem;
 }
 .profile-top,
@@ -409,7 +443,7 @@ main {
 /* ── Results ── */
 .results {
   width: 100%; background: var(--bg2); border: 1px solid var(--border);
-  border-radius: 16px; padding: 2rem 2.5rem;
+  border-radius: var(--panel-radius); padding: 2rem 2.5rem;
   text-align: center; box-shadow: 0 4px 24px var(--shadow);
   display: flex; flex-direction: column; align-items: center;
   animation: fadeIn 0.3s ease;
@@ -426,7 +460,7 @@ main {
 .result-label { font-size: 0.75rem; color: var(--text-dim); }
 .chart-wrap {
   width: 100%;
-  height: 150px;
+  height: 190px;
   margin-top: 1.7rem;
 }
 #wpmChart {

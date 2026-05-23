@@ -13,6 +13,15 @@ const state = {
   cursor: 'line',
   smooth: true,
   sound: false,
+  soundStyle: 'click',
+  chartStyle: 'multi',
+  showLiveWpm: true,
+  showProgress: true,
+  focusMode: false,
+  textOpacity: 100,
+  panelRoundness: 16,
+  testWidth: 900,
+  caretThickness: 2,
   punctuation: false,
   numbers: false,
   customColors: {},
@@ -78,10 +87,18 @@ function playClick() {
   const o = audioCtx.createOscillator();
   const g = audioCtx.createGain();
   o.connect(g); g.connect(audioCtx.destination);
-  o.frequency.value = 900;
-  g.gain.setValueAtTime(0.05, audioCtx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
-  o.start(); o.stop(audioCtx.currentTime + 0.04);
+  const sounds = {
+    click: { frequency: 900, type: 'sine', duration: 0.04, gain: 0.05 },
+    clack: { frequency: 180, type: 'square', duration: 0.035, gain: 0.035 },
+    pop: { frequency: 520, type: 'triangle', duration: 0.055, gain: 0.045 },
+    beep: { frequency: 1200, type: 'sine', duration: 0.03, gain: 0.035 },
+  };
+  const sound = sounds[state.soundStyle] || sounds.click;
+  o.type = sound.type;
+  o.frequency.value = sound.frequency;
+  g.gain.setValueAtTime(sound.gain, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + sound.duration);
+  o.start(); o.stop(audioCtx.currentTime + sound.duration);
 }
 
 /* ── Word Generation ── */
@@ -273,6 +290,7 @@ function reset() {
   liveWpm.textContent = '0';
   timerDisplay.textContent = state.timeLimit;
   progressFill.style.width = '0%';
+  applyDisplaySettings();
   typingInput.value = '';
   results.classList.add('hidden');
   typingContainer.style.display = '';
@@ -309,18 +327,35 @@ function updateLiveWpm() {
   const elapsed = (Date.now() - state.startTime) / 1000;
   const mins = elapsed / 60;
   if (mins <= 0) return;
-  const wpm = Math.round((state.correctChars / 5) / mins);
-  liveWpm.textContent = wpm;
+  const metrics = getCurrentMetrics(elapsed);
+  liveWpm.textContent = metrics.wpm;
   if (elapsed >= 1) {
     const second = Math.floor(elapsed);
     const last = state.wpmSamples[state.wpmSamples.length - 1];
     if (!last || last.second !== second) {
-      state.wpmSamples.push({ second, wpm });
+      state.wpmSamples.push({ second, ...metrics });
     } else {
-      last.wpm = wpm;
+      Object.assign(last, metrics);
     }
   }
   updateProgress();
+}
+
+function getCurrentMetrics(elapsedSeconds) {
+  const mins = elapsedSeconds / 60;
+  const total = state.correctChars + state.wrongChars;
+  const wpm = mins > 0 ? Math.round((state.correctChars / 5) / mins) : 0;
+  const raw = mins > 0 ? Math.round((total / 5) / mins) : 0;
+  const acc = total > 0 ? Math.round((state.correctChars / total) * 100) : 100;
+  const errorRate = mins > 0 ? Math.round(state.wrongChars / mins) : 0;
+  return {
+    wpm,
+    raw,
+    acc,
+    errors: state.wrongChars,
+    errorRate,
+    consistency: calculateConsistency([...state.wpmSamples.map(s => s.wpm), wpm]),
+  };
 }
 
 function updateProgress() {
@@ -357,6 +392,7 @@ function isTypableKey(e) {
 
 function startTest() {
   state.started = true;
+  document.body.classList.toggle('focus-mode-active', state.focusMode);
   const caret = document.getElementById('typingCaret');
   if (caret) caret.classList.remove('blinking');
   startTimer();
@@ -491,6 +527,7 @@ function finish() {
   if (state.finished) return;
   clearInterval(state.timerInterval);
   state.finished = true;
+  document.body.classList.remove('focus-mode-active');
 
   const elapsed = state.startTime ? (Date.now() - state.startTime) / 1000 : 0;
   const mins = elapsed / 60;
@@ -499,6 +536,10 @@ function finish() {
   const acc = total > 0 ? Math.round((state.correctChars / total) * 100) : 100;
   const raw = mins > 0 ? Math.round((total / 5) / mins) : 0;
   const consistency = calculateConsistency();
+  const finalMetrics = getCurrentMetrics(elapsed || 0.001);
+  if (!state.wpmSamples.length || state.wpmSamples[state.wpmSamples.length - 1].second !== Math.floor(elapsed)) {
+    state.wpmSamples.push({ second: Math.floor(elapsed), ...finalMetrics });
+  }
 
   document.getElementById('resWpm').textContent     = wpm;
   document.getElementById('resAcc').textContent     = acc + '%';
@@ -629,8 +670,8 @@ function setActiveSpeedMode(modeKey) {
   });
 }
 
-function calculateConsistency() {
-  const samples = state.wpmSamples.map(s => s.wpm).filter(wpm => wpm > 0);
+function calculateConsistency(values) {
+  const samples = (values || state.wpmSamples.map(s => s.wpm)).filter(wpm => wpm > 0);
   if (samples.length < 2) return samples.length ? 100 : 0;
   const avg = samples.reduce((sum, n) => sum + n, 0) / samples.length;
   if (avg <= 0) return 0;
@@ -652,11 +693,18 @@ function drawWpmChart() {
   const height = rect.height;
   const style = getComputedStyle(document.documentElement);
   const accent = style.getPropertyValue('--accent').trim();
+  const correct = style.getPropertyValue('--correct').trim();
+  const wrong = style.getPropertyValue('--wrong').trim();
   const dim = style.getPropertyValue('--text-dim').trim();
   const border = style.getPropertyValue('--border').trim();
-  const samples = state.wpmSamples.length ? state.wpmSamples : [{ second: 0, wpm: 0 }];
-  const maxWpm = Math.max(20, ...samples.map(s => s.wpm));
-  const pad = 18;
+  const samples = state.wpmSamples.length
+    ? state.wpmSamples
+    : [{ second: 0, wpm: 0, raw: 0, acc: 100, errors: 0, consistency: 0 }];
+  const maxSpeed = Math.max(20, ...samples.map(s => Math.max(s.wpm || 0, s.raw || 0)));
+  const maxErrors = Math.max(1, ...samples.map(s => s.errors || 0));
+  const pad = 24;
+  const plotW = width - pad * 2;
+  const plotH = height - pad * 2;
 
   ctx.clearRect(0, 0, width, height);
   ctx.strokeStyle = border;
@@ -669,22 +717,60 @@ function drawWpmChart() {
     ctx.stroke();
   }
 
-  ctx.strokeStyle = accent;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  samples.forEach((sample, i) => {
-    const x = samples.length === 1
-      ? pad
-      : pad + ((width - pad * 2) * i) / (samples.length - 1);
-    const y = height - pad - ((height - pad * 2) * sample.wpm) / maxWpm;
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-  ctx.stroke();
+  const xFor = (i) => samples.length === 1 ? pad : pad + (plotW * i) / (samples.length - 1);
+  const ySpeed = (value) => height - pad - (plotH * value) / maxSpeed;
+  const yPercent = (value) => height - pad - (plotH * value) / 100;
+  const yErrors = (value) => height - pad - (plotH * value) / maxErrors;
 
-  ctx.fillStyle = dim;
+  function drawLine(key, color, yScale, widthPx = 2) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = widthPx;
+    ctx.beginPath();
+    samples.forEach((sample, i) => {
+      const x = xFor(i);
+      const y = yScale(sample[key] || 0);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  }
+
+  function drawBars(key, color, yScale) {
+    const barW = Math.max(2, Math.min(10, plotW / Math.max(1, samples.length) - 2));
+    ctx.fillStyle = color;
+    samples.forEach((sample, i) => {
+      const x = xFor(i) - barW / 2;
+      const y = yScale(sample[key] || 0);
+      ctx.fillRect(x, y, barW, height - pad - y);
+    });
+  }
+
+  if (state.chartStyle === 'bars') {
+    drawBars('raw', 'rgba(255,255,255,0.18)', ySpeed);
+    drawBars('errors', wrong, yErrors);
+    drawLine('wpm', accent, ySpeed, 2.4);
+    drawLine('consistency', correct, yPercent, 1.6);
+  } else {
+    drawLine('raw', dim, ySpeed, 1.6);
+    drawLine('wpm', accent, ySpeed, 2.5);
+    drawLine('consistency', correct, yPercent, 1.8);
+    drawLine('errors', wrong, yErrors, 1.8);
+  }
+
   ctx.font = '11px ' + state.fontFamily + ', monospace';
-  ctx.fillText('wpm over time', pad, height - 4);
+  const legend = [
+    ['wpm', accent],
+    ['raw', dim],
+    ['consistency', correct],
+    ['errors', wrong],
+  ];
+  let lx = pad;
+  legend.forEach(([label, color]) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(lx, height - 10, 8, 2);
+    ctx.fillText(label, lx + 12, height - 5);
+    lx += ctx.measureText(label).width + 42;
+  });
 }
 
 /* ── Focus / Shortcuts ── */
@@ -761,6 +847,7 @@ document.querySelectorAll('#weakOptions .sub-btn').forEach(btn => {
 });
 
 /* ── Restart ── */
+document.getElementById('logoReset').addEventListener('click', reset);
 document.getElementById('restartBtn').addEventListener('click', reset);
 document.getElementById('resultsRestartBtn').addEventListener('click', reset);
 
@@ -893,6 +980,44 @@ wordSpacingSlider.addEventListener('input', () => {
   saveSettings();
 });
 
+const textOpacitySlider = document.getElementById('textOpacitySlider');
+const textOpacityVal = document.getElementById('textOpacityVal');
+textOpacitySlider.addEventListener('input', () => {
+  state.textOpacity = parseInt(textOpacitySlider.value);
+  textOpacityVal.textContent = state.textOpacity + '%';
+  applyDisplaySettings();
+  saveSettings();
+});
+
+const testWidthSlider = document.getElementById('testWidthSlider');
+const testWidthVal = document.getElementById('testWidthVal');
+testWidthSlider.addEventListener('input', () => {
+  state.testWidth = parseInt(testWidthSlider.value);
+  testWidthVal.textContent = state.testWidth + 'px';
+  applyDisplaySettings();
+  remeasureAndReposition();
+  saveSettings();
+});
+
+const panelRoundnessSlider = document.getElementById('panelRoundnessSlider');
+const panelRoundnessVal = document.getElementById('panelRoundnessVal');
+panelRoundnessSlider.addEventListener('input', () => {
+  state.panelRoundness = parseInt(panelRoundnessSlider.value);
+  panelRoundnessVal.textContent = state.panelRoundness + 'px';
+  applyDisplaySettings();
+  saveSettings();
+});
+
+const caretThicknessSlider = document.getElementById('caretThicknessSlider');
+const caretThicknessVal = document.getElementById('caretThicknessVal');
+caretThicknessSlider.addEventListener('input', () => {
+  state.caretThickness = parseInt(caretThicknessSlider.value);
+  caretThicknessVal.textContent = state.caretThickness + 'px';
+  applyDisplaySettings();
+  positionCaret();
+  saveSettings();
+});
+
 function remeasureAndReposition() {
   // After font/size changes, re-measure line positions since words may have reflowed
   requestAnimationFrame(() => {
@@ -900,6 +1025,15 @@ function remeasureAndReposition() {
     scrollToCurrentLine();
     positionCaret();
   });
+}
+
+function applyDisplaySettings() {
+  document.documentElement.style.setProperty('--text-opacity', state.textOpacity / 100);
+  document.documentElement.style.setProperty('--panel-radius', state.panelRoundness + 'px');
+  document.documentElement.style.setProperty('--test-width', state.testWidth + 'px');
+  document.documentElement.style.setProperty('--caret-thickness', state.caretThickness + 'px');
+  liveWpm.parentElement.classList.toggle('hidden', !state.showLiveWpm);
+  progressFill.parentElement.classList.toggle('hidden', !state.showProgress);
 }
 
 /* Cursor */
@@ -932,6 +1066,54 @@ document.querySelectorAll('[data-sound]').forEach(btn => {
     document.querySelectorAll('[data-sound]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     state.sound = btn.dataset.sound === 'on';
+    saveSettings();
+  });
+});
+
+document.querySelectorAll('[data-sound-style]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-sound-style]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.soundStyle = btn.dataset.soundStyle;
+    saveSettings();
+  });
+});
+
+document.querySelectorAll('[data-live-wpm]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-live-wpm]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.showLiveWpm = btn.dataset.liveWpm === 'on';
+    applyDisplaySettings();
+    saveSettings();
+  });
+});
+
+document.querySelectorAll('[data-progress-vis]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-progress-vis]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.showProgress = btn.dataset.progressVis === 'on';
+    applyDisplaySettings();
+    saveSettings();
+  });
+});
+
+document.querySelectorAll('[data-focus-mode]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-focus-mode]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.focusMode = btn.dataset.focusMode === 'on';
+    saveSettings();
+  });
+});
+
+document.querySelectorAll('[data-chart-style]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-chart-style]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.chartStyle = btn.dataset.chartStyle;
+    if (state.finished) drawWpmChart();
     saveSettings();
   });
 });
@@ -994,6 +1176,15 @@ function saveSettings() {
       cursor: state.cursor,
       smooth: state.smooth,
       sound: state.sound,
+      soundStyle: state.soundStyle,
+      chartStyle: state.chartStyle,
+      showLiveWpm: state.showLiveWpm,
+      showProgress: state.showProgress,
+      focusMode: state.focusMode,
+      textOpacity: state.textOpacity,
+      panelRoundness: state.panelRoundness,
+      testWidth: state.testWidth,
+      caretThickness: state.caretThickness,
       punctuation: state.punctuation,
       numbers: state.numbers,
       customColors: state.customColors,
@@ -1059,6 +1250,60 @@ function loadSettings() {
         b.classList.toggle('active', (b.dataset.sound === 'on') === s.sound));
     }
 
+    if (s.soundStyle) {
+      state.soundStyle = s.soundStyle;
+      document.querySelectorAll('[data-sound-style]').forEach(b =>
+        b.classList.toggle('active', b.dataset.soundStyle === s.soundStyle));
+    }
+
+    if (s.chartStyle) {
+      state.chartStyle = s.chartStyle;
+      document.querySelectorAll('[data-chart-style]').forEach(b =>
+        b.classList.toggle('active', b.dataset.chartStyle === s.chartStyle));
+    }
+
+    if (s.showLiveWpm !== undefined) {
+      state.showLiveWpm = s.showLiveWpm;
+      document.querySelectorAll('[data-live-wpm]').forEach(b =>
+        b.classList.toggle('active', (b.dataset.liveWpm === 'on') === s.showLiveWpm));
+    }
+
+    if (s.showProgress !== undefined) {
+      state.showProgress = s.showProgress;
+      document.querySelectorAll('[data-progress-vis]').forEach(b =>
+        b.classList.toggle('active', (b.dataset.progressVis === 'on') === s.showProgress));
+    }
+
+    if (s.focusMode !== undefined) {
+      state.focusMode = s.focusMode;
+      document.querySelectorAll('[data-focus-mode]').forEach(b =>
+        b.classList.toggle('active', (b.dataset.focusMode === 'on') === s.focusMode));
+    }
+
+    if (s.textOpacity !== undefined) {
+      state.textOpacity = s.textOpacity;
+      textOpacitySlider.value = s.textOpacity;
+      textOpacityVal.textContent = s.textOpacity + '%';
+    }
+
+    if (s.panelRoundness !== undefined) {
+      state.panelRoundness = s.panelRoundness;
+      panelRoundnessSlider.value = s.panelRoundness;
+      panelRoundnessVal.textContent = s.panelRoundness + 'px';
+    }
+
+    if (s.testWidth !== undefined) {
+      state.testWidth = s.testWidth;
+      testWidthSlider.value = s.testWidth;
+      testWidthVal.textContent = s.testWidth + 'px';
+    }
+
+    if (s.caretThickness !== undefined) {
+      state.caretThickness = s.caretThickness;
+      caretThicknessSlider.value = s.caretThickness;
+      caretThicknessVal.textContent = s.caretThickness + 'px';
+    }
+
     if (s.punctuation !== undefined) {
       state.punctuation = s.punctuation;
       document.getElementById('punctBtn').classList.toggle('active', state.punctuation);
@@ -1079,6 +1324,7 @@ function loadSettings() {
 
     // Sync color pickers after a tick so CSS variables have resolved
     setTimeout(syncColorPickers, 50);
+    applyDisplaySettings();
   } catch {}
 }
 

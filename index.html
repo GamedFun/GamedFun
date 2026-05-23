@@ -12,7 +12,7 @@
 <body data-theme="dark" data-cursor="line">
 
   <header>
-    <div class="logo">TypeFlow</div>
+    <button class="logo" id="logoReset" title="Reset test">TypeFlow</button>
     <div class="header-right">
       <button class="ghost-btn header-signout" id="privacyBtn">Privacy</button>
       <button class="icon-btn" id="settingsBtn" title="Settings">&#9881;</button>
@@ -346,6 +346,42 @@
             </div>
           </div>
 
+          <div class="setting-group">
+            <div class="setting-label">
+              Text Opacity
+              <span class="setting-value" id="textOpacityVal">100%</span>
+            </div>
+            <input type="range" class="slider" id="textOpacitySlider"
+              min="35" max="100" step="5" value="100" />
+            <div class="slider-labels">
+              <span>soft</span><span>clear</span>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">
+              Test Width
+              <span class="setting-value" id="testWidthVal">900px</span>
+            </div>
+            <input type="range" class="slider" id="testWidthSlider"
+              min="620" max="1240" step="20" value="900" />
+            <div class="slider-labels">
+              <span>compact</span><span>wide</span>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">
+              Panel Roundness
+              <span class="setting-value" id="panelRoundnessVal">16px</span>
+            </div>
+            <input type="range" class="slider" id="panelRoundnessSlider"
+              min="0" max="28" step="2" value="16" />
+            <div class="slider-labels">
+              <span>sharp</span><span>round</span>
+            </div>
+          </div>
+
         </div>
 
         <!-- ── Behavior Tab ── -->
@@ -373,6 +409,60 @@
             <div class="setting-row">
               <button class="sub-btn" data-sound="on">on</button>
               <button class="sub-btn active" data-sound="off">off</button>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">Sound Style</div>
+            <div class="setting-row">
+              <button class="sub-btn active" data-sound-style="click">click</button>
+              <button class="sub-btn" data-sound-style="clack">clack</button>
+              <button class="sub-btn" data-sound-style="pop">pop</button>
+              <button class="sub-btn" data-sound-style="beep">beep</button>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">Live WPM</div>
+            <div class="setting-row">
+              <button class="sub-btn active" data-live-wpm="on">on</button>
+              <button class="sub-btn" data-live-wpm="off">off</button>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">Progress Bar</div>
+            <div class="setting-row">
+              <button class="sub-btn active" data-progress-vis="on">on</button>
+              <button class="sub-btn" data-progress-vis="off">off</button>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">Focus Mode</div>
+            <div class="setting-row">
+              <button class="sub-btn" data-focus-mode="on">on</button>
+              <button class="sub-btn active" data-focus-mode="off">off</button>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">Result Chart</div>
+            <div class="setting-row">
+              <button class="sub-btn active" data-chart-style="multi">multi line</button>
+              <button class="sub-btn" data-chart-style="bars">bars</button>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">
+              Caret Thickness
+              <span class="setting-value" id="caretThicknessVal">2px</span>
+            </div>
+            <input type="range" class="slider" id="caretThicknessSlider"
+              min="1" max="8" step="1" value="2" />
+            <div class="slider-labels">
+              <span>thin</span><span>bold</span>
             </div>
           </div>
 
