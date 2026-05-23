@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Universe Destroyer</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --era: #ff6b35; --bg: #07070f; }
+    html, body { height: 100%; background: var(--bg); color: #e8e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; overflow: hidden; }
+    #game { height: 100vh; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; position: relative; }
+
+    /* STARS */
+    #stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+    .s { position: absolute; border-radius: 50%; background: #fff; animation: tw var(--d) var(--del) ease-in-out infinite; opacity: 0; }
+    @keyframes tw { 0%,100%{opacity:0} 50%{opacity:var(--op)} }
+    #game > * { position: relative; z-index: 1; }
+
+    /* TOP BAR */
+    #top { padding: 10px 16px; background: rgba(255,255,255,.04); border-bottom: 1px solid rgba(255,255,255,.07); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+    #era-name { font-size: 1rem; font-weight: 700; color: var(--era); text-shadow: 0 0 8px var(--era); letter-spacing: .03em; }
+    #era-num  { font-size: .7rem; color: rgba(255,255,255,.35); margin-top: 2px; }
+    #energy-col { text-align: right; }
+    #energy-val { font-size: 1.15rem; font-weight: 800; letter-spacing: .02em; }
+    #eps-val    { font-size: .7rem; color: rgba(255,255,255,.4); margin-top: 1px; }
+
+    /* PROGRESS */
+    #prog-wrap   { padding: 6px 16px 8px; background: rgba(0,0,0,.2); flex-shrink: 0; }
+    #prog-labels { display: flex; justify-content: space-between; font-size: .68rem; color: rgba(255,255,255,.35); margin-bottom: 4px; }
+    #prog-track  { height: 7px; background: rgba(255,255,255,.08); border-radius: 4px; overflow: hidden; }
+    #prog-fill   { height: 100%; background: var(--era); border-radius: 4px; box-shadow: 0 0 8px var(--era); transition: width .25s ease; width: 0%; }
+
+    /* SCROLL */
+    #scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; }
+    #scroll::-webkit-scrollbar { width: 4px; }
+    #scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 2px; }
+
+    /* MAIN */
+    #main { padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+
+    /* MULT BADGE */
+    #mult-badge { display: none; background: linear-gradient(135deg,#ffd700,#ff8c00); color: #000; font-size: .8rem; font-weight: 700; padding: 4px 14px; border-radius: 20px; animation: pulse .9s ease-in-out infinite; letter-spacing: .03em; }
+    @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.04)} }
+    /* COMBO BADGE */
+    #combo-badge { display: none; background: linear-gradient(135deg,#cc00ff,#ff0088); color: #fff; font-size: .78rem; font-weight: 700; padding: 3px 12px; border-radius: 20px; letter-spacing: .03em; }
+    #combo-badge.on { display: block; animation: pulse .5s ease-in-out infinite; }
+    /* CRIT float */
+    .ft.crit { color: #ff4400; font-size: 1.4rem; font-weight: 900; }
+
+    /* CLICK BUTTON */
+    #clicker { width: 164px; height: 164px; border-radius: 50%; border: 2.5px solid var(--era); background: radial-gradient(circle at 38% 32%,rgba(255,255,255,.12) 0%,transparent 55%),rgba(0,0,0,.5); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; animation: breathe 3s ease-in-out infinite; transition: transform .12s; -webkit-tap-highlight-color: transparent; user-select: none; outline: none; }
+    @keyframes breathe { 0%,100%{box-shadow:0 0 10px rgba(255,255,255,.03),0 0 8px var(--era)} 50%{box-shadow:0 0 20px rgba(255,255,255,.06),0 0 16px var(--era)} }
+    #clicker:active { animation: none; transform: scale(.9); box-shadow: 0 0 14px var(--era); }
+    #clicker-icon { font-size: 2.8rem; pointer-events: none; }
+    #clicker-lbl  { font-size: .78rem; color: rgba(255,255,255,.55); pointer-events: none; }
+
+    /* FLOAT TEXT */
+    .ft { position: fixed; font-size: 1rem; font-weight: 700; color: var(--era); pointer-events: none; z-index: 500; animation: ftUp .75s ease-out forwards; }
+    @keyframes ftUp { 0%{opacity:1;transform:translateY(0) scale(1)} 100%{opacity:0;transform:translateY(-55px) scale(.8)} }
+    .ft.nyan { animation: ftUp .75s ease-out forwards, rainbowText .4s linear infinite; }
+    @keyframes rainbowText { 0%{color:#ff0000} 20%{color:#ff8800} 40%{color:#ffff00} 60%{color:#00dd00} 80%{color:#0088ff} 100%{color:#ff00ff} }
+
+    /* REWARDED */
+    #rewarded { background: linear-gradient(135deg,#ffd700,#ff8c00); color: #000; border: none; padding: 9px 20px; border-radius: 22px; font-size: .85rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 7px; box-shadow: 0 3px 14px rgba(255,165,0,.35); transition: transform .1s; -webkit-tap-highlight-color: transparent; }
+    #rewarded:active { transform: scale(.96); }
+    #rewarded:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+
+    /* SHOP */
+    #shop { width: 100%; }
+    #shop-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; padding-left: 2px; }
+    #shop-title { font-size: .7rem; text-transform: uppercase; letter-spacing: .12em; color: rgba(255,255,255,.3); }
+    #shop-hint  { font-size: .65rem; color: rgba(255,255,255,.2); font-style: italic; }
+    .upg { display: flex; align-items: center; gap: 11px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07); border-radius: 12px; padding: 10px 12px; margin-bottom: 7px; cursor: pointer; transition: background .15s, border-color .15s, transform .08s; -webkit-tap-highlight-color: transparent; user-select: none; }
+    .upg:active { transform: scale(.98); }
+    .upg.can  { border-color: var(--era); background: rgba(255,255,255,.055); }
+    .upg.fun  { border-color: gold; background: rgba(255,215,0,.06); }
+    .upg.fun.can { background: rgba(255,215,0,.12); }
+    .upg.new  { animation: slideIn .28s ease-out; }
+    @keyframes slideIn { from{opacity:0;transform:translateX(-10px)} to{opacity:1;transform:translateX(0)} }
+    .upg-icon     { font-size: 1.9rem; flex-shrink: 0; width: 38px; text-align: center; }
+    .upg-info     { flex: 1; min-width: 0; }
+    .upg-name-row { display: flex; align-items: center; gap: 5px; }
+    .upg-name     { font-size: .9rem; font-weight: 600; }
+    .fun-tag      { font-size: .55rem; background: gold; color: #000; padding: 1px 5px; border-radius: 3px; font-weight: 700; letter-spacing: .05em; flex-shrink: 0; }
+    .upg-desc     { font-size: .7rem; color: rgba(255,255,255,.4); margin-top: 1px; }
+    .upg-right    { text-align: right; flex-shrink: 0; }
+    .upg-cost     { font-size: .85rem; font-weight: 700; color: var(--era); }
+    .upg.fun .upg-cost { color: gold; }
+    .upg-owned    { font-size: .68rem; color: rgba(255,255,255,.35); margin-top: 2px; }
+
+    /* BANNER AD */
+    #banner { flex-shrink: 0; background: rgba(255,255,255,.03); border-top: 1px solid rgba(255,255,255,.07); padding: 7px 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 54px; }
+    .ad-tag { font-size: .58rem; text-transform: uppercase; letter-spacing: .1em; color: rgba(255,255,255,.2); margin-bottom: 3px; }
+    #banner-inner { width: 100%; max-width: 320px; height: 32px; background: rgba(255,255,255,.04); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: .72rem; color: rgba(255,255,255,.18); }
+
+    /* MILESTONE */
+    #milestone { display: none; position: fixed; inset: 0; z-index: 1000; flex-direction: column; align-items: center; justify-content: center; }
+    #milestone.on { display: flex; }
+    #ms-bg     { position: absolute; inset: 0; }
+    #ms-canvas { position: absolute; inset: 0; pointer-events: none; }
+    #ms-box    { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 24px 20px; max-width: 380px; animation: msIn .5s ease-out; }
+    @keyframes msIn { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    #interstitial { background: rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,.1); border-radius: 10px; padding: 10px 16px; margin-bottom: 20px; width: 280px; }
+    #int-inner    { height: 56px; display: flex; align-items: center; justify-content: center; font-size: .75rem; color: rgba(255,255,255,.22); }
+    #ms-icon  { font-size: 4.5rem; margin-bottom: 12px; animation: msIcon .6s .1s both; }
+    @keyframes msIcon { 0%{transform:scale(0) rotate(-90deg);opacity:0} 100%{transform:scale(1) rotate(0);opacity:1} }
+    #ms-title { font-size: 1.9rem; font-weight: 900; margin-bottom: 8px; text-shadow: 0 0 30px currentColor; letter-spacing: .02em; }
+    #ms-desc  { font-size: .88rem; color: rgba(255,255,255,.65); line-height: 1.5; margin-bottom: 16px; max-width: 300px; }
+    #ms-timer { font-size: .72rem; color: rgba(255,255,255,.4); margin-bottom: 12px; min-height: 1.2em; }
+    #ms-btn   { background: rgba(255,255,255,.12); border: 2px solid rgba(255,255,255,.3); color: #fff; padding: 11px 28px; border-radius: 26px; font-size: .95rem; font-weight: 700; cursor: pointer; transition: background .15s; letter-spacing: .03em; }
+    #ms-btn:hover:not(:disabled) { background: rgba(255,255,255,.22); }
+    #ms-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* GAME OVER */
+    #gameover { display: none; position: fixed; inset: 0; z-index: 1100; background: #000; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; animation: fadeIn 2s ease forwards; }
+    #gameover.on { display: flex; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    #gameover h1 { font-size: 2.2rem; font-weight: 900; margin-bottom: 12px; color: #607d8b; }
+    #gameover p  { font-size: .95rem; color: rgba(255,255,255,.5); max-width: 300px; line-height: 1.6; margin-bottom: 24px; }
+    #restart-btn { background: rgba(255,255,255,.1); border: 2px solid rgba(255,255,255,.2); color: rgba(255,255,255,.6); padding: 10px 24px; border-radius: 22px; font-size: .9rem; font-weight: 700; cursor: pointer; }
+    #restart-btn:hover { background: rgba(255,255,255,.18); }
+
+    /* ── FUN VISUAL EFFECTS ── */
+    body.rainbow { background: #1a003a !important; }
+    /* SUBWAY CORNER */
+    #subway-corner { display:none; position:fixed; bottom:70px; right:12px; z-index:210; pointer-events:none; }
+    #subway-corner.on { display:block; }
+    #subway-corner img { height:110px; filter:drop-shadow(0 0 8px #ffcc00); }
+    /* LOFI BUTTON */
+    #lofi-btn { position:fixed; top:10px; right:10px; z-index:300; background:rgba(0,0,0,.6); border:1px solid rgba(255,255,255,.2); color:rgba(255,255,255,.6); font-size:.7rem; padding:4px 9px; border-radius:14px; cursor:pointer; letter-spacing:.04em; }
+    #lofi-btn.on { border-color:#cc88ff; color:#cc88ff; }
+
+    .critter { position: fixed; z-index: 200; pointer-events: none; animation: critterRun linear forwards; }
+    @keyframes critterRun { to { transform: translateX(calc(100vw + 8rem)); } }
+
+
+    .diamond-drop { position: fixed; top: -3rem; z-index: 200; pointer-events: none; animation: dropDown linear forwards; }
+    @keyframes dropDown { to { transform: translateY(105vh); opacity: 0; } }
+
+    /* elixir bar (Clash Royale) */
+    #elixir-bar { display: none; position: fixed; bottom: 58px; left: 50%; transform: translateX(-50%); z-index: 201; display: none; align-items: center; gap: 6px; background: rgba(0,0,0,.7); border: 1px solid rgba(180,80,200,.5); border-radius: 20px; padding: 4px 12px; }
+    #elixir-bar.on { display: flex; }
+    #elixir-drops { display: flex; gap: 3px; }
+    .elixir-drop { font-size: .9rem; animation: elixirPop .4s ease; }
+    @keyframes elixirPop { 0%{transform:scale(0)} 60%{transform:scale(1.3)} 100%{transform:scale(1)} }
+    #elixir-label { font-size: .65rem; color: rgba(200,130,230,.8); font-weight: 600; }
+
+    .fun-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 600; text-align: center; padding: 14px 24px; border-radius: 10px; font-weight: 900; pointer-events: none; animation: popIn .3s ease, popOut .4s ease 1.8s forwards; }
+    @keyframes popIn  { from{transform:translate(-50%,-50%) scale(.5);opacity:0} to{transform:translate(-50%,-50%) scale(1);opacity:1} }
+    @keyframes popOut { to{opacity:0;transform:translate(-50%,-60%) scale(.9)} }
+
+    .toast-popup { background: rgba(30,30,30,.95); border: 1px solid rgba(255,255,255,.2); color: rgba(255,255,255,.7); font-size: .9rem; font-weight: 600; top: 25%; }
+    .clash-popup { background: rgba(0,0,0,.92); border: 2px solid #b44fcc; color: #e080ff; font-size: 1.1rem; letter-spacing: .04em; }
+    .levelup-popup { background: rgba(0,40,0,.92); border: 2px solid #00ff88; color: #00ff88; font-size: 1.2rem; letter-spacing: .06em; }
+    .gameover-popup { background: rgba(20,0,0,.95); border: 2px solid #ff3333; color: #ff5555; font-size: 1.1rem; letter-spacing: .04em; }
+    .upg.rick { background: linear-gradient(135deg,rgba(255,0,0,.07),rgba(255,140,0,.07),rgba(0,180,255,.07)); border: 1.5px solid; border-image: linear-gradient(135deg,#ff4444,#ff8800,#00ccff) 1; animation: rickGlow 2s ease-in-out infinite; }
+    @keyframes rickGlow { 0%,100%{box-shadow:0 0 6px rgba(255,100,0,.3)} 50%{box-shadow:0 0 14px rgba(0,200,255,.35)} }
+    .rick-popup { background: rgba(10,10,10,.96); border: 2px solid #ff4444; color: #ff8800; font-size: 1rem; letter-spacing: .05em; }
+    /* TIDAL WAVE */
+    #tidal-bg { display:none; position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+    #tidal-bg.on { display:block; }
+    .tw { position:absolute; bottom:-60px; left:-50%; width:200%; height:220px; border-radius:43%; opacity:.18; animation:twRot linear infinite; }
+    .tw:nth-child(1){ background:#0077cc; animation-duration:7s; }
+    .tw:nth-child(2){ background:#00aaff; animation-duration:9s; animation-delay:-3s; opacity:.12; bottom:-80px; }
+    .tw:nth-child(3){ background:#00ccff; animation-duration:11s; animation-delay:-6s; opacity:.08; bottom:-100px; }
+    @keyframes twRot { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+    /* TIDAL VIDEO OVERLAY */
+    #tidal-overlay { display:none; position:fixed; inset:0; z-index:0; pointer-events:none; }
+    #tidal-overlay.on { display:block; }
+    #tidal-overlay video { width:100%; height:100%; object-fit:cover; opacity:.35; }
+    .tidal-popup { background:rgba(0,20,60,.95); border:2px solid #00aaff; color:#00eeff; font-size:1.1rem; letter-spacing:.06em; }
+    .upg.tidal-upg { background:linear-gradient(135deg,rgba(0,80,180,.1),rgba(0,200,255,.07)); border:1.5px solid #00aaff; animation:twGlow 2s ease-in-out infinite; }
+    @keyframes twGlow { 0%,100%{box-shadow:0 0 6px rgba(0,150,255,.3)} 50%{box-shadow:0 0 16px rgba(0,220,255,.5)} }
+
+  </style>
+</head>
+<body>
+<div id="stars"></div>
+<div id="tidal-bg"><div class="tw"></div><div class="tw"></div><div class="tw"></div></div>
+<div id="subway-corner"><img src="https://media1.tenor.com/m/NmtI99JHKj0AAAAd/save-me-subway-surfer.gif" alt="subway"></div>
+<button id="lofi-btn">🎵 Lofi</button>
+<div id="tidal-overlay">
+  <video id="tidal-vid" src="file:///Users/rebeccafarley/Downloads/IT_S_VERIFIED_Tidal_Wave_NEW_TOP_1_in_Perfect_Quality_4K_60fps_Geometry_Dash.mp4" muted playsinline loop></video>
+</div>
+<div id="elixir-bar"><span id="elixir-drops"></span><span id="elixir-label">ELIXIR</span></div>
+
+<div id="game">
+  <div id="top">
+    <div>
+      <div id="era-name">Big Bang</div>
+      <div id="era-num">Era 1 of 7</div>
+    </div>
+    <div id="energy-col">
+      <div id="energy-val">0 ⚡</div>
+      <div id="eps-val">0 /sec</div>
+    </div>
+  </div>
+  <div id="prog-wrap">
+    <div id="prog-labels"><span>Era Progress</span><span id="prog-text">0 / 5,000</span></div>
+    <div id="prog-track"><div id="prog-fill"></div></div>
+  </div>
+  <div id="scroll">
+    <div id="main">
+      <div id="mult-badge">⚡ 2× Energy Active!</div>
+      <div id="combo-badge">🔥 COMBO ×1</div>
+      <button id="clicker">
+        <span id="clicker-icon">💥</span>
+        <span id="clicker-lbl">Click!</span>
+      </button>
+      <button id="rewarded">📺 Watch Ad — 2× Energy for 60s</button>
+      <div id="shop">
+        <div id="shop-header">
+          <div id="shop-title">Upgrades</div>
+          <div id="shop-hint">shuffles on buy</div>
+        </div>
+        <div id="upg-list"></div>
+      </div>
+      <div id="fun-shop">
+        <div id="shop-header">
+          <div id="shop-title">✨ Fun Upgrades</div>
+          <div id="shop-hint">always available</div>
+        </div>
+        <div id="fun-list"></div>
+      </div>
+    </div>
+  </div>
+  <div id="banner">
+    <div class="ad-tag">Advertisement</div>
+    <div id="banner-inner">Your ad could be here</div>
+  </div>
+</div>
+
+<div id="milestone">
+  <div id="ms-bg"></div>
+  <canvas id="ms-canvas"></canvas>
+  <div id="ms-box">
+    <div id="interstitial">
+      <div class="ad-tag">Advertisement</div>
+      <div id="int-inner">Interstitial Ad Placeholder</div>
+    </div>
+    <div id="ms-icon">💥</div>
+    <div id="ms-title">The Big Bang!</div>
+    <div id="ms-desc">From a single point of infinite density, all of existence explodes into being.</div>
+    <div id="ms-timer"></div>
+    <button id="ms-btn" disabled>Continue →</button>
+  </div>
+</div>
+
+<div id="gameover">
+  <div style="font-size:3rem;margin-bottom:16px">🌑</div>
+  <h1>Heat Death</h1>
+  <p>Stars burned out. Black holes evaporated. The last photon faded. You witnessed the entire life of the universe.</p>
+  <button id="restart-btn">↺ Restart the Universe</button>
+</div>
+
+<script>
+'use strict';
+
+// ══════════════════════════════════════════════
+//  SOUND ENGINE  (Web Audio API synthesis)
+// ══════════════════════════════════════════════
+const SFX = (() => {
+  let ctx = null;
+  let lastWhoosh = 0;
+
+  function ac() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+
+  // One tone: freq, waveform, start-time, duration, volume
+  function tone(freq, wave, t, dur, vol = 0.22) {
+    const c = ac();
+    const osc = c.createOscillator(), g = c.createGain();
+    osc.type = wave; osc.frequency.value = freq;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(g); g.connect(c.destination);
+    osc.start(t); osc.stop(t + dur + 0.05);
+  }
+
+  // Frequency sweep
+  function sweep(f0, f1, wave, t, dur, vol = 0.22) {
+    const c = ac();
+    const osc = c.createOscillator(), g = c.createGain();
+    osc.type = wave;
+    osc.frequency.setValueAtTime(f0, t);
+    osc.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(g); g.connect(c.destination);
+    osc.start(t); osc.stop(t + dur + 0.05);
+  }
+
+  // Filtered noise hit (for whooshes and thuds)
+  function noiseHit(t, dur, freq, q = 2, vol = 0.3) {
+    const c = ac();
+    const buf = c.createBuffer(1, Math.ceil(c.sampleRate * dur), c.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const src  = c.createBufferSource(); src.buffer = buf;
+    const filt = c.createBiquadFilter(); filt.type = 'bandpass'; filt.frequency.value = freq; filt.Q.value = q;
+    const g = c.createGain();
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(filt); filt.connect(g); g.connect(c.destination);
+    src.start(t);
+  }
+
+  return {
+    // ── Subway Surfers ──────────────────────────
+    // Coin collect: two quick ascending "ding" notes
+    coin() {
+      const c = ac(), now = c.currentTime;
+      tone(880,  'sine', now,        0.09, 0.3);
+      tone(1320, 'sine', now + 0.10, 0.14, 0.28);
+    },
+    // Whoosh when a runner crosses (throttled)
+    whoosh() {
+      const now = Date.now();
+      if (now - lastWhoosh < 400) return;
+      lastWhoosh = now;
+      const c = ac(), t = c.currentTime;
+      const buf = c.createBuffer(1, Math.ceil(c.sampleRate * 0.22), c.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      const src  = c.createBufferSource(); src.buffer = buf;
+      const filt = c.createBiquadFilter(); filt.type = 'bandpass';
+      filt.frequency.setValueAtTime(3200, t);
+      filt.frequency.exponentialRampToValueAtTime(250, t + 0.2);
+      filt.Q.value = 1.5;
+      const g = c.createGain();
+      g.gain.setValueAtTime(0.32, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+      src.connect(filt); filt.connect(g); g.connect(c.destination);
+      src.start(t);
+    },
+
+    // ── Clash Royale ────────────────────────────
+    // Card deploy: high whoosh descending + low thud
+    cardDeploy() {
+      const c = ac(), now = c.currentTime;
+      sweep(1100, 110, 'sawtooth', now,        0.18, 0.28);
+      noiseHit(now + 0.14, 0.14, 80, 3, 0.4);
+      sweep(110, 55, 'sine', now + 0.14, 0.12, 0.25);
+    },
+    // Elixir collect: ascending bubbling pings
+    elixir() {
+      const c = ac(), now = c.currentTime;
+      [300, 420, 560, 700, 880].forEach((f, i) =>
+        tone(f, 'sine', now + i * 0.065, 0.1, 0.18));
+    },
+    // Clash fanfare: short medieval horn-feel ascending phrase
+    fanfare() {
+      const c = ac(), now = c.currentTime;
+      // G4 C5 E5 G5 — triumphant rising
+      const notes = [392, 523, 659, 784];
+      notes.forEach((f, i) => {
+        sweep(f * 1.04, f, 'square', now + i * 0.13, 0.14, 0.18);
+        // Add a sine undertone for warmth
+        tone(f / 2, 'sine', now + i * 0.13, 0.14, 0.08);
+      });
+      // Final chord
+      [392, 523, 784].forEach(f => tone(f, 'sine', now + 0.58, 0.45, 0.1));
+    },
+
+
+    // ── Other game SFX ──────────────────────────
+    // Among Us task complete: two ascending tones
+    taskComplete() {
+      const c = ac(), now = c.currentTime;
+      tone(660, 'sine', now,        0.1,  0.25);
+      tone(990, 'sine', now + 0.12, 0.15, 0.25);
+    },
+    // Minecraft diamond: magical ascending sparkle
+    diamondFind() {
+      const c = ac(), now = c.currentTime;
+      [523, 659, 784, 1047, 1319].forEach((f, i) =>
+        tone(f, 'sine', now + i * 0.09, 0.14, 0.2));
+    },
+    // Nyan Cat: short snippet of the melody (D D A A B B A)
+    nyanMelody() {
+      const c = ac(), now = c.currentTime;
+      [587, 587, 880, 880, 988, 988, 880].forEach((f, i) =>
+        tone(f, 'square', now + i * 0.1, 0.09, 0.14));
+    },
+    // Cat meow: rising then falling glide
+    meow() {
+      const c = ac(), now = c.currentTime;
+      sweep(580, 820, 'sine', now,        0.12, 0.2);
+      sweep(820, 520, 'sine', now + 0.12, 0.16, 0.18);
+    },
+    // Level up: fast ascending scale
+    levelUp() {
+      const c = ac(), now = c.currentTime;
+      [523, 659, 784, 1047, 1319].forEach((f, i) =>
+        tone(f, 'square', now + i * 0.08, 0.09, 0.18));
+      // Final big note
+      tone(1568, 'square', now + 0.44, 0.3, 0.18);
+    },
+    // Power up: rising sweep
+    powerUp() {
+      const c = ac(), now = c.currentTime;
+      sweep(180, 900, 'sine', now, 0.28, 0.22);
+    },
+    // Game over: descending foreboding
+    gameOver() {
+      const c = ac(), now = c.currentTime;
+      [392, 330, 277, 220, 185].forEach((f, i) =>
+        tone(f, 'square', now + i * 0.2, 0.22, 0.18));
+    },
+    rickSong() {
+      const c = ac(), now = c.currentTime;
+      // "Never Gonna Give You Up" chorus melody (sawtooth = cheesy synth)
+      const notes = [
+        [440, 0,    0.18], // A4
+        [494, 0.22, 0.18], // B4
+        [587, 0.44, 0.28], // D5
+        [494, 0.76, 0.16], // B4
+        [659, 0.96, 0.36], // E5
+        [587, 1.36, 0.52], // D5 (held)
+        [523, 2.0,  0.18], // C5
+        [587, 2.22, 0.5],  // D5 (held)
+      ];
+      for (const [freq, t, dur] of notes) tone(freq, 'sawtooth', now + t, dur, 0.14);
+    },
+  };
+})();
+
+// ══════════════════════════════════════════════
+//  ERA DATA
+// ══════════════════════════════════════════════
+const ERAS = [
+  { name:'Big Bang',     icon:'💥', color:'#ff6b35', msTitle:'The Big Bang!',        msDesc:'From a single point of infinite density, all of existence explodes into being.',              progressReq:8_000,           clickPow:1,      bg:'radial-gradient(ellipse at center,#3a1200 0%,#1a0500 50%,#070007 100%)',
+    upgrades:[
+      {name:'Quantum Fluctuation',icon:'⚛️', desc:'+0.5/sec',   cost:10,      eps:0.5  },
+      {name:'Particle Collider',  icon:'🔬', desc:'+3/sec',     cost:75,      eps:3    },
+      {name:'Plasma Field',       icon:'🌡️',desc:'+20/sec',    cost:600,     eps:20   },
+      {name:'Antimatter Core',    icon:'💫', desc:'+150/sec',   cost:5_000,   eps:150  },
+      {name:'Singularity Pulse',  icon:'🌀', desc:'+1,000/sec', cost:40_000,  eps:1_000},
+      {name:'Inflation Drive',    icon:'🔥', desc:'+7,000/sec', cost:300_000, eps:7_000},
+    ]},
+  { name:'First Stars',  icon:'⭐', color:'#ffd700', msTitle:'First Light!',         msDesc:'Hydrogen clouds collapse under gravity. The first blazing stars ignite the darkness.',        progressReq:150_000,          clickPow:5,      bg:'radial-gradient(ellipse at center,#1a1500 0%,#0a0a00 50%,#000010 100%)',
+    upgrades:[
+      {name:'Nebula Farm',         icon:'🌌', desc:'+8/sec',      cost:500,        eps:8      },
+      {name:'Solar Wind Harvester',icon:'☀️', desc:'+50/sec',     cost:3_500,      eps:50     },
+      {name:'Stellar Fusion Core', icon:'🔆', desc:'+300/sec',    cost:25_000,     eps:300    },
+      {name:'Supernova Collector', icon:'💥', desc:'+2,000/sec',  cost:200_000,    eps:2_000  },
+      {name:'Pulsar Array',        icon:'📡', desc:'+14,000/sec', cost:1_500_000,  eps:14_000 },
+      {name:'Quasar Tap',          icon:'🌟', desc:'+90,000/sec', cost:12_000_000, eps:90_000 },
+    ]},
+  { name:'Earth Forms',  icon:'🌍', color:'#4caf50', msTitle:'Earth is Born!',       msDesc:'Stardust coalesces into a molten world. Oceans form. The continents begin their slow dance.',progressReq:3_000_000,       clickPow:25,     bg:'radial-gradient(ellipse at center,#001a00 0%,#000d00 50%,#000300 100%)',
+    upgrades:[
+      {name:'Volcano Tap',   icon:'🌋', desc:'+200/sec',       cost:10_000,      eps:200      },
+      {name:'Tectonic Shift',icon:'⛰️', desc:'+1,200/sec',     cost:80_000,      eps:1_200    },
+      {name:'Ocean Dynamo',  icon:'🌊', desc:'+8,000/sec',     cost:600_000,     eps:8_000    },
+      {name:'Magnetosphere', icon:'🧲', desc:'+55,000/sec',    cost:5_000_000,   eps:55_000   },
+      {name:'Mineral Vein',  icon:'💎', desc:'+380,000/sec',   cost:40_000_000,  eps:380_000  },
+      {name:'Atmos Engine',  icon:'🌪️',desc:'+2,600,000/sec', cost:320_000_000, eps:2_600_000},
+    ]},
+  { name:'Life Begins',  icon:'🦠', color:'#69f0ae', msTitle:'Life Emerges!',        msDesc:'In warm tidal pools, self-replicating molecules awaken. The miracle of life takes its first breath.',progressReq:80_000_000, clickPow:100,    bg:'radial-gradient(ellipse at center,#001508 0%,#000a04 50%,#000200 100%)',
+    upgrades:[
+      {name:'Bacteria Colony',      icon:'🦠', desc:'+3,000/sec',    cost:200_000,       eps:3_000    },
+      {name:'Photosynthesis Engine',icon:'🌿', desc:'+20,000/sec',   cost:1_500_000,     eps:20_000   },
+      {name:'Cambrian Explosion',   icon:'🐙', desc:'+130,000/sec',  cost:12_000_000,    eps:130_000  },
+      {name:'Dinosaur Herd',        icon:'🦕', desc:'+900,000/sec',  cost:90_000_000,    eps:900_000  },
+      {name:'Fungal Network',       icon:'🍄', desc:'+6,000,000/sec',cost:700_000_000,   eps:6_000_000},
+      {name:'Mass Extinction',      icon:'☄️', desc:'+42M/sec',      cost:5_500_000_000, eps:42_000_000},
+    ]},
+  { name:'Civilization', icon:'🏙️',color:'#42a5f5', msTitle:'Civilization Rises!',  msDesc:'In a cosmic blink, humans build cities, write laws, and harness the atom itself.',            progressReq:3_000_000_000,     clickPow:500,    bg:'radial-gradient(ellipse at center,#000820 0%,#000410 50%,#000208 100%)',
+    upgrades:[
+      {name:'City Generator', icon:'🏙️',desc:'+60K/sec',   cost:4_000_000,       eps:60_000     },
+      {name:'Nuclear Reactor',icon:'☢️', desc:'+400K/sec',  cost:30_000_000,      eps:400_000    },
+      {name:'Global Internet',icon:'🌐', desc:'+2.7M/sec',  cost:250_000_000,     eps:2_700_000  },
+      {name:'AI Cluster',     icon:'🤖', desc:'+18M/sec',   cost:2_000_000_000,   eps:18_000_000 },
+      {name:'Space Elevator', icon:'🛗', desc:'+120M/sec',  cost:16_000_000_000,  eps:120_000_000},
+      {name:'Megastructure',  icon:'🏗️',desc:'+800M/sec',  cost:130_000_000_000, eps:800_000_000},
+    ]},
+  { name:'Space Age',    icon:'🚀', color:'#ce93d8', msTitle:'Into the Cosmos!',     msDesc:'Rockets pierce the atmosphere. A Dyson Sphere begins harvesting the sun. The stars await.',   progressReq:80_000_000_000,  clickPow:2_500,  bg:'radial-gradient(ellipse at center,#0a0020 0%,#050010 50%,#020008 100%)',
+    upgrades:[
+      {name:'Rocket Booster',    icon:'🚀', desc:'+1.5M/sec', cost:100_000_000,       eps:1_500_000     },
+      {name:'Dyson Sphere',      icon:'🌠', desc:'+10M/sec',  cost:800_000_000,       eps:10_000_000    },
+      {name:'Wormhole Network',  icon:'🕳️',desc:'+70M/sec',  cost:6_000_000_000,     eps:70_000_000    },
+      {name:'Galactic Colonizer',icon:'🌌', desc:'+480M/sec', cost:50_000_000_000,    eps:480_000_000   },
+      {name:'Neutron Star Tap',  icon:'⭐', desc:'+3.2B/sec', cost:400_000_000_000,   eps:3_200_000_000 },
+      {name:'Dark Matter Weave', icon:'🌑', desc:'+22B/sec',  cost:3_200_000_000_000, eps:22_000_000_000},
+    ]},
+  { name:'Heat Death',   icon:'🌑', color:'#78909c', msTitle:'The End of Everything',msDesc:'Stars burn out. Black holes evaporate. The last photon fades. Entropy wins.',                progressReq:2_000_000_000_000, clickPow:10_000, bg:'radial-gradient(ellipse at center,#080808 0%,#040404 50%,#010101 100%)',
+    upgrades:[
+      {name:'Entropy Harvester',  icon:'💀', desc:'+30M/sec',  cost:2_000_000_000,      eps:30_000_000    },
+      {name:'Dark Energy Siphon', icon:'🌑', desc:'+200M/sec', cost:16_000_000_000,     eps:200_000_000   },
+      {name:'Vacuum Collapse',    icon:'⚫', desc:'+1.4B/sec', cost:130_000_000_000,    eps:1_400_000_000 },
+      {name:'Last Light Collect', icon:'🕯️',desc:'+9.5B/sec', cost:1_000_000_000_000,  eps:9_500_000_000 },
+      {name:'Proton Decay Array', icon:'⚡', desc:'+65B/sec',  cost:8_000_000_000_000,  eps:65_000_000_000},
+      {name:'Omega Machine',      icon:'🔮', desc:'+440B/sec', cost:65_000_000_000_000, eps:440_000_000_000},
+    ]},
+];
+
+// ══════════════════════════════════════════════
+//  FUN UPGRADES
+// ══════════════════════════════════════════════
+const FUN_BASE = 100;
+
+
+const FUN_UPGRADES = [
+  { id:'subway',   name:'Subway Surfers',    icon:'🛹', desc:'adds a runner',             costFactor:3,  epsFactor:1,
+    onBuy() { addCritter('subway'); addCritter('subway'); SFX.coin(); showSubwayCorner(); } },
+
+  { id:'clash',    name:'Clash Royale',      icon:'⚔️', desc:'deploy a card!',            costFactor:8,  epsFactor:2.5,
+    onBuy() { SFX.cardDeploy(); setTimeout(() => SFX.fanfare(), 280); startElixir(); addCritter('clash'); showPopup('⚔️ Clash Royale! ⚔️', 'clash-popup'); } },
+
+
+  { id:'amogus',   name:'Among Us',          icon:'🫐', desc:'find the impostor',           costFactor:4,  epsFactor:1.5,
+    onBuy() { SFX.taskComplete(); addCritter('amogus'); addCritter('amogus'); } },
+
+  { id:'minecraft',name:'Minecraft',         icon:'⛏️', desc:'you found diamonds!',       costFactor:10, epsFactor:3,
+    onBuy() { diamondRain(); SFX.diamondFind(); } },
+
+  { id:'rainbow',  name:'Rainbow Mode',      icon:'🌈', desc:'very colorful',              costFactor:8,  epsFactor:2,
+    onBuy() { document.body.classList.add('rainbow'); G.fx.rainbow = true; } },
+
+  { id:'nyan',     name:'Nyan Cat',          icon:'🐱', desc:'rainbow trail on every click',costFactor:6, epsFactor:1.8,
+    onBuy() { G.fx.nyan = true; SFX.nyanMelody(); addCritter('nyan'); addCritter('rainbow'); } },
+
+  { id:'cats',     name:'Cat Tax',           icon:'🐈', desc:'cats own everything',         costFactor:4,  epsFactor:1,
+    onBuy() { addCritter('cat'); addCritter('cat'); SFX.meow(); } },
+
+  { id:'levelup',  name:'Level Up',          icon:'🎮', desc:'classic game sound',          costFactor:5,  epsFactor:1.5,
+    onBuy() { SFX.levelUp(); showPopup('LEVEL UP! 🎮', 'levelup-popup'); } },
+
+  { id:'darkmode', name:'Dark Mode',         icon:'🌙', desc:'nothing changes lol',         costFactor:1,  epsFactor:0.2,
+    onBuy() { showPopup('Already in dark mode 💀', 'toast-popup'); } },
+
+  { id:'dogs',     name:'Dog Pack',          icon:'🐕', desc:'unleash the dogs',            costFactor:5,  epsFactor:1.2,
+    onBuy() { addCritter('dog'); addCritter('dog'); SFX.meow(); } },
+
+  { id:'gameover', name:'Game Over',         icon:'💀', desc:'classic game over sound',     costFactor:6,  epsFactor:1.8,
+    onBuy() { SFX.gameOver(); showPopup('GAME OVER... jk 💀', 'gameover-popup'); } },
+
+  { id:'rick',     name:'Rick Roll',         icon:'🎵', desc:'you know the rules',           costFactor:7,  epsFactor:2,
+    extraClass:'rick',
+    onBuy() { SFX.rickSong(); showPopup('🎵 Never Gonna Give You Up 🎵', 'rick-popup'); } },
+
+  { id:'tidal',    name:'Tidal Wave',        icon:'🌊', desc:'new top 1 · geometry dash',    costFactor:12, epsFactor:3.5,
+    extraClass:'tidal-upg',
+    onBuy() { playTidalWave(); } },
+];
+
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+function freshState() {
+  return {
+    energy:    0, eraIdx: 0, progress: 0,
+    counts:    ERAS.map(e => e.upgrades.map(() => 0)),
+    visible:   ERAS.map(() => [0, 1, 2]),
+    funCounts: FUN_UPGRADES.map(() => 0),
+    funEps:    0,
+    fx:        { rainbow: false, nyan: false },
+    multActive:false, multTimer: 0,
+    awaitingMs:false, gameOver: false,
+  };
+}
+let G = freshState();
+
+// ══════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════
+function fmt(n) {
+  if (n < 1e3)  return Math.floor(n).toLocaleString();
+  if (n < 1e6)  return (n/1e3).toFixed(1)  + 'K';
+  if (n < 1e9)  return (n/1e6).toFixed(1)  + 'M';
+  if (n < 1e12) return (n/1e9).toFixed(1)  + 'B';
+  if (n < 1e15) return (n/1e12).toFixed(1) + 'T';
+  return (n/1e15).toFixed(1) + 'Qa';
+}
+const era       = () => ERAS[G.eraIdx];
+const getEps    = () => {
+  let s = G.funEps;
+  era().upgrades.forEach((u, i) => s += u.eps * G.counts[G.eraIdx][i]);
+  return G.multActive ? s * 2 : s;
+};
+const clickPow  = () => G.multActive ? era().clickPow * 2 : era().clickPow;
+const upgCost   = (ei, ui) => Math.floor(ERAS[ei].upgrades[ui].cost * 0.75 * Math.pow(1.15, G.counts[ei][ui]));
+const funCost   = fui => Math.floor(era().upgrades[0].cost * 0.75 * FUN_UPGRADES[fui].costFactor * Math.pow(1.15, G.funCounts[fui]));
+const funEpsNow = fui => era().upgrades[0].eps * FUN_UPGRADES[fui].epsFactor;
+
+// ══════════════════════════════════════════════
+//  DOM
+// ══════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const eraNameEl=$('era-name'), eraNumEl=$('era-num');
+const energyEl=$('energy-val'), epsEl=$('eps-val');
+const progFill=$('prog-fill'), progText=$('prog-text');
+const clickerEl=$('clicker'), clickIcon=$('clicker-icon'), clickLbl=$('clicker-lbl');
+const multBadge=$('mult-badge'), comboBadge=$('combo-badge'), rewardBtn=$('rewarded'), upgList=$('upg-list');
+const msOverlay=$('milestone'), msBg=$('ms-bg'), msCanvas=$('ms-canvas');
+const msIconEl=$('ms-icon'), msTitleEl=$('ms-title'), msDescEl=$('ms-desc');
+const msTimerEl=$('ms-timer'), msBtnEl=$('ms-btn'), gameOverEl=$('gameover');
+const elixirBar=$('elixir-bar'), elixirDrops=$('elixir-drops');
+
+// ══════════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════════
+function updateHUD() {
+  const e = era(), pct = Math.min(100, (G.progress / e.progressReq) * 100);
+  energyEl.textContent = fmt(G.energy) + ' ⚡';
+  epsEl.textContent    = fmt(getEps())  + ' ⚡/sec';
+  progFill.style.width = pct + '%';
+  progText.textContent = fmt(G.progress) + ' / ' + fmt(e.progressReq);
+  multBadge.style.display = G.multActive ? 'block' : 'none';
+  if (G.multActive) multBadge.textContent = `⚡ 2× Energy! (${Math.ceil(G.multTimer)}s)`;
+
+  // Era upgrades
+  upgList.querySelectorAll('.upg').forEach((el, slot) => {
+    const sv   = G.visible[G.eraIdx][slot];
+    const cost = upgCost(G.eraIdx, sv);
+    el.classList.toggle('can', G.energy >= cost);
+    el.querySelector('.upg-cost').textContent  = fmt(cost) + ' ⚡';
+    el.querySelector('.upg-owned').textContent = 'Owned: ' + G.counts[G.eraIdx][sv];
+  });
+  // Fun upgrades
+  funList.querySelectorAll('.upg').forEach(el => {
+    const fui  = +el.dataset.fui;
+    const cost = funCost(fui);
+    el.classList.toggle('can', G.energy >= cost);
+    el.querySelector('.upg-cost').textContent  = fmt(cost) + ' ⚡';
+    el.querySelector('.upg-owned').textContent = 'Owned: ' + G.funCounts[fui];
+  });
+}
+
+function renderEra() {
+  const e = era();
+  document.documentElement.style.setProperty('--era', e.color);
+  eraNameEl.textContent = e.name;
+  eraNumEl.textContent  = `Era ${G.eraIdx + 1} of ${ERAS.length}`;
+  clickIcon.textContent = e.icon;
+  clickLbl.textContent  = G.eraIdx === 6 ? 'Harvest Entropy' : 'Click!';
+  renderShop();
+  renderFunShop();
+}
+
+const funList = document.getElementById('fun-list');
+
+function renderShop(animSlot = -1) {
+  upgList.innerHTML = '';
+  G.visible[G.eraIdx].forEach((sv, slot) => {
+    const u    = era().upgrades[sv];
+    const cost = upgCost(G.eraIdx, sv);
+    const div  = document.createElement('div');
+    div.className = 'upg' + (G.energy >= cost ? ' can' : '') + (slot === animSlot ? ' new' : '');
+    div.innerHTML = `
+      <div class="upg-icon">${u.icon}</div>
+      <div class="upg-info">
+        <div class="upg-name-row"><span class="upg-name">${u.name}</span></div>
+        <div class="upg-desc">${u.desc} · +${fmt(u.eps)}/sec</div>
+      </div>
+      <div class="upg-right">
+        <div class="upg-cost">${fmt(cost)} ⚡</div>
+        <div class="upg-owned">Owned: ${G.counts[G.eraIdx][sv]}</div>
+      </div>`;
+    div.addEventListener('click', () => buyUpgrade(slot));
+    upgList.appendChild(div);
+  });
+}
+
+function renderFunShop() {
+  funList.innerHTML = '';
+  FUN_UPGRADES.forEach((u, fui) => {
+    const cost  = funCost(fui);
+    const owned = G.funCounts[fui];
+    const eps   = funEpsNow(fui);
+    const div   = document.createElement('div');
+    div.className = 'upg fun' + (G.energy >= cost ? ' can' : '') + (u.extraClass ? ' ' + u.extraClass : '');
+    div.dataset.fui = fui;
+    div.innerHTML = `
+      <div class="upg-icon">${u.icon}</div>
+      <div class="upg-info">
+        <div class="upg-name-row">
+          <span class="upg-name">${u.name}</span>
+          <span class="fun-tag">✨ FUN</span>
+        </div>
+        <div class="upg-desc">${u.desc} · +${fmt(eps)}/sec</div>
+      </div>
+      <div class="upg-right">
+        <div class="upg-cost">${fmt(cost)} ⚡</div>
+        <div class="upg-owned">Owned: ${owned}</div>
+      </div>`;
+    div.addEventListener('click', () => buyFunUpgrade(fui));
+    funList.appendChild(div);
+  });
+}
+
+// ══════════════════════════════════════════════
+//  ACTIONS
+// ══════════════════════════════════════════════
+//  COMBO + CRIT
+// ══════════════════════════════════════════════
+let comboCount = 0, comboTimer = null;
+function resetCombo() {
+  comboCount = 0;
+  comboBadge.classList.remove('on');
+  clearTimeout(comboTimer); comboTimer = null;
+}
+function onClick(e) {
+  if (G.awaitingMs || G.gameOver) return;
+
+  // Combo
+  comboCount++;
+  clearTimeout(comboTimer);
+  comboTimer = setTimeout(resetCombo, 1500);
+  const comboMult = comboCount >= 15 ? 8 : comboCount >= 10 ? 4 : comboCount >= 5 ? 2 : 1;
+  if (comboCount >= 5) {
+    comboBadge.classList.add('on');
+    comboBadge.textContent = `🔥 COMBO ×${comboMult}`;
+  }
+
+  // Escalating lucky hits by era
+  let critMult = 1, critLabel = '';
+  const r = Math.random();
+  if (G.eraIdx >= 6 && r < 0.001) { critMult = 100; critLabel = '🌌 OMEGA! '; }
+  else if (G.eraIdx >= 4 && r < 0.01) { critMult = 20; critLabel = '💰 JACKPOT! '; }
+  else if (G.eraIdx >= 2 && r < 0.05) { critMult = 5;  critLabel = '⚡ CRIT! '; }
+  const isCrit = critMult > 1;
+
+  const pow = clickPow() * comboMult * critMult;
+  G.energy += pow; G.progress += pow * 0.5;
+  const ft = document.createElement('div');
+  ft.className = 'ft' + (G.fx.nyan ? ' nyan' : '') + (isCrit ? ' crit' : '');
+  ft.textContent = (critLabel || '+') + fmt(pow);
+  ft.style.left = (e.clientX - 16) + 'px';
+  ft.style.top  = (e.clientY - 10) + 'px';
+  document.body.appendChild(ft);
+  setTimeout(() => ft.remove(), 800);
+
+  checkProgress(); updateHUD();
+}
+
+function buyUpgrade(slot) {
+  if (G.gameOver) return;
+  const sv   = G.visible[G.eraIdx][slot];
+  const cost = upgCost(G.eraIdx, sv);
+  if (G.energy < cost) return;
+  G.energy -= cost;
+  G.counts[G.eraIdx][sv]++;
+  G.visible[G.eraIdx][slot] = pickNext(G.visible[G.eraIdx]);
+  renderShop(slot); updateHUD();
+}
+
+function buyFunUpgrade(fui) {
+  if (G.gameOver) return;
+  const cost = funCost(fui);
+  if (G.energy < cost) return;
+  G.energy -= cost;
+  G.funCounts[fui]++;
+  G.funEps += funEpsNow(fui);
+  FUN_UPGRADES[fui].onBuy();
+  save();
+  renderFunShop(); updateHUD();
+}
+
+function pickNext(currentVisible) {
+  const hidden = era().upgrades.map((_,i) => i).filter(i => !currentVisible.includes(i));
+  if (hidden.length > 0) return hidden[Math.floor(Math.random() * hidden.length)];
+  return currentVisible[0];
+}
+
+function checkProgress() {
+  if (G.awaitingMs || G.gameOver) return;
+  if (G.progress >= era().progressReq) {
+    G.progress = era().progressReq; G.awaitingMs = true;
+    save(); showMilestone();
+  }
+}
+
+// ══════════════════════════════════════════════
+//  FLOAT TEXT
+// ══════════════════════════════════════════════
+function spawnFloat(x, y, text) {
+  const el = document.createElement('div');
+  el.className   = 'ft' + (G.fx.nyan ? ' nyan' : '');
+  el.textContent = text;
+  el.style.left  = (x - 16) + 'px';
+  el.style.top   = (y - 10) + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 800);
+}
+
+// ══════════════════════════════════════════════
+//  FUN EFFECT FUNCTIONS
+// ══════════════════════════════════════════════
+
+// ── Critter engine ───────────────────────────
+const critterPool = [];
+setInterval(() => {
+  if (!critterPool.length || Math.random() > 0.55) return;
+  const n = Math.min(critterPool.length, Math.ceil(critterPool.length / 3));
+  for (let i = 0; i < n; i++) {
+    const emoji = critterPool[Math.floor(Math.random() * critterPool.length)];
+    spawnOneCritter(emoji);
+  }
+}, 2800);
+
+function addCritter(emoji) {
+  critterPool.push(emoji);
+  spawnOneCritter(emoji);
+}
+
+const CRITTER_DEFS = {
+  subway:  { gif:'https://media1.tenor.com/m/NmtI99JHKj0AAAAd/save-me-subway-surfer.gif', h:'90px',  mult:6,  label:'🛹', sfx:'coin',         glow:'#ffcc00' },
+  nyan:    { gif:'https://media.tenor.com/8lR3_1m-i94AAAAj/cat.gif',                       h:'56px',  mult:10, label:'🌈', sfx:'nyanMelody',   glow:'#ff88ff' },
+  amogus:  { gif:'https://media1.tenor.com/m/hidiIuFkoJsAAAAd/among-us-oh-lawd.gif',       h:'70px',  mult:5,  label:'📋', sfx:'taskComplete', glow:'#ff4444' },
+  clash:   { gif:'https://media1.tenor.com/m/eFvRa3oPiocAAAAd/electro-giant-clash-royale.gif', h:'80px', mult:7, label:'⚔️', sfx:'cardDeploy', glow:'#aa44ff' },
+  cat:     { gif:'https://media.tenor.com/_nR-1FLTOAwAAAAj/pixel-cat.gif',                 h:'50px',  mult:8,  label:'🐾', sfx:'meow',         glow:'#ffaa44' },
+  dog:     { gif:'https://media.tenor.com/_G4aFMQseZ8AAAAj/running-coming.gif',            h:'70px',  mult:5,  label:'🐕', sfx:'meow',         glow:'#ffdd88' },
+  diamond: { gif:'https://media.tenor.com/hI1WS8vXTykAAAAj/minecraft-diamonds.gif',        h:'50px',  mult:6,  label:'💎', sfx:'diamondFind',  glow:'#44ddff' },
+  rainbow: { gif:'https://media1.tenor.com/m/P7iZw3CO17gAAAAd/rainbow-sparkle.gif',        h:'55px',  mult:6,  label:'🌈', sfx:'coin',         glow:'#ffaaff' },
+};
+function spawnOneCritter(id) {
+  const def = CRITTER_DEFS[id] || CRITTER_DEFS.cat;
+  const el  = document.createElement('div');
+  el.className = 'critter';
+  const img = document.createElement('img');
+  img.src = def.gif;
+  img.style.cssText = `height:${def.h};pointer-events:none`;
+  el.appendChild(img);
+  const dur = 3.5 + Math.random() * 3;
+  el.style.cssText = `left:-9rem;top:${10+Math.random()*75}vh;animation-duration:${dur}s;cursor:pointer;filter:drop-shadow(0 0 5px ${def.glow})`;
+  document.body.appendChild(el);
+  const t = setTimeout(() => el.remove(), dur * 1000 + 200);
+  el.addEventListener('click', ev => {
+    ev.stopPropagation();
+    if (G.awaitingMs || G.gameOver) return;
+    clearTimeout(t);
+    const bonus = Math.max(1, Math.floor(clickPow() * def.mult));
+    G.energy += bonus; G.progress += bonus * 0.5;
+    spawnFloat(ev.clientX, ev.clientY, def.label + ' +' + fmt(bonus));
+    SFX[def.sfx]?.(); el.remove();
+    checkProgress(); updateHUD();
+  }, { once: true });
+  if (['subway','clash','amogus'].includes(id)) SFX.whoosh();
+}
+
+// ── Tidal Wave ───────────────────────────────
+// ── Subway Surfers corner ─────────────────────
+function showSubwayCorner() {
+  document.getElementById('subway-corner').classList.add('on');
+}
+
+// ── Lofi music ───────────────────────────────
+const LOFI = (() => {
+  let ctx = null, playing = false, timerId = null, nextBar = 0, bar = 0;
+  const BPM = 78, BEAT = 60/BPM, BAR = BEAT*4;
+  const CHORDS = [
+    [130.8,164.8,196,246.9], // Cmaj7 (low octave)
+    [110,  130.8,164.8,196 ], // Am7
+    [87.3, 110,  130.8,164.8], // Fmaj7
+    [98,   123.5,146.8,174.6], // G7
+  ];
+  function ac() {
+    if (!ctx) ctx = new (window.AudioContext||window.webkitAudioContext)();
+    if (ctx.state==='suspended') ctx.resume();
+    return ctx;
+  }
+  function pad(c,freqs,t,dur) {
+    const filt=c.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=700; filt.Q.value=1.2;
+    const master=c.createGain(); master.gain.setValueAtTime(0,t); master.gain.linearRampToValueAtTime(0.06,t+0.6); master.gain.setValueAtTime(0.06,t+dur-0.5); master.gain.linearRampToValueAtTime(0,t+dur);
+    filt.connect(master); master.connect(c.destination);
+    freqs.forEach(f=>{
+      [-8,0,8].forEach(d=>{ const o=c.createOscillator(),g=c.createGain(); o.type='triangle'; o.frequency.value=f; o.detune.value=d; g.gain.value=0.33; o.connect(g); g.connect(filt); o.start(t); o.stop(t+dur); });
+    });
+  }
+  function kick(c,t) {
+    const o=c.createOscillator(),g=c.createGain(); o.type='sine'; o.frequency.setValueAtTime(140,t); o.frequency.exponentialRampToValueAtTime(50,t+0.25); g.gain.setValueAtTime(0.35,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.35); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+0.35);
+  }
+  function hat(c,t,vol=0.06) {
+    const buf=c.createBuffer(1,Math.floor(c.sampleRate*0.07),c.sampleRate),d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+    const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain(); s.buffer=buf; f.type='highpass'; f.frequency.value=9000; g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.07); s.connect(f); f.connect(g); g.connect(c.destination); s.start(t); s.stop(t+0.07);
+  }
+  function schedBar(c,t,freqs) {
+    pad(c,freqs,t,BAR);
+    kick(c,t); kick(c,t+BEAT*2);
+    for(let i=0;i<8;i++) if(Math.random()>0.1) hat(c,t+i*BEAT*0.5, i%2===0?0.06:0.03);
+  }
+  function pump() {
+    if(!playing) return;
+    const c=ac();
+    while(nextBar<c.currentTime+0.4){ schedBar(c,nextBar,CHORDS[bar%CHORDS.length]); nextBar+=BAR; bar++; }
+    timerId=setTimeout(pump,100);
+  }
+  return {
+    toggle() {
+      if(playing){ playing=false; clearTimeout(timerId); return false; }
+      playing=true; nextBar=ac().currentTime+0.1; pump(); return true;
+    },
+    get playing(){ return playing; }
+  };
+})();
+
+function playTidalWave() {
+  const overlay = document.getElementById('tidal-overlay');
+  const vid     = document.getElementById('tidal-vid');
+  const bg      = document.getElementById('tidal-bg');
+  bg.classList.add('on');
+  overlay.classList.add('on');
+  vid.currentTime = 0;
+  vid.play().catch(() => {});
+  showPopup('🌊 TIDAL WAVE 🌊', 'tidal-popup');
+}
+
+// ── Diamond rain ─────────────────────────────
+function diamondRain() {
+  for (let i = 0; i < 12; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'diamond-drop';
+      el.textContent = '💎';
+      const dur = 1 + Math.random() * 1.3;
+      el.style.cssText = `left:${5+Math.random()*90}vw;font-size:${1+Math.random()*1.4}rem;animation-duration:${dur}s`;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), dur * 1000 + 100);
+    }, i * 110);
+  }
+}
+
+// ── Clash Royale elixir bar ───────────────────
+let elixirLevel = 0, elixirTimer = null;
+function startElixir() {
+  if (elixirTimer) return;
+  elixirBar.classList.add('on');
+  elixirTimer = setInterval(() => {
+    if (elixirLevel < 10) {
+      elixirLevel++;
+      const drop = document.createElement('span');
+      drop.className = 'elixir-drop';
+      drop.textContent = '💜';
+      elixirDrops.appendChild(drop);
+      SFX.elixir();
+    } else {
+      // Spend elixir
+      elixirDrops.innerHTML = '';
+      elixirLevel = 0;
+      SFX.cardDeploy();
+      addCritter('clash');
+    }
+  }, 1800);
+}
+
+// ── Generic popup ────────────────────────────
+function showPopup(text, cls) {
+  const el = document.createElement('div');
+  el.className = 'fun-popup ' + cls;
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2500);
+}
+
+
+// ══════════════════════════════════════════════
+//  MILESTONE
+// ══════════════════════════════════════════════
+let msCountdown = null;
+function showMilestone() {
+  const e = era();
+  msBg.style.background = e.bg;
+  msIconEl.textContent  = e.icon;
+  msTitleEl.textContent = e.msTitle;
+  msTitleEl.style.color = e.color;
+  msDescEl.textContent  = e.msDesc;
+  const isLast = G.eraIdx >= ERAS.length - 1;
+  msBtnEl.textContent = isLast ? '🌌 Witness the End' : `Continue to ${ERAS[G.eraIdx+1].name} →`;
+  msBtnEl.disabled    = true;
+  let t = 3;
+  msTimerEl.textContent = `Continue in ${t}s…`;
+  msCountdown = setInterval(() => {
+    t--;
+    if (t > 0) { msTimerEl.textContent = `Continue in ${t}s…`; }
+    else { clearInterval(msCountdown); msTimerEl.textContent = ''; msBtnEl.disabled = false; }
+  }, 1000);
+  msOverlay.classList.add('on');
+  runParticles(e.color);
+}
+function closeMilestone() {
+  clearInterval(msCountdown);
+  msOverlay.classList.remove('on');
+  stopParticles();
+  if (G.eraIdx >= ERAS.length - 1) {
+    G.gameOver = true; G.awaitingMs = false;
+    save(); setTimeout(() => gameOverEl.classList.add('on'), 600);
+  } else {
+    G.eraIdx++; G.progress = 0; G.awaitingMs = false;
+    save(); renderEra(); updateHUD();
+  }
+}
+msBtnEl.addEventListener('click', closeMilestone);
+
+// ══════════════════════════════════════════════
+//  PARTICLES
+// ══════════════════════════════════════════════
+let animId = null;
+function runParticles(color) {
+  msCanvas.width = window.innerWidth; msCanvas.height = window.innerHeight;
+  const ctx = msCanvas.getContext('2d');
+  const cx = msCanvas.width/2, cy = msCanvas.height/2;
+  const pts = Array.from({length:100},(_,i)=>{
+    const a=Math.PI*2*i/100+Math.random()*.4, spd=1.5+Math.random()*5.5;
+    return {x:cx,y:cy,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,r:1.5+Math.random()*3.5,a:1};
+  });
+  function frame() {
+    ctx.clearRect(0,0,msCanvas.width,msCanvas.height);
+    let alive=false;
+    for(const p of pts){p.x+=p.vx;p.y+=p.vy;p.vy+=.045;p.a-=.006;
+      if(p.a>0){alive=true;ctx.globalAlpha=p.a;ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();}}
+    if(alive) animId=requestAnimationFrame(frame); else ctx.clearRect(0,0,msCanvas.width,msCanvas.height);
+  }
+  cancelAnimationFrame(animId); ctx.globalAlpha=1; frame();
+}
+function stopParticles() {
+  cancelAnimationFrame(animId);
+  msCanvas.getContext('2d').clearRect(0,0,msCanvas.width,msCanvas.height);
+}
+
+// ══════════════════════════════════════════════
+//  REWARDED AD
+// ══════════════════════════════════════════════
+rewardBtn.addEventListener('click', () => {
+  rewardBtn.disabled = true; rewardBtn.textContent = '⏳ Loading Ad…';
+  setTimeout(() => {
+    rewardBtn.textContent = '✅ Reward Earned!';
+    G.multActive = true; G.multTimer = 60; updateHUD();
+    setTimeout(() => { rewardBtn.disabled = false; rewardBtn.textContent = '📺 Watch Ad — 2× Energy for 60s'; }, 3000);
+  }, 1500);
+});
+
+// ══════════════════════════════════════════════
+//  RESTART
+// ══════════════════════════════════════════════
+$('restart-btn').addEventListener('click', () => {
+  localStorage.removeItem('uc_v1');
+  document.body.classList.remove('rainbow');
+  critterPool.length = 0;
+  if (elixirTimer) { clearInterval(elixirTimer); elixirTimer = null; }
+  elixirBar.classList.remove('on'); elixirDrops.innerHTML = ''; elixirLevel = 0;
+  G = freshState();
+  gameOverEl.classList.remove('on');
+  renderEra(); updateHUD();
+});
+
+// ══════════════════════════════════════════════
+//  STARS
+// ══════════════════════════════════════════════
+function makeStars() {
+  const bg = $('stars');
+  for (let i = 0; i < 90; i++) {
+    const d = document.createElement('div'); d.className='s';
+    const sz = .5+Math.random()*2;
+    d.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*100}%;width:${sz}px;height:${sz}px;--d:${2+Math.random()*5}s;--del:${Math.random()*5}s;--op:${.2+Math.random()*.8}`;
+    bg.appendChild(d);
+  }
+}
+
+// ══════════════════════════════════════════════
+//  GAME LOOP
+// ══════════════════════════════════════════════
+setInterval(() => {
+  if (G.awaitingMs || G.gameOver) return;
+  const inc = getEps() * 0.1;
+  G.energy += inc; G.progress += inc * 0.5;
+  if (G.multActive) { G.multTimer -= 0.1; if (G.multTimer <= 0) { G.multActive=false; G.multTimer=0; } }
+  checkProgress(); updateHUD();
+}, 100);
+
+setInterval(save, 15_000);
+
+// ══════════════════════════════════════════════
+//  SAVE / LOAD
+// ══════════════════════════════════════════════
+function save() {
+  try { localStorage.setItem('uc_v1', JSON.stringify(G)); } catch(_) {}
+}
+function load() {
+  try {
+    const raw = localStorage.getItem('uc_v1'); if (!raw) return;
+    const d = JSON.parse(raw);
+    G.energy     = d.energy     ?? 0;
+    G.eraIdx     = Math.min(d.eraIdx ?? 0, ERAS.length-1);
+    G.progress   = d.progress   ?? 0;
+    G.multActive = d.multActive ?? false;
+    G.multTimer  = d.multTimer  ?? 0;
+    G.awaitingMs = d.awaitingMs ?? false;
+    G.gameOver   = d.gameOver   ?? false;
+    G.funCounts  = FUN_UPGRADES.map((_,i) => d.funCounts?.[i] ?? 0);
+    G.funEps     = d.funEps ?? 0;
+    G.fx         = { rainbow:false, nyan:false, ...(d.fx ?? {}) };
+    G.counts     = ERAS.map((e,ei) => e.upgrades.map((_,ui) => d.counts?.[ei]?.[ui] ?? 0));
+    G.visible    = ERAS.map((e,ei) => {
+      const sv = d.visible?.[ei];
+      if (Array.isArray(sv) && sv.length===3) return sv.map(i => (i < e.upgrades.length ? i : 0));
+      return [0,1,2];
+    });
+  } catch(_) {}
+}
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+clickerEl.addEventListener('click', onClick);
+document.getElementById('lofi-btn').addEventListener('click', () => {
+  const on = LOFI.toggle();
+  document.getElementById('lofi-btn').classList.toggle('on', on);
+  document.getElementById('lofi-btn').textContent = on ? '🎵 Lofi ON' : '🎵 Lofi';
+});
+load();
+if (G.fx.rainbow) document.body.classList.add('rainbow');
+// Restore Clash Royale elixir if it was bought
+if (G.funCounts[1] > 0) startElixir(); // index 1 = clash
+makeStars();
+renderEra();
+updateHUD();
+if (G.gameOver)     setTimeout(() => gameOverEl.classList.add('on'), 200);
+else if (G.awaitingMs) setTimeout(() => showMilestone(), 400);
+</script>
+</body>
+</html>

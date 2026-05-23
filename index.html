@@ -263,6 +263,60 @@
       background-clip: text;
     }
 
+    .universe-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .universe-mark {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 34% 30%, #fff7ad 0 7%, transparent 8%),
+        radial-gradient(circle at 58% 58%, #fb7185 0 8%, transparent 9%),
+        radial-gradient(circle at center, #7c3aed 0 34%, #111827 35% 58%, #f97316 60% 63%, #111827 65%);
+      box-shadow: 0 0 22px rgba(124, 58, 237, 0.45), inset 0 0 18px rgba(255,255,255,0.12);
+      flex: 0 0 auto;
+      transition: transform 0.18s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .universe-mark::after {
+      content: '';
+      position: absolute;
+      width: 76px;
+      height: 20px;
+      left: -12px;
+      top: 16px;
+      border: 3px solid rgba(249, 115, 22, 0.9);
+      border-left-color: transparent;
+      border-right-color: transparent;
+      border-radius: 50%;
+      transform: rotate(-22deg);
+    }
+
+    .card:hover .universe-mark {
+      transform: scale(1.08) rotate(8deg);
+    }
+
+    .universe-word {
+      font-size: 1.18rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.04;
+    }
+
+    .universe-word span {
+      background: linear-gradient(135deg, #7c3aed 0%, #ec4899 45%, #f97316 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
     .card-title {
       font-size: 1.05rem;
       font-weight: 700;
@@ -368,7 +422,7 @@
     <p class="site-tagline">a collection of games &amp; interactive things</p>
     <div class="quick-actions" aria-label="Quick game links">
       <a class="quick-action" href="/typeflow/">Play TypeFlow</a>
-      <a class="quick-action" href="/universe-clicker/">Play Universe Clicker</a>
+      <a class="quick-action" href="/universe-clicker/">Play Universe Destroyer</a>
     </div>
   </header>
 
@@ -392,12 +446,14 @@
         <span class="card-arrow">↗</span>
       </a>
 
-      <!-- Universe Clicker -->
+      <!-- Universe Destroyer -->
       <a class="card card--violet" href="/universe-clicker/">
-        <div class="card-icon">🌌</div>
-        <div class="card-title">Universe Clicker</div>
-        <div class="card-desc">Click your way from atoms to galaxies. An idle clicker through cosmic scales.</div>
-        <div class="card-cta">Play Universe Clicker</div>
+        <div class="universe-logo" aria-label="Universe Destroyer">
+          <div class="universe-mark" aria-hidden="true"></div>
+          <div class="universe-word"><span>Universe Destroyer</span></div>
+        </div>
+        <div class="card-desc">Crack open the cosmos, collect energy, and push through cosmic eras.</div>
+        <div class="card-cta">Play Universe Destroyer</div>
         <span class="card-arrow">↗</span>
       </a>
 
