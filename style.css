@@ -138,6 +138,29 @@ main {
   max-width: var(--test-width); width: 100%; margin: 0 auto; gap: 1.5rem;
 }
 
+/* ── Ads ── */
+.ad-slot {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg2);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--text-dim);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.ad-slot-banner {
+  min-height: 90px;
+  max-width: 728px;
+}
+.ad-slot-card {
+  min-height: 72px;
+  margin-top: 1rem;
+}
+
 /* ── Options Bar ── */
 .options-bar {
   width: 100%;
