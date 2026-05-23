@@ -71,6 +71,8 @@ const feedbackList    = document.getElementById('feedbackList');
 const setupModeLabel  = document.getElementById('setupModeLabel');
 const dailyBestLabel  = document.getElementById('dailyBestLabel');
 const dailyRecordList = document.getElementById('dailyRecordList');
+const personalBestBtn = document.getElementById('personalBestBtn');
+const personalBestList = document.getElementById('personalBestList');
 const shareResultBtn  = document.getElementById('shareResultBtn');
 const shareStatus     = document.getElementById('shareStatus');
 const privacyOverlay  = document.getElementById('privacyOverlay');
@@ -80,6 +82,7 @@ const closePrivacy    = document.getElementById('closePrivacy');
 let profile = loadProfile();
 let chartState = null;
 let lastResult = null;
+let personalBestsOpen = false;
 
 /* ── Audio ── */
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -142,10 +145,14 @@ function formatWord(word, index) {
 }
 
 function getDailyKey(date = new Date()) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
 }
 
 function dailySeed(dayKey) {
@@ -182,6 +189,32 @@ function getDailyWords() {
   const words = [];
   while (words.length < 50) words.push(...source);
   return words.slice(0, 50);
+}
+
+function getPersonalBestKey() {
+  if (state.mode === 'words') return `words_${state.wordCount}`;
+  if (state.mode === 'time') return `time_${state.timeLimit}`;
+  if (state.mode === 'daily') return 'daily';
+  if (state.mode === 'weak') return `weak_${state.weakCount}`;
+  return `paragraph_${state.aiType}`;
+}
+
+function getPersonalBestLabel(modeKey) {
+  const labels = {
+    words_25: '25 words',
+    words_50: '50 words',
+    words_100: '100 words',
+    time_15: '15 sec',
+    time_30: '30 sec',
+    time_60: '60 sec',
+    daily: 'daily',
+    weak_25: 'weak 25',
+    weak_50: 'weak 50',
+    paragraph_random: 'paragraph',
+    paragraph_story: 'story',
+    paragraph_tech: 'tech',
+  };
+  return labels[modeKey] || modeKey.replace(/_/g, ' ');
 }
 
 function getWords() {
@@ -620,6 +653,7 @@ function finish() {
   document.getElementById('resTime').textContent    = Math.round(elapsed) + 's';
 
   lastResult = result;
+  const personalBest = savePersonalBest(getPersonalBestKey(), result);
   if (state.mode === 'daily') {
     const saved = saveDailyResult(state.dailyKey, result);
     if (saved.isBest) {
@@ -627,6 +661,10 @@ function finish() {
     }
     updateDailyUi();
   }
+  if (personalBest.isBest && !shareStatus.textContent) {
+    shareStatus.textContent = 'New personal best';
+  }
+  renderPersonalBests();
 
   applyProgressionResults(wpm, acc, consistency, elapsed);
   updateProgress();
@@ -696,6 +734,32 @@ function updateDailyUi() {
   item.className = 'daily-record-item';
   item.textContent = `${today.wpm} wpm / ${today.accuracy}% accuracy`;
   dailyRecordList.appendChild(item);
+}
+
+function renderPersonalBests() {
+  const records = loadPersonalBests();
+  const entries = Object.entries(records)
+    .sort(([a], [b]) => getPersonalBestLabel(a).localeCompare(getPersonalBestLabel(b)));
+
+  personalBestList.innerHTML = '';
+  if (!entries.length) {
+    personalBestList.textContent = 'No personal bests yet';
+    return;
+  }
+
+  entries.forEach(([modeKey, record]) => {
+    const item = document.createElement('span');
+    item.className = 'personal-best-item';
+    item.textContent = `${getPersonalBestLabel(modeKey)}: ${record.wpm} wpm / ${record.accuracy}%`;
+    personalBestList.appendChild(item);
+  });
+}
+
+function togglePersonalBests() {
+  personalBestsOpen = !personalBestsOpen;
+  personalBestList.classList.toggle('hidden', !personalBestsOpen);
+  personalBestBtn.textContent = personalBestsOpen ? 'Hide personal bests' : 'Show personal bests';
+  if (personalBestsOpen) renderPersonalBests();
 }
 
 function getModeShareLabel(mode) {
@@ -971,6 +1035,7 @@ document.getElementById('logoReset').addEventListener('click', reset);
 document.getElementById('restartBtn').addEventListener('click', reset);
 document.getElementById('resultsRestartBtn').addEventListener('click', reset);
 shareResultBtn.addEventListener('click', shareResult);
+personalBestBtn.addEventListener('click', togglePersonalBests);
 
 document.getElementById('punctBtn').addEventListener('click', () => {
   state.punctuation = !state.punctuation;

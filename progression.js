@@ -180,6 +180,38 @@ function saveDailyResult(dayKey, result) {
   return { records, isBest, best: records[dayKey] };
 }
 
+/* ── Personal Bests ── */
+function loadPersonalBests() {
+  try { return JSON.parse(localStorage.getItem('typeflow_personal_bests') || '{}'); } catch { return {}; }
+}
+
+function savePersonalBests(records) {
+  try { localStorage.setItem('typeflow_personal_bests', JSON.stringify(records)); } catch {}
+}
+
+function savePersonalBest(modeKey, result) {
+  const records = loadPersonalBests();
+  const previous = records[modeKey];
+  const isBest = !previous
+    || result.wpm > previous.wpm
+    || (result.wpm === previous.wpm && result.accuracy > previous.accuracy)
+    || (result.wpm === previous.wpm && result.accuracy === previous.accuracy && result.consistency > previous.consistency);
+
+  if (isBest) {
+    records[modeKey] = {
+      wpm: result.wpm,
+      accuracy: result.accuracy,
+      consistency: result.consistency,
+      raw: result.raw,
+      time: result.time,
+      date: new Date().toISOString(),
+    };
+    savePersonalBests(records);
+  }
+
+  return { records, isBest, best: records[modeKey] };
+}
+
 /* ── Feedback Engine ── */
 function generateFeedback(wpm, accuracy, consistency, mode) {
   const tips = [];

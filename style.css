@@ -383,22 +383,33 @@ main {
   padding-top: 0.9rem;
   border-top: 1px solid var(--border);
 }
-.daily-record-list {
+.personal-bests-panel {
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+}
+.daily-record-list,
+.personal-best-list {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
   color: var(--text-dim);
   font-size: 0.78rem;
 }
-.daily-record-list {
+.daily-record-list,
+.personal-best-list {
   margin-top: 0.45rem;
 }
-.daily-record-item {
+.daily-record-item,
+.personal-best-item {
   color: var(--text);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 7px;
   padding: 0.28rem 0.5rem;
+}
+.personal-best-toggle {
+  margin-top: 0.45rem;
 }
 /* ── Results ── */
 .results {
