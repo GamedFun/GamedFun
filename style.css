@@ -225,6 +225,16 @@ main {
 .letter.wrong   { color: var(--wrong); }
 .letter.untyped { color: var(--text-dim); }
 .letter.extra   { color: var(--wrong); text-decoration: underline; }
+.letter.underline-target::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.16em;
+  height: 2px;
+  background: var(--caret);
+  border-radius: 2px;
+}
 
 /* ── Caret ── */
 .caret {
@@ -242,10 +252,7 @@ main {
   background: var(--caret); opacity: 0.45; border-radius: 2px;
 }
 [data-cursor="underline"] .caret {
-  width: calc(var(--font-size) * 0.62);
-  height: 2px; background: var(--caret);
-  top: auto !important;
-  bottom: calc(var(--font-size) * 0.18);
+  display: none;
 }
 .caret.smooth { transition: left 0.06s ease, top 0.06s ease; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
@@ -563,7 +570,12 @@ main {
 
 /* Font Grid */
 .font-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 0.4rem;
+  max-height: 330px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
 }
 .font-btn {
   background: var(--surface); border: 1px solid var(--border);

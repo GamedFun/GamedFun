@@ -31,18 +31,56 @@ function defaultProfile(name) {
     prestige: 0,
     totalTests: 0,
     totalXpEarned: 0,
+    wordStats: {},
   };
 }
 
 /* ── Profile Storage ── */
 function loadProfile() {
   try {
-    return JSON.parse(localStorage.getItem('typeflow_profile') || 'null') || defaultProfile('Player');
+    const stored = JSON.parse(localStorage.getItem('typeflow_profile') || 'null');
+    if (stored) return normalizeProfile(stored);
+
+    const migrated = migrateAccountProfile();
+    if (migrated) {
+      saveProfile(migrated);
+      return migrated;
+    }
+
+    return defaultProfile('Player');
   } catch { return defaultProfile('Guest'); }
 }
 
 function saveProfile(profile) {
-  try { localStorage.setItem('typeflow_profile', JSON.stringify(profile)); } catch {}
+  try { localStorage.setItem('typeflow_profile', JSON.stringify(normalizeProfile(profile))); } catch {}
+}
+
+function normalizeProfile(profile) {
+  return {
+    ...defaultProfile(profile?.name || 'Player'),
+    ...profile,
+    xp: Number(profile?.xp) || 0,
+    prestige: Number(profile?.prestige) || 0,
+    totalTests: Number(profile?.totalTests) || 0,
+    totalXpEarned: Number(profile?.totalXpEarned) || 0,
+    wordStats: profile?.wordStats || {},
+  };
+}
+
+function migrateAccountProfile() {
+  try {
+    const accounts = JSON.parse(localStorage.getItem('typeflow_accounts') || '{}');
+    const profiles = Object.values(accounts)
+      .map(account => account.profile)
+      .filter(Boolean)
+      .map(normalizeProfile);
+    if (!profiles.length) return null;
+    profiles.sort((a, b) =>
+      (b.prestige * 1e9 + b.xp + b.totalXpEarned) -
+      (a.prestige * 1e9 + a.xp + a.totalXpEarned)
+    );
+    return profiles[0];
+  } catch { return null; }
 }
 
 function normalizePracticeWord(word) {

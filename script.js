@@ -219,6 +219,7 @@ function scrollToCurrentLine() {
 function positionCaret() {
   const caret = document.getElementById('typingCaret');
   if (!caret) return;
+  clearUnderlineTarget();
 
   const wi = state.currentWord;
   const li = state.currentLetter;
@@ -232,13 +233,28 @@ function positionCaret() {
   const containerRect = wordsDisplay.getBoundingClientRect();
   const refRect = ref.getBoundingClientRect();
 
-  const top = refRect.top - containerRect.top + wordsDisplay.scrollTop;
+  const isUnderline = state.cursor === 'underline';
+  if (isUnderline) {
+    ref.classList.add('underline-target');
+    return;
+  }
+
+  const top = isUnderline
+    ? refRect.bottom - containerRect.top + wordsDisplay.scrollTop - 2
+    : refRect.top - containerRect.top + wordsDisplay.scrollTop;
   const left = li < letters.length
     ? refRect.left - containerRect.left + wordsDisplay.scrollLeft
     : refRect.right - containerRect.left + wordsDisplay.scrollLeft;
 
   caret.style.top = top + 'px';
   caret.style.left = left + 'px';
+  caret.style.removeProperty('width');
+}
+
+function clearUnderlineTarget() {
+  wordsDisplay.querySelectorAll('.underline-target').forEach(el => {
+    el.classList.remove('underline-target');
+  });
 }
 
 /* ── Reset ── */
@@ -267,6 +283,7 @@ function reset() {
   if (caret) {
     caret.className = 'caret blinking' + (state.smooth ? ' smooth' : '');
   }
+  positionCaret();
 
   typingInput.focus();
 }
@@ -499,6 +516,7 @@ function finish() {
 }
 
 function applyProgressionResults(wpm, accuracy, consistency, elapsed) {
+  profile = loadProfile();
   const xp = calcXpEarned(wpm, accuracy, elapsed);
   profile.xp += xp;
   profile.totalXpEarned += xp;
@@ -523,6 +541,7 @@ function renderFeedback(wpm, accuracy, consistency) {
 }
 
 function updateProfileUi() {
+  profile = loadProfile();
   const progress = getRankProgress(profile.xp);
   const prestigeText = PRESTIGE_STARS[profile.prestige] || ('P' + profile.prestige);
   rankName.textContent = progress.current.name;
@@ -828,11 +847,18 @@ document.querySelectorAll('.font-btn').forEach(btn => {
     document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     state.fontFamily = btn.dataset.family;
-    document.documentElement.style.setProperty('--font-family', `'${state.fontFamily}', monospace`);
+    document.documentElement.style.setProperty('--font-family', getFontStack(state.fontFamily));
     remeasureAndReposition();
     saveSettings();
   });
 });
+
+function getFontStack(fontFamily) {
+  if (fontFamily === 'Minecraftia') {
+    return "'Minecraftia', 'Pixelify Sans', monospace";
+  }
+  return `'${fontFamily}', monospace`;
+}
 
 /* Font Size Slider */
 const fontSizeSlider = document.getElementById('fontSizeSlider');
@@ -883,6 +909,7 @@ document.querySelectorAll('[data-cursor]').forEach(btn => {
     btn.classList.add('active');
     state.cursor = btn.dataset.cursor;
     document.body.setAttribute('data-cursor', state.cursor);
+    positionCaret();
     saveSettings();
   });
 });
@@ -987,7 +1014,7 @@ function loadSettings() {
 
     if (s.fontFamily) {
       state.fontFamily = s.fontFamily;
-      document.documentElement.style.setProperty('--font-family', `'${s.fontFamily}', monospace`);
+      document.documentElement.style.setProperty('--font-family', getFontStack(s.fontFamily));
       document.querySelectorAll('.font-btn').forEach(b =>
         b.classList.toggle('active', b.dataset.family === s.fontFamily));
     }
