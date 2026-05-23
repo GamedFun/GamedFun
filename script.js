@@ -69,7 +69,6 @@ const prestigeBtn     = document.getElementById('prestigeBtn');
 const xpEarned        = document.getElementById('xpEarned');
 const feedbackList    = document.getElementById('feedbackList');
 const setupModeLabel  = document.getElementById('setupModeLabel');
-const dailyDateLabel  = document.getElementById('dailyDateLabel');
 const dailyBestLabel  = document.getElementById('dailyBestLabel');
 const dailyRecordList = document.getElementById('dailyRecordList');
 const shareResultBtn  = document.getElementById('shareResultBtn');
@@ -683,24 +682,20 @@ function updateDailyUi() {
   const dayKey = getDailyKey();
   const records = loadDailyRecords();
   const today = records[dayKey];
-  dailyDateLabel.textContent = dayKey;
   dailyBestLabel.textContent = today
     ? `${today.wpm} wpm / ${today.accuracy}%`
     : 'no record';
 
   dailyRecordList.innerHTML = '';
-  const recordList = getDailyRecordList(7);
-  if (!recordList.length) {
-    dailyRecordList.textContent = 'No daily records yet';
+  if (!today) {
+    dailyRecordList.textContent = 'No record yet';
     return;
   }
 
-  recordList.forEach(record => {
-    const item = document.createElement('span');
-    item.className = 'daily-record-item';
-    item.textContent = `${record.day}: ${record.wpm} wpm / ${record.accuracy}%`;
-    dailyRecordList.appendChild(item);
-  });
+  const item = document.createElement('span');
+  item.className = 'daily-record-item';
+  item.textContent = `${today.wpm} wpm / ${today.accuracy}% accuracy`;
+  dailyRecordList.appendChild(item);
 }
 
 function getModeShareLabel(mode) {

@@ -180,14 +180,6 @@ function saveDailyResult(dayKey, result) {
   return { records, isBest, best: records[dayKey] };
 }
 
-function getDailyRecordList(limit = 7) {
-  const records = loadDailyRecords();
-  return Object.entries(records)
-    .sort(([a], [b]) => b.localeCompare(a))
-    .slice(0, limit)
-    .map(([day, result]) => ({ day, ...result }));
-}
-
 /* ── Feedback Engine ── */
 function generateFeedback(wpm, accuracy, consistency, mode) {
   const tips = [];
