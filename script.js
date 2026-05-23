@@ -83,13 +83,18 @@ let chartState = null;
 /* ── Audio ── */
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
 let audioCtx = null;
-function playClick() {
-  if (!state.sound) return;
+function ensureAudio() {
   if (!audioCtx) audioCtx = new AudioCtx();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o.connect(g); g.connect(audioCtx.destination);
+  if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+  return audioCtx;
+}
+
+function playClick(force = false) {
+  if (!state.sound && !force) return;
+  const ctx = ensureAudio();
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.connect(g); g.connect(ctx.destination);
   const sounds = {
     click: { frequency: 900, type: 'sine', duration: 0.04, gain: 0.05 },
     clack: { frequency: 180, type: 'square', duration: 0.035, gain: 0.035 },
@@ -99,9 +104,9 @@ function playClick() {
   const sound = sounds[state.soundStyle] || sounds.click;
   o.type = sound.type;
   o.frequency.value = sound.frequency;
-  g.gain.setValueAtTime(sound.gain, audioCtx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + sound.duration);
-  o.start(); o.stop(audioCtx.currentTime + sound.duration);
+  g.gain.setValueAtTime(sound.gain, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + sound.duration);
+  o.start(); o.stop(ctx.currentTime + sound.duration);
 }
 
 /* ── Word Generation ── */
@@ -1128,6 +1133,10 @@ document.querySelectorAll('[data-sound]').forEach(btn => {
     document.querySelectorAll('[data-sound]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     state.sound = btn.dataset.sound === 'on';
+    if (state.sound) {
+      ensureAudio();
+      playClick(true);
+    }
     saveSettings();
   });
 });
@@ -1137,6 +1146,7 @@ document.querySelectorAll('[data-sound-style]').forEach(btn => {
     document.querySelectorAll('[data-sound-style]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     state.soundStyle = btn.dataset.soundStyle;
+    playClick(true);
     saveSettings();
   });
 });
@@ -1192,12 +1202,23 @@ const colorMap = [
 
 colorMap.forEach(({ id, prop }) => {
   document.getElementById(id).addEventListener('input', (e) => {
-    document.documentElement.style.setProperty(prop, e.target.value);
-    if (prop === '--accent') document.documentElement.style.setProperty('--caret', e.target.value);
-    state.customColors[prop] = e.target.value;
-    saveSettings();
+    applyCustomColor(prop, e.target.value);
   });
 });
+
+document.getElementById('applyColors').addEventListener('click', () => {
+  colorMap.forEach(({ id, prop }) => {
+    applyCustomColor(prop, document.getElementById(id).value, false);
+  });
+  saveSettings();
+});
+
+function applyCustomColor(prop, value, shouldSave = true) {
+  document.documentElement.style.setProperty(prop, value);
+  if (prop === '--accent') document.documentElement.style.setProperty('--caret', value);
+  state.customColors[prop] = value;
+  if (shouldSave) saveSettings();
+}
 
 document.getElementById('resetColors').addEventListener('click', () => {
   colorMap.forEach(({ prop }) => document.documentElement.style.removeProperty(prop));
@@ -1222,8 +1243,18 @@ function syncColorPickers() {
     const el = document.getElementById(id);
     if (!el) return;
     const val = style.getPropertyValue(prop).trim();
-    if (val.startsWith('#') && val.length === 7) el.value = val;
+    const hex = toHexColor(val);
+    if (hex) el.value = hex;
   });
+}
+
+function toHexColor(value) {
+  if (value.startsWith('#') && value.length === 7) return value;
+  const match = value.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  if (!match) return null;
+  return '#' + [match[1], match[2], match[3]]
+    .map(n => Math.max(0, Math.min(255, parseInt(n))).toString(16).padStart(2, '0'))
+    .join('');
 }
 
 /* ── Persist Settings ── */
