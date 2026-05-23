@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TypeFlow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=Inconsolata:wght@400;700&family=JetBrains+Mono:wght@400;700&family=Roboto+Mono:wght@400;700&family=Source+Code+Pro:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-theme="dark" data-cursor="line">
+
+  <header>
+    <div class="logo">TypeFlow</div>
+    <div class="header-right">
+      <button class="icon-btn" id="settingsBtn" title="Settings">&#9881;</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Mode + Options Bar -->
+    <div class="options-bar">
+      <div class="mode-group">
+        <button class="mode-btn active" data-mode="words">words</button>
+        <button class="mode-btn" data-mode="time">time</button>
+        <button class="mode-btn" data-mode="ai">ai paragraph</button>
+      </div>
+      <div class="divider"></div>
+      <div class="sub-options" id="wordCountOptions">
+        <button class="sub-btn active" data-count="25">25</button>
+        <button class="sub-btn" data-count="50">50</button>
+        <button class="sub-btn" data-count="100">100</button>
+      </div>
+      <div class="sub-options hidden" id="timeOptions">
+        <button class="sub-btn active" data-time="15">15</button>
+        <button class="sub-btn" data-time="30">30</button>
+        <button class="sub-btn" data-time="60">60</button>
+      </div>
+      <div class="sub-options hidden" id="aiOptions">
+        <button class="sub-btn active" data-ai="random">random</button>
+        <button class="sub-btn" data-ai="story">story</button>
+        <button class="sub-btn" data-ai="tech">tech</button>
+      </div>
+    </div>
+
+    <!-- Live Stats -->
+    <div class="live-stats" id="liveStats">
+      <div class="stat-item">
+        <span class="stat-val" id="liveWpm">0</span>
+        <span class="stat-label">wpm</span>
+      </div>
+      <div class="stat-item timer-item hidden" id="timerItem">
+        <span class="stat-val" id="timerDisplay">15</span>
+        <span class="stat-label">sec</span>
+      </div>
+    </div>
+
+    <!-- Typing Area -->
+    <div class="typing-container" id="typingContainer">
+      <div class="words-display" id="wordsDisplay"></div>
+      <input
+        type="text"
+        id="typingInput"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+      />
+    </div>
+
+    <!-- Restart Button -->
+    <div class="controls">
+      <button class="restart-btn" id="restartBtn" title="Restart (Tab + Enter)">&#8635; restart</button>
+    </div>
+
+    <!-- Results Screen -->
+    <div class="results hidden" id="results">
+      <div class="results-header">Results</div>
+      <div class="results-grid">
+        <div class="result-card">
+          <div class="result-val" id="resWpm">—</div>
+          <div class="result-label">wpm</div>
+        </div>
+        <div class="result-card">
+          <div class="result-val" id="resAcc">—</div>
+          <div class="result-label">accuracy</div>
+        </div>
+        <div class="result-card">
+          <div class="result-val" id="resCorrect">—</div>
+          <div class="result-label">correct</div>
+        </div>
+        <div class="result-card">
+          <div class="result-val" id="resWrong">—</div>
+          <div class="result-label">incorrect</div>
+        </div>
+        <div class="result-card">
+          <div class="result-val" id="resTime">—</div>
+          <div class="result-label">time</div>
+        </div>
+      </div>
+      <button class="restart-btn large" id="resultsRestartBtn">Try Again</button>
+    </div>
+  </main>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay hidden" id="settingsOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <span>Settings</span>
+        <button class="close-btn" id="closeSettings">&times;</button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="modal-tabs">
+        <button class="tab-btn active" data-tab="appearance">Appearance</button>
+        <button class="tab-btn" data-tab="font">Font</button>
+        <button class="tab-btn" data-tab="behavior">Behavior</button>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- ── Appearance Tab ── -->
+        <div class="tab-content active" id="tab-appearance">
+
+          <div class="setting-group">
+            <div class="setting-label">Theme</div>
+            <div class="theme-grid">
+              <button class="theme-btn active" data-theme="dark"
+                style="--t-accent:#e94560">dark</button>
+              <button class="theme-btn" data-theme="light"
+                style="--t-accent:#6366f1">light</button>
+              <button class="theme-btn" data-theme="dracula"
+                style="--t-accent:#ff79c6">dracula</button>
+              <button class="theme-btn" data-theme="nord"
+                style="--t-accent:#88c0d0">nord</button>
+              <button class="theme-btn" data-theme="catppuccin"
+                style="--t-accent:#cba6f7">catppuccin</button>
+              <button class="theme-btn" data-theme="solarized"
+                style="--t-accent:#268bd2">solarized</button>
+              <button class="theme-btn" data-theme="mocha"
+                style="--t-accent:#f9a825">mocha</button>
+              <button class="theme-btn" data-theme="ocean"
+                style="--t-accent:#00b4d8">ocean</button>
+              <button class="theme-btn" data-theme="forest"
+                style="--t-accent:#52b788">forest</button>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">Custom Colors
+              <span class="setting-hint">overrides theme</span>
+            </div>
+            <div class="color-grid">
+              <div class="color-item">
+                <input type="color" id="colorBg" value="#1a1a2e" />
+                <label for="colorBg">Background</label>
+              </div>
+              <div class="color-item">
+                <input type="color" id="colorSurface" value="#16213e" />
+                <label for="colorSurface">Surface</label>
+              </div>
+              <div class="color-item">
+                <input type="color" id="colorText" value="#e0e0e0" />
+                <label for="colorText">Text</label>
+              </div>
+              <div class="color-item">
+                <input type="color" id="colorAccent" value="#e94560" />
+                <label for="colorAccent">Accent</label>
+              </div>
+              <div class="color-item">
+                <input type="color" id="colorCorrect" value="#4ade80" />
+                <label for="colorCorrect">Correct</label>
+              </div>
+              <div class="color-item">
+                <input type="color" id="colorWrong" value="#f87171" />
+                <label for="colorWrong">Error</label>
+              </div>
+            </div>
+            <button class="ghost-btn" id="resetColors">Reset to theme</button>
+          </div>
+
+        </div>
+
+        <!-- ── Font Tab ── -->
+        <div class="tab-content" id="tab-font">
+
+          <div class="setting-group">
+            <div class="setting-label">Font Family</div>
+            <div class="font-grid">
+              <button class="font-btn active" data-family="Roboto Mono"
+                style="font-family:'Roboto Mono',monospace">Roboto Mono</button>
+              <button class="font-btn" data-family="JetBrains Mono"
+                style="font-family:'JetBrains Mono',monospace">JetBrains Mono</button>
+              <button class="font-btn" data-family="Fira Code"
+                style="font-family:'Fira Code',monospace">Fira Code</button>
+              <button class="font-btn" data-family="Source Code Pro"
+                style="font-family:'Source Code Pro',monospace">Source Code Pro</button>
+              <button class="font-btn" data-family="Inconsolata"
+                style="font-family:'Inconsolata',monospace">Inconsolata</button>
+              <button class="font-btn" data-family="Space Mono"
+                style="font-family:'Space Mono',monospace">Space Mono</button>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">
+              Font Size
+              <span class="setting-value" id="fontSizeVal">22px</span>
+            </div>
+            <input type="range" class="slider" id="fontSizeSlider"
+              min="14" max="36" step="1" value="22" />
+            <div class="slider-labels">
+              <span>14</span><span>36</span>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">
+              Letter Spacing
+              <span class="setting-value" id="letterSpacingVal">0px</span>
+            </div>
+            <input type="range" class="slider" id="letterSpacingSlider"
+              min="-1" max="6" step="0.5" value="0" />
+            <div class="slider-labels">
+              <span>tight</span><span>wide</span>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">
+              Word Spacing
+              <span class="setting-value" id="wordSpacingVal">0px</span>
+            </div>
+            <input type="range" class="slider" id="wordSpacingSlider"
+              min="0" max="16" step="1" value="0" />
+            <div class="slider-labels">
+              <span>normal</span><span>wide</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ── Behavior Tab ── -->
+        <div class="tab-content" id="tab-behavior">
+
+          <div class="setting-group">
+            <div class="setting-label">Cursor Style</div>
+            <div class="setting-row">
+              <button class="sub-btn active" data-cursor="line">line</button>
+              <button class="sub-btn" data-cursor="block">block</button>
+              <button class="sub-btn" data-cursor="underline">underline</button>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">Smooth Caret</div>
+            <div class="setting-row">
+              <button class="sub-btn active" data-smooth="on">on</button>
+              <button class="sub-btn" data-smooth="off">off</button>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">Sound on Keypress</div>
+            <div class="setting-row">
+              <button class="sub-btn" data-sound="on">on</button>
+              <button class="sub-btn active" data-sound="off">off</button>
+            </div>
+          </div>
+
+        </div>
+
+      </div><!-- modal-body -->
+    </div><!-- modal -->
+  </div><!-- modal-overlay -->
+
+  <script src="words.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
