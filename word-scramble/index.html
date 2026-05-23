@@ -85,6 +85,29 @@
       font-size: 1rem;
       font-weight: 800;
     }
+    .difficulty-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      width: 100%;
+      padding-top: 0.4rem;
+    }
+    .difficulty-btn {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 999px;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.82rem;
+      font-weight: 900;
+      padding: 0.5rem 0.8rem;
+    }
+    .difficulty-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #052e16;
+    }
     .game {
       padding: 1.3rem;
       display: grid;
@@ -208,6 +231,11 @@
         <div class="label">Streak</div>
         <div class="value" id="streakVal">0</div>
       </div>
+      <div class="difficulty-row" aria-label="Difficulty">
+        <button class="difficulty-btn active" type="button" data-difficulty="easy">Easy</button>
+        <button class="difficulty-btn" type="button" data-difficulty="medium">Medium</button>
+        <button class="difficulty-btn" type="button" data-difficulty="hard">Hard</button>
+      </div>
     </section>
 
     <section class="game">
@@ -246,12 +274,21 @@
   </main>
 
   <script>
-    const WORDS = [
-      'planet','rocket','galaxy','keyboard','signal','puzzle','energy','future','silver','forest',
-      'window','school','dragon','comet','button','memory','typing','stream','bridge','castle',
-      'orange','winter','summer','launch','meteor','shadow','friend','secret','wonder','bright',
-      'system','random','cookie','flower','danger','travel','marble','circle','number','legend'
-    ];
+    const WORDS = {
+      easy: [
+        'game','star','moon','ship','code','word','play','type','fire','snow',
+        'tree','fish','book','lamp','road','wind','gold','blue','jump','fast'
+      ],
+      medium: [
+        'planet','rocket','galaxy','keyboard','signal','puzzle','energy','future','silver','forest',
+        'window','school','dragon','comet','button','memory','typing','stream','bridge','castle',
+        'orange','winter','summer','launch','meteor','shadow','friend','secret','wonder','bright'
+      ],
+      hard: [
+        'asteroid','algorithm','satellite','chronicle','labyrinth','synthesis','magnitude','frequency','navigation','velocity',
+        'dimension','telescope','paradoxical','constellation','transmission','architecture','metamorphosis','cryptography','civilization','photosynthesis'
+      ]
+    };
     const TOTAL = 10;
     const STORE_KEY = 'daily_scramble_records';
 
@@ -267,8 +304,10 @@
     const bestRecord = document.getElementById('bestRecord');
     const dailyLabel = document.getElementById('dailyLabel');
     const streakVal = document.getElementById('streakVal');
+    const difficultyBtns = document.querySelectorAll('[data-difficulty]');
 
     let dayKey = getDailyKey();
+    let difficulty = 'easy';
     let words = [];
     let index = 0;
     let score = 0;
@@ -331,15 +370,15 @@
 
     function start() {
       dayKey = getDailyKey();
-      const random = rng(seedFrom(dayKey));
-      words = shuffle(WORDS, random).slice(0, TOTAL).map(word => ({
+      const random = rng(seedFrom(`${dayKey}:${difficulty}`));
+      words = shuffle(WORDS[difficulty], random).slice(0, TOTAL).map(word => ({
         answer: word,
         scrambled: scramble(word, random)
       }));
       index = 0;
       score = 0;
       finished = false;
-      dailyLabel.textContent = dayKey;
+      dailyLabel.textContent = `${difficulty} / ${dayKey}`;
       scoreVal.textContent = score;
       answerInput.disabled = false;
       renderWord();
@@ -370,13 +409,31 @@
     }
 
     function saveResult() {
-      const records = loadRecords();
-      records.days ||= {};
-      records.days[dayKey] = Math.max(records.days[dayKey] || 0, score);
-      records.best = Math.max(records.best || 0, score);
-      if (score === TOTAL) records.streak = (records.lastPerfect === previousDay(dayKey) ? (records.streak || 0) + 1 : 1);
-      if (score === TOTAL) records.lastPerfect = dayKey;
+      const records = migrateOldRecords(loadRecords());
+      records[difficulty] ||= {};
+      const modeRecords = records[difficulty];
+      modeRecords.days ||= {};
+      modeRecords.days[dayKey] = Math.max(modeRecords.days[dayKey] || 0, score);
+      modeRecords.best = Math.max(modeRecords.best || 0, score);
+      if (score === TOTAL) modeRecords.streak = (modeRecords.lastPerfect === previousDay(dayKey) ? (modeRecords.streak || 0) + 1 : 1);
+      if (score === TOTAL) modeRecords.lastPerfect = dayKey;
       saveRecords(records);
+    }
+
+    function migrateOldRecords(records) {
+      if (records.days || records.best || records.streak) {
+        records.medium = {
+          days: records.days || {},
+          best: records.best || 0,
+          streak: records.streak || 0,
+          lastPerfect: records.lastPerfect,
+        };
+        delete records.days;
+        delete records.best;
+        delete records.streak;
+        delete records.lastPerfect;
+      }
+      return records;
     }
 
     function previousDay(key) {
@@ -387,11 +444,22 @@
     }
 
     function renderRecords() {
-      const records = loadRecords();
-      todayRecord.textContent = `Today: ${records.days?.[dayKey] || 0}/${TOTAL}`;
-      bestRecord.textContent = `Best: ${records.best || 0}/${TOTAL}`;
-      streakVal.textContent = records.streak || 0;
+      const records = migrateOldRecords(loadRecords());
+      saveRecords(records);
+      const modeRecords = records[difficulty] || {};
+      todayRecord.textContent = `Today: ${modeRecords.days?.[dayKey] || 0}/${TOTAL}`;
+      bestRecord.textContent = `Best: ${modeRecords.best || 0}/${TOTAL}`;
+      streakVal.textContent = modeRecords.streak || 0;
     }
+
+    difficultyBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        difficultyBtns.forEach(item => item.classList.remove('active'));
+        btn.classList.add('active');
+        difficulty = btn.dataset.difficulty;
+        start();
+      });
+    });
 
     answerForm.addEventListener('submit', (event) => {
       event.preventDefault();
@@ -414,7 +482,7 @@
     restartBtn.addEventListener('click', start);
 
     shareBtn.addEventListener('click', async () => {
-      const text = `Daily Word Scramble\n${score}/${TOTAL} solved\nhttps://gamed.fun/word-scramble/`;
+      const text = `Daily Word Scramble (${difficulty})\n${score}/${TOTAL} solved\nhttps://gamed.fun/word-scramble/`;
       try {
         if (navigator.share) await navigator.share({ title: 'Daily Word Scramble', text });
         else await navigator.clipboard.writeText(text);
