@@ -14,6 +14,7 @@
   <header>
     <div class="logo">TypeFlow</div>
     <div class="header-right">
+      <button class="ghost-btn header-signout" id="privacyBtn">Privacy</button>
       <button class="icon-btn" id="settingsBtn" title="Settings">&#9881;</button>
     </div>
   </header>
@@ -21,26 +22,47 @@
   <main>
     <!-- Mode + Options Bar -->
     <div class="options-bar">
-      <div class="mode-group">
-        <button class="mode-btn active" data-mode="words">words</button>
-        <button class="mode-btn" data-mode="time">time</button>
-        <button class="mode-btn" data-mode="ai">ai paragraph</button>
+      <div class="setup-title">
+        <span>Challenge setup</span>
+        <strong id="setupModeLabel">Words</strong>
       </div>
-      <div class="divider"></div>
-      <div class="sub-options" id="wordCountOptions">
-        <button class="sub-btn active" data-count="25">25</button>
-        <button class="sub-btn" data-count="50">50</button>
-        <button class="sub-btn" data-count="100">100</button>
+      <div class="setup-section">
+        <span class="setup-label">format</span>
+        <div class="mode-group">
+          <button class="mode-btn active" data-mode="words">words</button>
+          <button class="mode-btn" data-mode="time">time</button>
+          <button class="mode-btn" data-mode="ai">paragraph</button>
+          <button class="mode-btn" data-mode="weak">weak words</button>
+        </div>
       </div>
-      <div class="sub-options hidden" id="timeOptions">
-        <button class="sub-btn active" data-time="15">15</button>
-        <button class="sub-btn" data-time="30">30</button>
-        <button class="sub-btn" data-time="60">60</button>
+      <div class="setup-section">
+        <span class="setup-label">target</span>
+        <div class="sub-options" id="wordCountOptions">
+          <button class="sub-btn active" data-count="25">25</button>
+          <button class="sub-btn" data-count="50">50</button>
+          <button class="sub-btn" data-count="100">100</button>
+        </div>
+        <div class="sub-options hidden" id="timeOptions">
+          <button class="sub-btn active" data-time="15">15 sec</button>
+          <button class="sub-btn" data-time="30">30 sec</button>
+          <button class="sub-btn" data-time="60">60 sec</button>
+        </div>
+        <div class="sub-options hidden" id="aiOptions">
+          <button class="sub-btn active" data-ai="random">random</button>
+          <button class="sub-btn" data-ai="story">story</button>
+          <button class="sub-btn" data-ai="tech">tech</button>
+        </div>
+        <div class="sub-options hidden" id="weakOptions">
+          <button class="sub-btn active" data-weak-count="25">25</button>
+          <button class="sub-btn" data-weak-count="50">50</button>
+        </div>
       </div>
-      <div class="sub-options hidden" id="aiOptions">
-        <button class="sub-btn active" data-ai="random">random</button>
-        <button class="sub-btn" data-ai="story">story</button>
-        <button class="sub-btn" data-ai="tech">tech</button>
+      <div class="setup-section">
+        <span class="setup-label">modifiers</span>
+        <div class="toggle-group" id="modeToggles">
+          <button class="toggle-btn" id="punctBtn">@ punct</button>
+          <button class="toggle-btn" id="numbersBtn"># numbers</button>
+        </div>
       </div>
     </div>
 
@@ -54,6 +76,11 @@
         <span class="stat-val" id="timerDisplay">15</span>
         <span class="stat-label">sec</span>
       </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-fill" id="progressFill"></div>
     </div>
 
     <!-- Typing Area -->
@@ -74,17 +101,51 @@
       <button class="restart-btn" id="restartBtn" title="Restart (Tab + Enter)">&#8635; restart</button>
     </div>
 
+    <!-- Progression -->
+    <section class="progression-panel" id="progressionPanel">
+      <div class="profile-card">
+        <div class="profile-top">
+          <div>
+            <div class="panel-label">rank</div>
+            <div class="rank-name" id="rankName">Novice I</div>
+          </div>
+          <div class="prestige-badge" id="prestigeBadge">P0</div>
+        </div>
+        <div class="xp-row">
+          <span id="xpText">0 / 500 xp</span>
+          <span id="totalTests">0 tests</span>
+        </div>
+        <div class="rank-progress">
+          <div class="rank-progress-fill" id="rankProgressFill"></div>
+        </div>
+        <button class="ghost-btn prestige-btn hidden" id="prestigeBtn">Prestige</button>
+        <div class="weak-words-panel">
+          <div class="panel-label">words to practice</div>
+          <div class="weak-word-list" id="weakWordList"></div>
+        </div>
+      </div>
+
+    </section>
+
     <!-- Results Screen -->
     <div class="results hidden" id="results">
       <div class="results-header">Results</div>
       <div class="results-grid">
-        <div class="result-card">
+        <div class="result-card main-stat">
           <div class="result-val" id="resWpm">—</div>
           <div class="result-label">wpm</div>
         </div>
-        <div class="result-card">
+        <div class="result-card main-stat">
           <div class="result-val" id="resAcc">—</div>
           <div class="result-label">accuracy</div>
+        </div>
+        <div class="result-card">
+          <div class="result-val" id="resRaw">—</div>
+          <div class="result-label">raw</div>
+        </div>
+        <div class="result-card">
+          <div class="result-val" id="resConsistency">—</div>
+          <div class="result-label">consistency</div>
         </div>
         <div class="result-card">
           <div class="result-val" id="resCorrect">—</div>
@@ -98,6 +159,14 @@
           <div class="result-val" id="resTime">—</div>
           <div class="result-label">time</div>
         </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="wpmChart"></canvas>
+      </div>
+      <div class="result-extra">
+        <div class="xp-earned" id="xpEarned">+0 xp</div>
+        <div class="feedback-list" id="feedbackList"></div>
+        <div class="weak-result" id="weakResult"></div>
       </div>
       <button class="restart-btn large" id="resultsRestartBtn">Try Again</button>
     </div>
@@ -275,7 +344,22 @@
     </div><!-- modal -->
   </div><!-- modal-overlay -->
 
+  <div class="modal-overlay hidden" id="privacyOverlay">
+    <div class="modal privacy-modal">
+      <div class="modal-header">
+        <span>Privacy Policy</span>
+        <button class="close-btn" id="closePrivacy">&times;</button>
+      </div>
+      <div class="modal-body privacy-body">
+        <p>TypeFlow stores progress data only in this browser using local storage. This includes XP, rank, prestige, test count, settings, and local results.</p>
+        <p>This version does not send scores to a server and does not share score data online. A production online version would need server authentication, rate limiting, abuse detection, and server-side score validation.</p>
+        <p>The page loads fonts from Google Fonts. Clearing this browser's site data for TypeFlow will remove local progress, results, ranks, and settings.</p>
+      </div>
+    </div>
+  </div>
+
   <script src="words.js"></script>
+  <script src="progression.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

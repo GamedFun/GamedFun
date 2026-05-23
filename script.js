@@ -2,6 +2,7 @@
 const state = {
   mode: 'words',
   wordCount: 25,
+  weakCount: 25,
   timeLimit: 15,
   aiType: 'random',
   theme: 'dark',
@@ -12,6 +13,8 @@ const state = {
   cursor: 'line',
   smooth: true,
   sound: false,
+  punctuation: false,
+  numbers: false,
   customColors: {},
 
   words: [],
@@ -28,6 +31,7 @@ const state = {
   finished: false,
   startTime: null,
   timerInterval: null,
+  wpmSamples: [],
   correctChars: 0,
   wrongChars: 0,
   correctWords: 0,
@@ -43,6 +47,27 @@ const timerItem       = document.getElementById('timerItem');
 const results         = document.getElementById('results');
 const typingContainer = document.getElementById('typingContainer');
 const settingsOverlay = document.getElementById('settingsOverlay');
+const progressFill   = document.getElementById('progressFill');
+const wpmChart        = document.getElementById('wpmChart');
+const rankName        = document.getElementById('rankName');
+const prestigeBadge   = document.getElementById('prestigeBadge');
+const xpText          = document.getElementById('xpText');
+const totalTests      = document.getElementById('totalTests');
+const rankProgressFill = document.getElementById('rankProgressFill');
+const prestigeBtn     = document.getElementById('prestigeBtn');
+const leaderboardTitle = document.getElementById('leaderboardTitle');
+const leaderboardList = document.getElementById('leaderboardList');
+const speedBoardModes = document.getElementById('speedBoardModes');
+const xpEarned        = document.getElementById('xpEarned');
+const feedbackList    = document.getElementById('feedbackList');
+const weakWordList    = document.getElementById('weakWordList');
+const weakResult      = document.getElementById('weakResult');
+const setupModeLabel  = document.getElementById('setupModeLabel');
+const privacyOverlay  = document.getElementById('privacyOverlay');
+const privacyBtn      = document.getElementById('privacyBtn');
+const closePrivacy    = document.getElementById('closePrivacy');
+
+let profile = loadProfile();
 
 /* ── Audio ── */
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -60,6 +85,13 @@ function playClick() {
 }
 
 /* ── Word Generation ── */
+const AI_GROUPS = {
+  random: AI_PARAGRAPHS,
+  story: AI_PARAGRAPHS.filter((_, i) => [0, 2, 4, 6].includes(i)),
+  tech: AI_PARAGRAPHS.filter((_, i) => [1, 5, 8].includes(i)),
+};
+const PUNCTUATION_MARKS = ['.', ',', '?', '!', ';', ':'];
+
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -68,16 +100,45 @@ function shuffle(arr) {
   }
   return a;
 }
+
+function formatWord(word, index) {
+  let next = word;
+  if (state.numbers && index % 8 === 5) {
+    next = String(Math.floor(Math.random() * 900) + 100);
+  }
+  if (state.punctuation && index % 5 === 3) {
+    next += PUNCTUATION_MARKS[Math.floor(Math.random() * PUNCTUATION_MARKS.length)];
+  }
+  if (state.punctuation && index % 11 === 0) {
+    next = next.charAt(0).toUpperCase() + next.slice(1);
+  }
+  return next;
+}
+
 function getWords() {
+  if (state.mode === 'weak') {
+    const weak = getWeakWords(20).map(item => item.word);
+    const fallback = shuffle(WORD_LIST).slice(0, state.weakCount);
+    const source = weak.length ? weak : fallback;
+    const words = [];
+    while (words.length < state.weakCount) {
+      const weakPick = weak.length && Math.random() < 0.7;
+      const pool = weakPick ? weak : WORD_LIST;
+      words.push(pool[Math.floor(Math.random() * pool.length)]);
+    }
+    if (!weak.length) return fallback.map(formatWord);
+    return words.map(formatWord);
+  }
   if (state.mode === 'ai') {
-    const para = AI_PARAGRAPHS[Math.floor(Math.random() * AI_PARAGRAPHS.length)];
-    return para.trim().split(/\s+/);
+    const pool = AI_GROUPS[state.aiType] || AI_GROUPS.random;
+    const para = pool[Math.floor(Math.random() * pool.length)];
+    return para.trim().split(/\s+/).map(formatWord);
   }
   const count = state.mode === 'time' ? 200 : state.wordCount;
   const pool = shuffle(WORD_LIST);
   const words = [];
   while (words.length < count) words.push(...pool);
-  return words.slice(0, count);
+  return words.slice(0, count).map(formatWord);
 }
 
 /* ── Build Display ── */
@@ -171,10 +232,10 @@ function positionCaret() {
   const containerRect = wordsDisplay.getBoundingClientRect();
   const refRect = ref.getBoundingClientRect();
 
-  const top = refRect.top - containerRect.top;
+  const top = refRect.top - containerRect.top + wordsDisplay.scrollTop;
   const left = li < letters.length
-    ? refRect.left - containerRect.left
-    : refRect.right - containerRect.left;
+    ? refRect.left - containerRect.left + wordsDisplay.scrollLeft
+    : refRect.right - containerRect.left + wordsDisplay.scrollLeft;
 
   caret.style.top = top + 'px';
   caret.style.left = left + 'px';
@@ -188,12 +249,14 @@ function reset() {
     letterEls: [], wordEls: [], wordLineNums: [], measuredLineHeight: 0,
     currentWord: 0, currentLetter: 0, typedHistory: [],
     started: false, finished: false, startTime: null, timerInterval: null,
+    wpmSamples: [],
     correctChars: 0, wrongChars: 0, correctWords: 0, wrongWords: 0,
   });
 
   wordsDisplay.scrollTop = 0;
   liveWpm.textContent = '0';
   timerDisplay.textContent = state.timeLimit;
+  progressFill.style.width = '0%';
   typingInput.value = '';
   results.classList.add('hidden');
   typingContainer.style.display = '';
@@ -226,25 +289,53 @@ function startTimer() {
 
 function updateLiveWpm() {
   if (!state.startTime) return;
-  const mins = (Date.now() - state.startTime) / 60000;
+  const elapsed = (Date.now() - state.startTime) / 1000;
+  const mins = elapsed / 60;
   if (mins <= 0) return;
-  liveWpm.textContent = Math.round((state.correctChars / 5) / mins);
+  const wpm = Math.round((state.correctChars / 5) / mins);
+  liveWpm.textContent = wpm;
+  if (elapsed >= 1) {
+    const second = Math.floor(elapsed);
+    const last = state.wpmSamples[state.wpmSamples.length - 1];
+    if (!last || last.second !== second) {
+      state.wpmSamples.push({ second, wpm });
+    } else {
+      last.wpm = wpm;
+    }
+  }
+  updateProgress();
+}
+
+function updateProgress() {
+  let percent = 0;
+  if (state.mode === 'time' && state.startTime) {
+    const elapsed = (Date.now() - state.startTime) / 1000;
+    percent = Math.min(100, (elapsed / state.timeLimit) * 100);
+  } else if (state.words.length) {
+    const word = state.words[state.currentWord] || '';
+    const letterProgress = word ? Math.min(1, state.currentLetter / word.length) : 0;
+    percent = Math.min(100, ((state.currentWord + letterProgress) / state.words.length) * 100);
+  }
+  progressFill.style.width = percent + '%';
 }
 
 /* ── Input ── */
 typingInput.addEventListener('keydown', handleKeydown);
 typingInput.addEventListener('input', () => { typingInput.value = ''; });
-typingInput.addEventListener('keypress', (e) => {
-  if (state.finished || e.key === ' ' || e.key === 'Enter') return;
-  playClick();
-  if (!state.started) startTest();
-  typeLetter(e.key);
-});
 
 function handleKeydown(e) {
   if (state.finished) return;
   if (e.key === 'Backspace') { e.preventDefault(); handleBackspace(); return; }
   if (e.key === ' ')         { e.preventDefault(); handleSpace();     return; }
+  if (!isTypableKey(e)) return;
+  e.preventDefault();
+  playClick();
+  if (!state.started) startTest();
+  typeLetter(e.key);
+}
+
+function isTypableKey(e) {
+  return e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
 }
 
 function startTest() {
@@ -274,7 +365,24 @@ function typeLetter(ch) {
     state.wrongChars++;
     state.currentLetter++;
   }
+
+  if (state.mode !== 'time' && wi === state.words.length - 1 && state.currentLetter >= word.length) {
+    completeWord(wi);
+    state.currentWord++;
+    updateProgress();
+    finish();
+    return;
+  }
+
   positionCaret();
+  updateProgress();
+}
+
+function isWordCorrect(wordIndex) {
+  const word = state.words[wordIndex];
+  const letters = state.letterEls[wordIndex];
+  if (!word || !letters || letters.length !== word.length) return false;
+  return letters.every(letter => letter.classList.contains('correct'));
 }
 
 function handleSpace() {
@@ -289,26 +397,27 @@ function handleSpace() {
     state.wrongChars++;
   }
 
-  // Check if the whole word was correct
-  let allCorrect = state.currentLetter === word.length;
-  if (allCorrect) {
-    for (let i = 0; i < word.length; i++) {
-      if (letters[i].classList.contains('wrong')) { allCorrect = false; break; }
-    }
-  }
-  if (allCorrect) state.correctWords++; else state.wrongWords++;
+  completeWord(wi);
 
   state.typedHistory.push(state.currentLetter);
   state.currentWord++;
   state.currentLetter = 0;
 
   if (state.mode !== 'time' && state.currentWord >= state.words.length) {
+    updateProgress();
     finish(); return;
   }
 
   // Scroll first, then position caret so getBoundingClientRect reflects new scroll
   scrollToCurrentLine();
   positionCaret();
+  updateProgress();
+}
+
+function completeWord(wordIndex) {
+  const correct = isWordCorrect(wordIndex);
+  if (correct) state.correctWords++; else state.wrongWords++;
+  recordWordResult(state.words[wordIndex], correct);
 }
 
 function handleBackspace() {
@@ -329,10 +438,16 @@ function handleBackspace() {
       letter.className = 'letter untyped';
     }
     positionCaret();
+    updateProgress();
   } else if (wi > 0) {
     state.currentWord--;
     const prevLetters = state.letterEls[state.currentWord];
-    state.currentLetter = state.typedHistory.pop() || prevLetters.length;
+    const wasCorrect = isWordCorrect(state.currentWord);
+    if (wasCorrect && state.correctWords > 0) state.correctWords--;
+    else if (!wasCorrect && state.wrongWords > 0) state.wrongWords--;
+
+    const previousLength = state.typedHistory.pop();
+    state.currentLetter = previousLength ?? prevLetters.length;
 
     // Remove extra letters from previous word
     const prevWord = state.words[state.currentWord];
@@ -350,11 +465,13 @@ function handleBackspace() {
 
     scrollToCurrentLine();
     positionCaret();
+    updateProgress();
   }
 }
 
 /* ── Finish ── */
 function finish() {
+  if (state.finished) return;
   clearInterval(state.timerInterval);
   state.finished = true;
 
@@ -363,15 +480,192 @@ function finish() {
   const wpm = mins > 0 ? Math.round((state.correctChars / 5) / mins) : 0;
   const total = state.correctChars + state.wrongChars;
   const acc = total > 0 ? Math.round((state.correctChars / total) * 100) : 100;
+  const raw = mins > 0 ? Math.round((total / 5) / mins) : 0;
+  const consistency = calculateConsistency();
 
   document.getElementById('resWpm').textContent     = wpm;
   document.getElementById('resAcc').textContent     = acc + '%';
+  document.getElementById('resRaw').textContent     = raw;
+  document.getElementById('resConsistency').textContent = consistency + '%';
   document.getElementById('resCorrect').textContent = state.correctWords;
   document.getElementById('resWrong').textContent   = state.wrongWords;
   document.getElementById('resTime').textContent    = Math.round(elapsed) + 's';
 
+  applyProgressionResults(wpm, acc, consistency, elapsed);
+  updateProgress();
   typingContainer.style.display = 'none';
   results.classList.remove('hidden');
+  requestAnimationFrame(drawWpmChart);
+}
+
+function applyProgressionResults(wpm, accuracy, consistency, elapsed) {
+  const xp = calcXpEarned(wpm, accuracy, elapsed);
+  profile.xp += xp;
+  profile.totalXpEarned += xp;
+  profile.totalTests++;
+  saveProfile(profile);
+
+  xpEarned.textContent = '+' + xp + ' xp';
+  renderFeedback(wpm, accuracy, consistency);
+  renderWeakWords();
+  updateProfileUi();
+}
+
+function renderFeedback(wpm, accuracy, consistency) {
+  const tips = generateFeedback(wpm, accuracy, consistency, state.mode);
+  feedbackList.innerHTML = '';
+  tips.forEach(tip => {
+    const item = document.createElement('div');
+    item.className = 'feedback-item';
+    item.textContent = tip;
+    feedbackList.appendChild(item);
+  });
+}
+
+function updateProfileUi() {
+  const progress = getRankProgress(profile.xp);
+  const prestigeText = PRESTIGE_STARS[profile.prestige] || ('P' + profile.prestige);
+  rankName.textContent = progress.current.name;
+  rankName.style.color = progress.current.color;
+  prestigeBadge.textContent = prestigeText || 'P0';
+  totalTests.textContent = profile.totalTests + ' tests';
+  rankProgressFill.style.width = progress.pct + '%';
+
+  if (progress.next) {
+    xpText.textContent = profile.xp + ' / ' + progress.next.xp + ' xp';
+    prestigeBtn.classList.add('hidden');
+  } else {
+    xpText.textContent = profile.xp + ' xp';
+    prestigeBtn.classList.toggle('hidden', profile.xp < PRESTIGE_XP_RESET);
+  }
+  renderWeakWords();
+}
+
+function renderWeakWords() {
+  const weak = getWeakWords(8);
+  weakWordList.innerHTML = '';
+  weakResult.innerHTML = '';
+
+  if (!weak.length) {
+    weakWordList.textContent = 'No weak words yet';
+    weakResult.textContent = 'Missed words will appear here after a few tests.';
+    return;
+  }
+
+  weak.forEach(item => {
+    const chip = document.createElement('span');
+    chip.className = 'weak-word-chip';
+    chip.textContent = item.word + ' (' + item.misses + ')';
+    weakWordList.appendChild(chip);
+  });
+
+  weak.slice(0, 5).forEach(item => {
+    const chip = document.createElement('span');
+    chip.className = 'weak-word-chip';
+    chip.textContent = item.word;
+    weakResult.appendChild(chip);
+  });
+}
+
+function renderLeaderboard() {
+  if (!leaderboardList || !speedBoardModes || !leaderboardTitle) return;
+  const lb = loadLeaderboard();
+  const entries = activeBoard === 'rank'
+    ? (lb._ranks || [])
+    : (lb[activeSpeedMode] || []);
+
+  speedBoardModes.classList.toggle('hidden', activeBoard !== 'speed');
+  leaderboardTitle.textContent = activeBoard === 'rank'
+    ? 'highest rank'
+    : getModeLabel(activeSpeedMode) + ' speed';
+
+  leaderboardList.innerHTML = '';
+  if (!entries.length) {
+    const empty = document.createElement('li');
+    empty.className = 'leaderboard-empty';
+    empty.textContent = 'No scores yet';
+    leaderboardList.appendChild(empty);
+    return;
+  }
+
+  entries.forEach(entry => {
+    const item = document.createElement('li');
+    const main = document.createElement('span');
+    const meta = document.createElement('span');
+    main.textContent = entry.name;
+    if (activeBoard === 'rank') {
+      meta.textContent = 'P' + entry.prestige + ' · ' + entry.rankName + ' · ' + entry.xp + ' xp';
+    } else {
+      meta.textContent = entry.wpm + ' wpm · ' + entry.accuracy + '%';
+    }
+    item.append(main, meta);
+    leaderboardList.appendChild(item);
+  });
+}
+
+function setActiveSpeedMode(modeKey) {
+  activeSpeedMode = modeKey;
+  document.querySelectorAll('[data-mode-key]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.modeKey === modeKey);
+  });
+}
+
+function calculateConsistency() {
+  const samples = state.wpmSamples.map(s => s.wpm).filter(wpm => wpm > 0);
+  if (samples.length < 2) return samples.length ? 100 : 0;
+  const avg = samples.reduce((sum, n) => sum + n, 0) / samples.length;
+  if (avg <= 0) return 0;
+  const variance = samples.reduce((sum, n) => sum + Math.pow(n - avg, 2), 0) / samples.length;
+  const deviation = Math.sqrt(variance);
+  return Math.max(0, Math.min(100, Math.round(100 - (deviation / avg) * 100)));
+}
+
+function drawWpmChart() {
+  if (!wpmChart) return;
+  const ctx = wpmChart.getContext('2d');
+  const rect = wpmChart.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  wpmChart.width = Math.max(1, Math.floor(rect.width * dpr));
+  wpmChart.height = Math.max(1, Math.floor(rect.height * dpr));
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const width = rect.width;
+  const height = rect.height;
+  const style = getComputedStyle(document.documentElement);
+  const accent = style.getPropertyValue('--accent').trim();
+  const dim = style.getPropertyValue('--text-dim').trim();
+  const border = style.getPropertyValue('--border').trim();
+  const samples = state.wpmSamples.length ? state.wpmSamples : [{ second: 0, wpm: 0 }];
+  const maxWpm = Math.max(20, ...samples.map(s => s.wpm));
+  const pad = 18;
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.strokeStyle = border;
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 4; i++) {
+    const y = pad + ((height - pad * 2) / 3) * i;
+    ctx.beginPath();
+    ctx.moveTo(pad, y);
+    ctx.lineTo(width - pad, y);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  samples.forEach((sample, i) => {
+    const x = samples.length === 1
+      ? pad
+      : pad + ((width - pad * 2) * i) / (samples.length - 1);
+    const y = height - pad - ((height - pad * 2) * sample.wpm) / maxWpm;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  ctx.fillStyle = dim;
+  ctx.font = '11px ' + state.fontFamily + ', monospace';
+  ctx.fillText('wpm over time', pad, height - 4);
 }
 
 /* ── Focus / Shortcuts ── */
@@ -381,7 +675,10 @@ let tabDown = false;
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Tab') { tabDown = true; e.preventDefault(); }
   if (e.key === 'Enter' && tabDown) reset();
-  if (e.key === 'Escape') settingsOverlay.classList.add('hidden');
+  if (e.key === 'Escape') {
+    settingsOverlay.classList.add('hidden');
+    privacyOverlay.classList.add('hidden');
+  }
 });
 document.addEventListener('keyup', (e) => { if (e.key === 'Tab') tabDown = false; });
 
@@ -397,15 +694,17 @@ window.addEventListener('resize', () => {
 /* ── Mode Buttons ── */
 document.querySelectorAll('.mode-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    state.mode = btn.dataset.mode;
-    document.getElementById('wordCountOptions').classList.toggle('hidden', state.mode !== 'words');
-    document.getElementById('timeOptions').classList.toggle('hidden', state.mode !== 'time');
-    document.getElementById('aiOptions').classList.toggle('hidden', state.mode !== 'ai');
-    timerItem.classList.toggle('hidden', state.mode !== 'time');
-    reset();
-  });
+	    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+	    btn.classList.add('active');
+	    state.mode = btn.dataset.mode;
+	    setupModeLabel.textContent = btn.textContent;
+	    document.getElementById('wordCountOptions').classList.toggle('hidden', state.mode !== 'words');
+	    document.getElementById('timeOptions').classList.toggle('hidden', state.mode !== 'time');
+	    document.getElementById('aiOptions').classList.toggle('hidden', state.mode !== 'ai');
+	    document.getElementById('weakOptions').classList.toggle('hidden', state.mode !== 'weak');
+	    timerItem.classList.toggle('hidden', state.mode !== 'time');
+	    reset();
+	  });
 });
 
 document.querySelectorAll('#wordCountOptions .sub-btn').forEach(btn => {
@@ -433,10 +732,63 @@ document.querySelectorAll('#aiOptions .sub-btn').forEach(btn => {
     reset();
   });
 });
+document.querySelectorAll('#weakOptions .sub-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#weakOptions .sub-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.weakCount = parseInt(btn.dataset.weakCount);
+    reset();
+  });
+});
 
 /* ── Restart ── */
 document.getElementById('restartBtn').addEventListener('click', reset);
 document.getElementById('resultsRestartBtn').addEventListener('click', reset);
+
+document.getElementById('punctBtn').addEventListener('click', () => {
+  state.punctuation = !state.punctuation;
+  document.getElementById('punctBtn').classList.toggle('active', state.punctuation);
+  reset();
+  saveSettings();
+});
+document.getElementById('numbersBtn').addEventListener('click', () => {
+  state.numbers = !state.numbers;
+  document.getElementById('numbersBtn').classList.toggle('active', state.numbers);
+  reset();
+  saveSettings();
+});
+
+privacyBtn.addEventListener('click', () => privacyOverlay.classList.remove('hidden'));
+closePrivacy.addEventListener('click', () => privacyOverlay.classList.add('hidden'));
+privacyOverlay.addEventListener('click', (e) => {
+  if (e.target === privacyOverlay) privacyOverlay.classList.add('hidden');
+});
+
+prestigeBtn.addEventListener('click', () => {
+  if (profile.xp < PRESTIGE_XP_RESET) return;
+  profile.prestige++;
+  profile.xp = 0;
+  saveProfile(profile);
+  updateProfileUi();
+});
+
+document.querySelectorAll('[data-board]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-board]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeBoard = btn.dataset.board;
+    renderLeaderboard();
+  });
+});
+
+document.querySelectorAll('[data-mode-key]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-mode-key]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeSpeedMode = btn.dataset.modeKey;
+    renderLeaderboard();
+  });
+});
 
 /* ── Settings Modal ── */
 document.getElementById('settingsBtn').addEventListener('click', () => settingsOverlay.classList.remove('hidden'));
@@ -615,6 +967,8 @@ function saveSettings() {
       cursor: state.cursor,
       smooth: state.smooth,
       sound: state.sound,
+      punctuation: state.punctuation,
+      numbers: state.numbers,
       customColors: state.customColors,
     }));
   } catch {}
@@ -678,6 +1032,16 @@ function loadSettings() {
         b.classList.toggle('active', (b.dataset.sound === 'on') === s.sound));
     }
 
+    if (s.punctuation !== undefined) {
+      state.punctuation = s.punctuation;
+      document.getElementById('punctBtn').classList.toggle('active', state.punctuation);
+    }
+
+    if (s.numbers !== undefined) {
+      state.numbers = s.numbers;
+      document.getElementById('numbersBtn').classList.toggle('active', state.numbers);
+    }
+
     if (s.customColors && Object.keys(s.customColors).length) {
       state.customColors = s.customColors;
       Object.entries(s.customColors).forEach(([prop, val]) =>
@@ -694,3 +1058,5 @@ function loadSettings() {
 /* ── Init ── */
 loadSettings();
 reset();
+updateProfileUi();
+renderLeaderboard();
