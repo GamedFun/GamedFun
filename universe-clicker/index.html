@@ -60,11 +60,6 @@
     .ft.nyan { animation: ftUp .75s ease-out forwards, rainbowText .4s linear infinite; }
     @keyframes rainbowText { 0%{color:#ff0000} 20%{color:#ff8800} 40%{color:#ffff00} 60%{color:#00dd00} 80%{color:#0088ff} 100%{color:#ff00ff} }
 
-    /* REWARDED */
-    #rewarded { background: linear-gradient(135deg,#ffd700,#ff8c00); color: #000; border: none; padding: 9px 20px; border-radius: 22px; font-size: .85rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 7px; box-shadow: 0 3px 14px rgba(255,165,0,.35); transition: transform .1s; -webkit-tap-highlight-color: transparent; }
-    #rewarded:active { transform: scale(.96); }
-    #rewarded:disabled { opacity: .55; cursor: not-allowed; transform: none; }
-
     /* SHOP */
     #shop { width: 100%; }
     #shop-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; padding-left: 2px; }
@@ -88,11 +83,6 @@
     .upg.fun .upg-cost { color: gold; }
     .upg-owned    { font-size: .68rem; color: rgba(255,255,255,.35); margin-top: 2px; }
 
-    /* BANNER AD */
-    #banner { flex-shrink: 0; background: rgba(255,255,255,.03); border-top: 1px solid rgba(255,255,255,.07); padding: 7px 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 54px; }
-    .ad-tag { font-size: .58rem; text-transform: uppercase; letter-spacing: .1em; color: rgba(255,255,255,.2); margin-bottom: 3px; }
-    #banner-inner { width: 100%; max-width: 320px; height: 32px; background: rgba(255,255,255,.04); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: .72rem; color: rgba(255,255,255,.18); }
-
     /* MILESTONE */
     #milestone { display: none; position: fixed; inset: 0; z-index: 1000; flex-direction: column; align-items: center; justify-content: center; }
     #milestone.on { display: flex; }
@@ -100,8 +90,6 @@
     #ms-canvas { position: absolute; inset: 0; pointer-events: none; }
     #ms-box    { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 24px 20px; max-width: 380px; animation: msIn .5s ease-out; }
     @keyframes msIn { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-    #interstitial { background: rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,.1); border-radius: 10px; padding: 10px 16px; margin-bottom: 20px; width: 280px; }
-    #int-inner    { height: 56px; display: flex; align-items: center; justify-content: center; font-size: .75rem; color: rgba(255,255,255,.22); }
     #ms-icon  { font-size: 4.5rem; margin-bottom: 12px; animation: msIcon .6s .1s both; }
     @keyframes msIcon { 0%{transform:scale(0) rotate(-90deg);opacity:0} 100%{transform:scale(1) rotate(0);opacity:1} }
     #ms-title { font-size: 1.9rem; font-weight: 900; margin-bottom: 8px; text-shadow: 0 0 30px currentColor; letter-spacing: .02em; }
@@ -209,7 +197,6 @@
         <span id="clicker-icon">💥</span>
         <span id="clicker-lbl">Click!</span>
       </button>
-      <button id="rewarded">📺 Watch Ad — 2× Energy for 60s</button>
       <div id="shop">
         <div id="shop-header">
           <div id="shop-title">Upgrades</div>
@@ -226,20 +213,12 @@
       </div>
     </div>
   </div>
-  <div id="banner">
-    <div class="ad-tag">Advertisement</div>
-    <div id="banner-inner">Your ad could be here</div>
-  </div>
 </div>
 
 <div id="milestone">
   <div id="ms-bg"></div>
   <canvas id="ms-canvas"></canvas>
   <div id="ms-box">
-    <div id="interstitial">
-      <div class="ad-tag">Advertisement</div>
-      <div id="int-inner">Interstitial Ad Placeholder</div>
-    </div>
     <div id="ms-icon">💥</div>
     <div id="ms-title">The Big Bang!</div>
     <div id="ms-desc">From a single point of infinite density, all of existence explodes into being.</div>
@@ -423,7 +402,7 @@ const eraNameEl=$('era-name'), eraNumEl=$('era-num');
 const energyEl=$('energy-val'), epsEl=$('eps-val');
 const progFill=$('prog-fill'), progText=$('prog-text');
 const clickerEl=$('clicker'), clickIcon=$('clicker-icon'), clickLbl=$('clicker-lbl');
-const multBadge=$('mult-badge'), comboBadge=$('combo-badge'), rewardBtn=$('rewarded'), upgList=$('upg-list');
+const multBadge=$('mult-badge'), comboBadge=$('combo-badge'), upgList=$('upg-list');
 const msOverlay=$('milestone'), msBg=$('ms-bg'), msCanvas=$('ms-canvas');
 const msIconEl=$('ms-icon'), msTitleEl=$('ms-title'), msDescEl=$('ms-desc');
 const msTimerEl=$('ms-timer'), msBtnEl=$('ms-btn'), gameOverEl=$('gameover');
@@ -865,18 +844,6 @@ function stopParticles() {
   cancelAnimationFrame(animId);
   msCanvas.getContext('2d').clearRect(0,0,msCanvas.width,msCanvas.height);
 }
-
-// ══════════════════════════════════════════════
-//  REWARDED AD
-// ══════════════════════════════════════════════
-rewardBtn.addEventListener('click', () => {
-  rewardBtn.disabled = true; rewardBtn.textContent = '⏳ Loading Ad…';
-  setTimeout(() => {
-    rewardBtn.textContent = '✅ Reward Earned!';
-    G.multActive = true; G.multTimer = 60; updateHUD();
-    setTimeout(() => { rewardBtn.disabled = false; rewardBtn.textContent = '📺 Watch Ad — 2× Energy for 60s'; }, 3000);
-  }, 1500);
-});
 
 // ══════════════════════════════════════════════
 //  RESTART
