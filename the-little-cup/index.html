@@ -315,28 +315,28 @@
   <script>
     const orders = [
       { name: 'Latte', icon: '☕', puzzle: 'combine', tip: 5 },
-      { name: 'Soup', icon: '🍜', puzzle: 'sum', tip: 9 },
+      { name: 'Soup', icon: '🍜', puzzle: 'sillySoup', tip: 9 },
       { name: 'Sandwich', icon: '🥪', puzzle: 'order', tip: 8 },
       { name: 'Donut Box', icon: '🍩', puzzle: 'pattern', tip: 6 },
       { name: 'Salad', icon: '🥗', puzzle: 'odd', tip: 7 },
       { name: 'Tea', icon: '🍵', puzzle: 'sort', tip: 5 },
-      { name: 'Cookies', icon: '🍪', puzzle: 'math', tip: 7 },
+      { name: 'Cookies', icon: '🍪', puzzle: 'decorate', tip: 7 },
       { name: 'Smoothie', icon: '🥤', puzzle: 'mix', tip: 8 },
-      { name: 'Bagel', icon: '🥯', puzzle: 'compare', tip: 6 },
+      { name: 'Bagel', icon: '🥯', puzzle: 'spread', tip: 6 },
       { name: 'Lunch Tray', icon: '🍱', puzzle: 'logic', tip: 10 }
     ];
     const names = ['Mia', 'Jay', 'Ava', 'Leo', 'Zoe', 'Max', 'Nora', 'Kai', 'Ivy', 'Ezra'];
     const ingredientPool = ['Bread', 'Cheese', 'Lettuce', 'Tomato', 'Egg', 'Sauce', 'Chicken', 'Avocado'];
     const puzzleBuilders = {
       combine: buildCombinePuzzle,
-      sum: buildSumPuzzle,
+      sillySoup: buildSillySoupPuzzle,
       order: buildOrderPuzzle,
       pattern: buildPatternPuzzle,
       odd: buildOddPuzzle,
       sort: buildSortPuzzle,
-      math: buildMathPuzzle,
+      decorate: buildDecoratePuzzle,
       mix: buildMixPuzzle,
-      compare: buildComparePuzzle,
+      spread: buildSpreadPuzzle,
       logic: buildLogicPuzzle
     };
     const SAVE_KEY = 'little_cup_tycoon_save';
@@ -537,44 +537,19 @@
       );
     }
 
-    function buildSumPuzzle() {
-      const targets = [
-        { total: 9, items: [['Carrot', 2], ['Noodles', 4], ['Broth', 5], ['Pepper', 1], ['Corn', 3], ['Cream', 6]] },
-        { total: 11, items: [['Beans', 4], ['Rice', 3], ['Tomato', 5], ['Herbs', 2], ['Onion', 6], ['Salt', 1]] },
-        { total: 13, items: [['Mushroom', 5], ['Stock', 6], ['Potato', 7], ['Peas', 2], ['Garlic', 1], ['Chicken', 8]] }
+    function buildSillySoupPuzzle() {
+      const puzzles = [
+        { clue: 'Make it spooky and green.', answer: 'Monster Soup', wrong: ['Sunshine Soup', 'Rainbow Soup', 'Snow Soup'] },
+        { clue: 'Make it bright like a sunny day.', answer: 'Sunshine Soup', wrong: ['Monster Soup', 'Midnight Soup', 'Cloud Soup'] },
+        { clue: 'Make it colorful for a party.', answer: 'Rainbow Soup', wrong: ['Plain Soup', 'Snow Soup', 'Shadow Soup'] }
       ];
-      const puzzle = targets[Math.floor(Math.random() * targets.length)];
-      miniState = { target: puzzle.total, selected: [] };
-      miniHelp.textContent = 'Pick ingredients that add up to the soup number.';
-      miniGame.innerHTML = `
-        <div class="puzzle-game">
-          <div class="puzzle-board">
-            <div class="puzzle-row">Target: <span class="puzzle-token">${puzzle.total}</span></div>
-            <div class="puzzle-row" id="soupTotal">Selected: 0</div>
-          </div>
-          <div class="puzzle-choices"></div>
-        </div>`;
-      const totalText = miniGame.querySelector('#soupTotal');
-      const choices = miniGame.querySelector('.puzzle-choices');
-      shuffle(puzzle.items).forEach(([name, value]) => {
-        const btn = document.createElement('button');
-        btn.className = 'puzzle-choice';
-        btn.type = 'button';
-        btn.textContent = `${name} ${value}`;
-        btn.addEventListener('click', () => {
-          btn.classList.toggle('selected');
-          if (btn.classList.contains('selected')) miniState.selected.push(value);
-          else miniState.selected = miniState.selected.filter(item => item !== value);
-          const total = miniState.selected.reduce((sum, item) => sum + item, 0);
-          totalText.textContent = `Selected: ${total}`;
-          if (total === miniState.target) finishCooking();
-          if (total > miniState.target) {
-            message.textContent = 'Too much in the pot. Puzzle reset.';
-            buildSumPuzzle();
-          }
-        });
-        choices.appendChild(btn);
-      });
+      const puzzle = puzzles[Math.floor(Math.random() * puzzles.length)];
+      renderChoicePuzzle(
+        'Pick the soup style the customer wants.',
+        `<div class="puzzle-row"><span class="puzzle-token">${puzzle.clue}</span></div>`,
+        [puzzle.answer, ...puzzle.wrong],
+        puzzle.answer
+      );
     }
 
     function buildOrderPuzzle() {
@@ -665,16 +640,16 @@
       else message.textContent = `Next: ${miniState.recipe[miniState.index]}`;
     }
 
-    function buildMathPuzzle() {
+    function buildDecoratePuzzle() {
       const puzzles = [
-        { prompt: '3 cookies + 2 trays of 4', answer: '11', wrong: ['8', '10', '12'] },
-        { prompt: '18 cookies split into 3 boxes', answer: '6', wrong: ['5', '7', '9'] },
-        { prompt: '5 cookies, double them, then add 2', answer: '12', wrong: ['10', '14', '15'] }
+        { prompt: 'A unicorn cookie needs...', answer: 'Rainbow sprinkles', wrong: ['Pickle chips', 'Soup noodles', 'Toast crumbs'] },
+        { prompt: 'A birthday cookie needs...', answer: 'Star sprinkles', wrong: ['Lettuce', 'Mustard', 'Tiny onions'] },
+        { prompt: 'A snow cookie needs...', answer: 'White icing', wrong: ['Hot sauce', 'Avocado', 'Tomato sauce'] }
       ];
       const puzzle = puzzles[Math.floor(Math.random() * puzzles.length)];
       renderChoicePuzzle(
-        'Solve the cookie count.',
-        `<div class="puzzle-row"><span class="puzzle-token">${puzzle.prompt}</span><span>=</span><span class="puzzle-token">?</span></div>`,
+        'Decorate the cookie.',
+        `<div class="puzzle-row"><span class="puzzle-token">${puzzle.prompt}</span></div>`,
         [puzzle.answer, ...puzzle.wrong],
         puzzle.answer
       );
@@ -695,15 +670,15 @@
       );
     }
 
-    function buildComparePuzzle() {
+    function buildSpreadPuzzle() {
       const puzzles = [
-        { prompt: 'Which deal gives more bagels?', answer: '3 bags of 4', wrong: ['2 bags of 5', '1 bag of 9', '10 single'] },
-        { prompt: 'Which shelf is lightest?', answer: '2 bagels + 1 spread', wrong: ['4 bagels', '3 bagels + 2 spreads', '5 bagels'] },
-        { prompt: 'Which order costs $12?', answer: 'Bagel 5 + Coffee 7', wrong: ['Bagel 5 + Tea 4', 'Coffee 7 + Cookie 3', 'Soup 9 + Tea 4'] }
+        { prompt: 'Dragon bagel', answer: 'Spicy red spread', wrong: ['Cloud cream', 'Berry swirl', 'Plain butter'] },
+        { prompt: 'Mermaid bagel', answer: 'Blueberry wave', wrong: ['Hot pepper jam', 'Pumpkin dust', 'Pizza sauce'] },
+        { prompt: 'Garden bagel', answer: 'Green herb cream', wrong: ['Chocolate syrup', 'Candy rocks', 'Lemon sparkle'] }
       ];
       const puzzle = puzzles[Math.floor(Math.random() * puzzles.length)];
       renderChoicePuzzle(
-        'Compare the options.',
+        'Match the bagel with its spread.',
         `<div class="puzzle-row"><span class="puzzle-token">${puzzle.prompt}</span></div>`,
         [puzzle.answer, ...puzzle.wrong],
         puzzle.answer
