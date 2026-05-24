@@ -132,6 +132,9 @@
       place-items: center;
       font-size: 1.9rem;
       font-weight: 1000;
+      line-height: 1;
+      overflow: hidden;
+      padding: .35rem;
       position: relative;
       box-shadow: 0 12px 28px rgba(0,0,0,.32);
       transform: translateY(0);
@@ -145,6 +148,10 @@
     }
     .card::before { top: .55rem; left: .58rem; }
     .card::after { right: .58rem; bottom: .55rem; transform: rotate(180deg); }
+    .card.action {
+      font-size: 1rem;
+      overflow-wrap: anywhere;
+    }
     .card:hover { transform: translateY(-8px); }
     .card.unplayable {
       cursor: not-allowed;
@@ -259,6 +266,7 @@
       main { padding: .75rem; }
       .card, .deck { width: 74px; height: 106px; border-radius: 12px; }
       .card { font-size: 1.5rem; }
+      .card.action { font-size: .78rem; }
       .hand { min-height: 126px; }
       .color-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
@@ -520,7 +528,8 @@
 
     function renderCard(item, playable, onClick) {
       const el = document.createElement('button');
-      el.className = `card ${item.color}${playable ? '' : ' unplayable'}`;
+      const isLongAction = item.value.length > 2;
+      el.className = `card ${item.color}${isLongAction ? ' action' : ''}${playable ? '' : ' unplayable'}`;
       el.type = 'button';
       el.dataset.label = item.value;
       el.textContent = item.value;
