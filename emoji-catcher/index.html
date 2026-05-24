@@ -854,6 +854,39 @@ loadGame();
 startGame();
 updateHUD();
 
+// ── PER-EMOJI UNIQUE STATS ─────────────────────────────────
+// Deterministic hash so the same emoji always gets the same stats
+function strHash(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+  return (h >>> 0) / 4294967295;
+}
+
+const STAT_RANGES = {
+  common:    { hpMin:25,  hpMax:65,  atkMin:5,   atkMax:14  },
+  uncommon:  { hpMin:55,  hpMax:105, atkMin:12,  atkMax:26  },
+  rare:      { hpMin:100, hpMax:175, atkMin:24,  atkMax:46  },
+  epic:      { hpMin:160, hpMax:270, atkMin:48,  atkMax:84  },
+  legendary: { hpMin:250, hpMax:410, atkMin:85,  atkMax:148 },
+  mythic:    { hpMin:450, hpMax:730, atkMin:170, atkMax:285 },
+};
+
+function emojiStats(emoji) {
+  const rng = STAT_RANGES[emoji.r];
+  const h1 = strHash(emoji.n);             // overall power level within range
+  const h2 = strHash(emoji.e + emoji.n);   // tank (high HP) vs glass cannon (high ATK)
+  const power = 0.55 + h1 * 0.45;         // 55-100% of the range
+  const shift  = (h2 - 0.5) * 0.45;       // ±22.5% HP/ATK trade-off
+  const clamp = (v) => Math.max(0, Math.min(1, v));
+  return {
+    hp:  Math.round(rng.hpMin  + (rng.hpMax  - rng.hpMin)  * clamp(power + shift)),
+    atk: Math.round(rng.atkMin + (rng.atkMax - rng.atkMin) * clamp(power - shift)),
+  };
+}
+
+// Stamp stats onto every emoji and NPC once at load time
+// (done after EMOJIS and NPCS are defined below)
+
 // ── BATTLE ─────────────────────────────────────────────────
 const NPCS = [
   { name:'Wimpy Worm',      e:'🐛', r:'common'    },
@@ -875,6 +908,9 @@ const NPCS = [
   { name:'Thunder God',     e:'⚡', r:'mythic'    },
   { name:'Void Wizard',     e:'🪄', r:'mythic'    },
 ];
+
+EMOJIS.forEach(e => Object.assign(e, emojiStats(e)));
+NPCS.forEach(n => Object.assign(n, emojiStats(n)));
 
 let battleState = null;
 let battleOpen = false;
@@ -911,20 +947,18 @@ function renderFighterPick() {
     const cell = document.createElement('div');
     cell.className = 'battle-pick-cell';
     cell.style.borderColor = r.color;
-    cell.innerHTML = `<span>${em.e}</span><span class="bp-name" style="color:${r.color}">${em.n}</span><span class="bp-stats">❤️${r.hp} ⚔️${r.atk}</span>`;
+    cell.innerHTML = `<span>${em.e}</span><span class="bp-name" style="color:${r.color}">${em.n}</span><span class="bp-stats">❤️${em.hp} ⚔️${em.atk}</span>`;
     cell.addEventListener('click', () => startBattle(em));
     grid.appendChild(cell);
   }
 }
 
 function startBattle(emojiDef) {
-  const pr = RARITIES[emojiDef.r];
   const npc = NPCS[Math.floor(Math.random() * NPCS.length)];
-  const nr = RARITIES[npc.r];
   battleState = {
     playerEmoji: emojiDef,
-    playerHP: pr.hp, playerMaxHP: pr.hp, playerAtk: pr.atk,
-    npc, npcHP: nr.hp, npcMaxHP: nr.hp, npcAtk: nr.atk,
+    playerHP: emojiDef.hp, playerMaxHP: emojiDef.hp, playerAtk: emojiDef.atk,
+    npc, npcHP: npc.hp, npcMaxHP: npc.hp, npcAtk: npc.atk,
     guarding: false, acting: false,
   };
   document.getElementById('battle-pick-screen').style.display = 'none';
