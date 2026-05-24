@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neon Cat Dash</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #070712;
+      --panel: rgba(10, 14, 30, .78);
+      --text: #f8fafc;
+      --muted: #9ca3af;
+      --pink: #ff4fd8;
+      --cyan: #39f5ff;
+      --yellow: #ffe66d;
+      --border: rgba(255,255,255,.14);
+    }
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 18% 18%, rgba(255,79,216,.2), transparent 24rem),
+        radial-gradient(circle at 86% 12%, rgba(57,245,255,.2), transparent 24rem),
+        var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow: hidden;
+    }
+    header {
+      height: 58px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 1rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(7,7,18,.72);
+      position: relative;
+      z-index: 5;
+    }
+    .brand, .home-link { text-decoration: none; font-weight: 900; }
+    .brand { color: var(--pink); }
+    .home-link {
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: .42rem .68rem;
+      font-size: .82rem;
+    }
+    main {
+      height: calc(100vh - 58px);
+      display: grid;
+      grid-template-rows: auto 1fr;
+      padding: .85rem;
+      gap: .75rem;
+    }
+    .hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: .7rem;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 4;
+    }
+    .stat {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: .55rem .72rem;
+      min-width: 110px;
+    }
+    .label {
+      color: var(--muted);
+      font-size: .62rem;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .value { color: var(--cyan); font-size: 1.25rem; font-weight: 1000; }
+    .game {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.04), transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(57,245,255,.08), transparent 28rem),
+        #08091a;
+      box-shadow: 0 24px 60px rgba(0,0,0,.34);
+      touch-action: manipulation;
+    }
+    .stars {
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle, rgba(255,255,255,.8) 0 1px, transparent 1px),
+        radial-gradient(circle, rgba(57,245,255,.55) 0 1px, transparent 1px);
+      background-size: 82px 82px, 137px 137px;
+      animation: starMove 7s linear infinite;
+      opacity: .55;
+    }
+    @keyframes starMove { to { background-position: -82px 0, -137px 0; } }
+    .cat {
+      position: absolute;
+      width: 92px;
+      height: 62px;
+      left: 12%;
+      top: 44%;
+      transform: translateY(-50%);
+      z-index: 3;
+      filter: drop-shadow(0 0 10px var(--cyan)) drop-shadow(0 0 18px var(--pink));
+      pointer-events: none;
+    }
+    .trail {
+      position: absolute;
+      left: 4%;
+      width: 118px;
+      height: 36px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #ff004c, #ff8a00, #ffe600, #2cff00, #00d9ff, #5f48ff);
+      filter: blur(.5px) drop-shadow(0 0 12px rgba(255,255,255,.35));
+      opacity: .82;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .obstacle {
+      position: absolute;
+      right: -80px;
+      width: 54px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, var(--pink), var(--cyan));
+      box-shadow: 0 0 18px rgba(57,245,255,.55), inset 0 0 12px rgba(255,255,255,.2);
+      z-index: 2;
+    }
+    .orb {
+      position: absolute;
+      right: -60px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--yellow);
+      box-shadow: 0 0 18px rgba(255,230,109,.75);
+      z-index: 2;
+    }
+    .center {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      z-index: 4;
+      pointer-events: none;
+    }
+    .modal {
+      width: min(420px, calc(100% - 2rem));
+      background: rgba(7,7,18,.88);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.1rem;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0,0,0,.4);
+      pointer-events: auto;
+    }
+    h1 { font-size: clamp(2rem, 8vw, 3.8rem); line-height: .95; letter-spacing: 0; }
+    .modal p { color: var(--muted); font-weight: 750; line-height: 1.45; margin: .7rem 0 1rem; }
+    button {
+      border: 0;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--pink), var(--cyan));
+      color: #020617;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 1000;
+      padding: .78rem 1rem;
+    }
+    .hidden { display: none; }
+    @media (max-width: 640px) {
+      main { padding: .55rem; }
+      .cat { width: 76px; height: 52px; }
+      .trail { width: 94px; height: 30px; }
+      .obstacle { width: 44px; }
+      .stat { min-width: 92px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="brand" href="/">gamed.fun</a>
+    <a class="home-link" href="/">All games</a>
+  </header>
+
+  <main>
+    <section class="hud">
+      <div class="stat">
+        <div class="label">Distance</div>
+        <div class="value"><span id="score">0</span>m</div>
+      </div>
+      <div class="stat">
+        <div class="label">Best</div>
+        <div class="value"><span id="best">0</span>m</div>
+      </div>
+      <div class="stat">
+        <div class="label">Speed</div>
+        <div class="value"><span id="speed">1.0</span>x</div>
+      </div>
+    </section>
+
+    <section class="game" id="game">
+      <div class="stars"></div>
+      <div class="trail" id="trail"></div>
+      <img class="cat" id="cat" src="https://media.tenor.com/8lR3_1m-i94AAAAj/cat.gif" alt="Neon flying cat">
+      <div class="center" id="overlay">
+        <div class="modal">
+          <h1>Neon Cat Dash</h1>
+          <p>Fly as far as you can. Tap, click, or press Space to boost upward and dodge the neon obstacles.</p>
+          <button id="startBtn" type="button">Start</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const game = document.getElementById('game');
+    const cat = document.getElementById('cat');
+    const trail = document.getElementById('trail');
+    const overlay = document.getElementById('overlay');
+    const startBtn = document.getElementById('startBtn');
+    const scoreEl = document.getElementById('score');
+    const bestEl = document.getElementById('best');
+    const speedEl = document.getElementById('speed');
+
+    let y = 0;
+    let velocity = 0;
+    let score = 0;
+    let speed = 1;
+    let running = false;
+    let lastTime = 0;
+    let spawnTimer = 0;
+    let orbTimer = 0;
+    let obstacles = [];
+    let orbs = [];
+    let best = Number(localStorage.getItem('neon_cat_best') || 0);
+    bestEl.textContent = Math.floor(best);
+
+    function start() {
+      obstacles.forEach(item => item.el.remove());
+      orbs.forEach(item => item.el.remove());
+      obstacles = [];
+      orbs = [];
+      y = game.clientHeight * 0.45;
+      velocity = 0;
+      score = 0;
+      speed = 1;
+      spawnTimer = 0;
+      orbTimer = 0;
+      running = true;
+      lastTime = performance.now();
+      overlay.classList.add('hidden');
+      requestAnimationFrame(loop);
+    }
+
+    function boost() {
+      if (!running) {
+        start();
+        return;
+      }
+      velocity = -520;
+    }
+
+    function spawnObstacle() {
+      const gap = Math.max(132, game.clientHeight * 0.28 - score * 0.01);
+      const topHeight = 40 + Math.random() * Math.max(40, game.clientHeight - gap - 110);
+      const bottomTop = topHeight + gap;
+      createObstacle(0, topHeight);
+      createObstacle(bottomTop, game.clientHeight - bottomTop);
+    }
+
+    function createObstacle(top, height) {
+      const el = document.createElement('div');
+      el.className = 'obstacle';
+      el.style.left = '0';
+      el.style.right = 'auto';
+      el.style.top = `${top}px`;
+      el.style.height = `${height}px`;
+      game.appendChild(el);
+      obstacles.push({ el, x: game.clientWidth + 80, top, width: 54, height });
+    }
+
+    function spawnOrb() {
+      const el = document.createElement('div');
+      el.className = 'orb';
+      const top = 36 + Math.random() * Math.max(30, game.clientHeight - 72);
+      el.style.left = '0';
+      el.style.right = 'auto';
+      el.style.top = `${top}px`;
+      game.appendChild(el);
+      orbs.push({ el, x: game.clientWidth + 60, top, size: 28 });
+    }
+
+    function loop(now) {
+      if (!running) return;
+      const dt = Math.min(0.032, (now - lastTime) / 1000);
+      lastTime = now;
+      speed = 1 + score / 1600;
+      velocity += 1450 * dt;
+      y += velocity * dt;
+      score += 70 * speed * dt;
+      spawnTimer -= dt;
+      orbTimer -= dt;
+      if (spawnTimer <= 0) {
+        spawnObstacle();
+        spawnTimer = Math.max(.9, 1.35 - score / 2400);
+      }
+      if (orbTimer <= 0) {
+        spawnOrb();
+        orbTimer = 2.4 + Math.random() * 1.8;
+      }
+      updateObjects(dt);
+      render();
+      if (checkCrash()) return end();
+      requestAnimationFrame(loop);
+    }
+
+    function updateObjects(dt) {
+      const move = 260 * speed * dt;
+      obstacles.forEach(item => {
+        item.x -= move;
+        item.el.style.transform = `translateX(${item.x}px)`;
+      });
+      orbs.forEach(item => {
+        item.x -= move;
+        item.el.style.transform = `translateX(${item.x}px)`;
+      });
+      obstacles = obstacles.filter(item => {
+        if (item.x < -150) {
+          item.el.remove();
+          return false;
+        }
+        return true;
+      });
+      orbs = orbs.filter(item => {
+        if (item.x < -100) {
+          item.el.remove();
+          return false;
+        }
+        return true;
+      });
+    }
+
+    function render() {
+      const angle = Math.max(-18, Math.min(22, velocity / 35));
+      cat.style.top = `${y}px`;
+      cat.style.transform = `translateY(-50%) rotate(${angle}deg)`;
+      trail.style.top = `${y - 18}px`;
+      scoreEl.textContent = Math.floor(score);
+      speedEl.textContent = speed.toFixed(1);
+    }
+
+    function catBox() {
+      return {
+        left: game.clientWidth * 0.12 + 10,
+        top: y - cat.clientHeight * 0.34,
+        width: cat.clientWidth * 0.72,
+        height: cat.clientHeight * 0.68
+      };
+    }
+
+    function overlaps(a, b) {
+      return a.left < b.left + b.width && a.left + a.width > b.left && a.top < b.top + b.height && a.top + a.height > b.top;
+    }
+
+    function checkCrash() {
+      const box = catBox();
+      if (box.top < 0 || box.top + box.height > game.clientHeight) return true;
+      for (const item of obstacles) {
+        if (overlaps(box, { left: item.x, top: item.top, width: item.width, height: item.height })) return true;
+      }
+      orbs = orbs.filter(item => {
+        if (overlaps(box, { left: item.x, top: item.top, width: item.size, height: item.size })) {
+          score += 100;
+          item.el.remove();
+          return false;
+        }
+        return true;
+      });
+      return false;
+    }
+
+    function end() {
+      running = false;
+      best = Math.max(best, Math.floor(score));
+      localStorage.setItem('neon_cat_best', String(best));
+      bestEl.textContent = Math.floor(best);
+      overlay.querySelector('h1').textContent = `${Math.floor(score)}m`;
+      overlay.querySelector('p').textContent = `Best: ${Math.floor(best)}m. Try again and dodge farther.`;
+      startBtn.textContent = 'Retry';
+      overlay.classList.remove('hidden');
+    }
+
+    startBtn.addEventListener('click', start);
+    game.addEventListener('pointerdown', event => {
+      if (event.target.closest('button')) return;
+      boost();
+    });
+    window.addEventListener('keydown', event => {
+      if (event.code === 'Space' || event.code === 'ArrowUp') {
+        event.preventDefault();
+        boost();
+      }
+    });
+  </script>
+</body>
+</html>
