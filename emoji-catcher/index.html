@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Emoji Catcher – gamed.fun</title>
+<title>Emoji Pop - gamed.fun</title>
 <style>
   :root {
     --bg: #1a1625;
@@ -59,6 +59,18 @@
   }
   #hud .stat { display: flex; align-items: center; gap: .35rem; color: var(--muted); }
   #hud .stat strong { color: var(--text); font-size: 1rem; }
+  #new-game-btn {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #2a2438;
+    color: var(--text);
+    font-size: .78rem;
+    font-weight: 800;
+    padding: .3rem .55rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  #new-game-btn:hover { background: #332d45; }
 
   /* GAME AREA */
   #game-area {
@@ -322,6 +334,7 @@
   <div class="stat">🪙 <strong id="coinCount">0</strong> coins</div>
   <div class="stat">📦 <strong id="progress">0 / ?</strong> collected</div>
   <div class="stat" id="streakDisplay" style="font-size:.85rem;color:#fbbf24;font-weight:900;min-width:60px;text-align:right"></div>
+  <button id="new-game-btn" onclick="newGame()">New Game</button>
 </div>
 
 <div id="game-area"></div>
@@ -371,12 +384,12 @@
 
 <script>
 const RARITIES = {
-  common:    { name:'Common',    color:'var(--c-common)',    weight:60, coins:1,   lifetime:10000 },
-  uncommon:  { name:'Uncommon',  color:'var(--c-uncommon)',  weight:22, coins:3,   lifetime:7000  },
+  common:    { name:'Common',    color:'var(--c-common)',    weight:63.75, coins:1,   lifetime:10000 },
+  uncommon:  { name:'Uncommon',  color:'var(--c-uncommon)',  weight:20, coins:3,   lifetime:7000  },
   rare:      { name:'Rare',      color:'var(--c-rare)',      weight:10, coins:10,  lifetime:5000  },
   epic:      { name:'Epic',      color:'var(--c-epic)',      weight:5,  coins:30,  lifetime:4000  },
-  legendary: { name:'Legendary', color:'var(--c-legendary)', weight:2,  coins:80,  lifetime:3000  },
-  mythic:    { name:'Mythic',    color:'var(--c-mythic)',    weight:0.4,coins:300, lifetime:2000  },
+  legendary: { name:'Legendary', color:'var(--c-legendary)', weight:1,  coins:80,  lifetime:3000  },
+  mythic:    { name:'Mythic',    color:'var(--c-mythic)',    weight:0.25,coins:300, lifetime:2000  },
 };
 
 const EMOJIS = [
@@ -465,6 +478,8 @@ let streak = 0;
 let streakTimer = null;
 let newlyFound = new Set();
 let activeEmojis = [];
+let spawnTimer = null;
+let initialBurstTimers = [];
 let filterRarity = 'all';
 let collOpen = false;
 
@@ -640,14 +655,40 @@ function renderCollection() {
 // ── SPAWN LOOP ─────────────────────────────────────────────
 function scheduleSpawn() {
   const delay = 1200 + Math.random() * 1800;
-  setTimeout(() => { spawnEmoji(); scheduleSpawn(); }, delay);
+  spawnTimer = setTimeout(() => { spawnEmoji(); scheduleSpawn(); }, delay);
 }
 
-// Initial burst
-for (let i = 0; i < 5; i++) {
-  setTimeout(spawnEmoji, i * 400);
+function startGame() {
+  initialBurstTimers = [];
+  for (let i = 0; i < 5; i++) {
+    initialBurstTimers.push(setTimeout(spawnEmoji, i * 400));
+  }
+  scheduleSpawn();
 }
-scheduleSpawn();
+
+function newGame() {
+  clearTimeout(spawnTimer);
+  clearTimeout(streakTimer);
+  initialBurstTimers.forEach(clearTimeout);
+  activeEmojis.forEach(a => {
+    clearTimeout(a.timeout);
+    a.el.remove();
+  });
+
+  coins = 0;
+  collection = {};
+  streak = 0;
+  newlyFound = new Set();
+  activeEmojis = [];
+  filterRarity = 'all';
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.r === 'all'));
+  closeCollection();
+  updateHUD();
+  renderCollection();
+  startGame();
+}
+
+startGame();
 updateHUD();
 </script>
 </body>
