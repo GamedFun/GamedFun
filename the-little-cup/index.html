@@ -82,6 +82,7 @@
     }
     .customers, .station, .upgrades { padding: 1rem; display: grid; gap: .8rem; align-content: start; }
     #customerList { display: grid; gap: .7rem; }
+    #foodStock { display: grid; gap: .55rem; }
     .customer {
       background: var(--panel-2);
       border: 1px solid var(--border);
@@ -96,6 +97,21 @@
     }
     .customer.active { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(251,191,36,.14); }
     .customer.ready { border-color: var(--mint); box-shadow: 0 0 0 2px rgba(52,211,153,.14); }
+    .stock-item {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      cursor: pointer;
+      font: inherit;
+      padding: .65rem .72rem;
+      text-align: left;
+      display: flex;
+      justify-content: space-between;
+      gap: .7rem;
+      align-items: center;
+    }
+    .stock-item.active { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(251,191,36,.14); }
     .cust-top { display: flex; justify-content: space-between; gap: .65rem; align-items: center; }
     .cust-name { font-weight: 1000; }
     .order { color: var(--cream); font-weight: 850; }
@@ -254,6 +270,8 @@
       <div class="customers panel">
         <div class="label">Customers</div>
         <div id="customerList"></div>
+        <div class="label">Food Stock</div>
+        <div id="foodStock"></div>
       </div>
 
       <div class="station panel">
@@ -290,16 +308,16 @@
 
   <script>
     const orders = [
-      { name: 'Bread', icon: '🍞', task: 'bread', tip: 2, unlock: 0 },
-      { name: 'Toast', icon: '🍞', task: 'toast', tip: 4, unlock: 1 },
-      { name: 'Cookies', icon: '🍪', task: 'decorate', tip: 6, unlock: 2 },
-      { name: 'Tea', icon: '🍵', task: 'sort', tip: 7, unlock: 3 },
-      { name: 'Bagel', icon: '🥯', task: 'spread', tip: 9, unlock: 4 },
-      { name: 'Latte', icon: '☕', task: 'combine', tip: 11, unlock: 5 },
-      { name: 'Sandwich', icon: '🥪', task: 'order', tip: 13, unlock: 6 },
-      { name: 'Soup', icon: '🍜', task: 'sillySoup', tip: 15, unlock: 7 },
-      { name: 'Smoothie', icon: '🥤', task: 'mix', tip: 17, unlock: 8 },
-      { name: 'Lunch Tray', icon: '🍱', task: 'logic', tip: 20, unlock: 9 }
+      { id: 'bread', name: 'Bread', icon: '🍞', task: 'bread', tip: 2, unlock: 0 },
+      { id: 'toast', name: 'Toast', icon: '🍞', task: 'toast', tip: 4, unlock: 1 },
+      { id: 'cookies', name: 'Cookies', icon: '🍪', task: 'decorate', tip: 6, unlock: 2 },
+      { id: 'tea', name: 'Tea', icon: '🍵', task: 'sort', tip: 7, unlock: 3 },
+      { id: 'bagel', name: 'Bagel', icon: '🥯', task: 'spread', tip: 9, unlock: 4 },
+      { id: 'latte', name: 'Latte', icon: '☕', task: 'combine', tip: 11, unlock: 5 },
+      { id: 'sandwich', name: 'Sandwich', icon: '🥪', task: 'order', tip: 13, unlock: 6 },
+      { id: 'soup', name: 'Soup', icon: '🍜', task: 'sillySoup', tip: 15, unlock: 7 },
+      { id: 'smoothie', name: 'Smoothie', icon: '🥤', task: 'mix', tip: 17, unlock: 8 },
+      { id: 'tray', name: 'Lunch Tray', icon: '🍱', task: 'logic', tip: 20, unlock: 9 }
     ];
     const names = ['Mia', 'Jay', 'Ava', 'Leo', 'Zoe', 'Max', 'Nora', 'Kai', 'Ivy', 'Ezra'];
     const taskBuilders = {
@@ -324,6 +342,7 @@
     ];
 
     const customerList = document.getElementById('customerList');
+    const foodStock = document.getElementById('foodStock');
     const foodIcon = document.getElementById('foodIcon');
     const miniTitle = document.getElementById('miniTitle');
     const miniHelp = document.getElementById('miniHelp');
@@ -348,6 +367,8 @@
     let cash = 0;
     let best = 0;
     let upgrades = { menu: 0, prices: 0, seats: 0 };
+    let stock = {};
+    let activeFoodId = 'bread';
     let miniState = {};
 
     function loadTycoon() {
@@ -356,12 +377,14 @@
         cash = Number(saved?.cash || 0);
         best = Number(saved?.best || localStorage.getItem('little_cup_best') || 0);
         upgrades = { ...upgrades, ...(saved?.upgrades || {}) };
+        stock = saved?.stock || {};
+        activeFoodId = saved?.activeFoodId || 'bread';
       } catch {}
     }
 
     function saveTycoon() {
       try {
-        localStorage.setItem(SAVE_KEY, JSON.stringify({ cash, best, upgrades }));
+        localStorage.setItem(SAVE_KEY, JSON.stringify({ cash, best, upgrades, stock, activeFoodId }));
         localStorage.setItem('little_cup_best', String(best));
       } catch {}
     }
@@ -380,6 +403,20 @@
 
     function availableOrders() {
       return orders.filter(order => order.unlock <= upgrades.menu);
+    }
+
+    function activeFood() {
+      const menu = availableOrders();
+      if (!menu.some(order => order.id === activeFoodId)) activeFoodId = menu[0].id;
+      return menu.find(order => order.id === activeFoodId) || menu[0];
+    }
+
+    function stockedFood() {
+      return availableOrders().filter(order => (stock[order.id] || 0) > 0);
+    }
+
+    function stockCount() {
+      return stockedFood().reduce((sum, order) => sum + stock[order.id], 0);
     }
 
     function orderValue(order) {
@@ -417,6 +454,7 @@
       message.textContent = `${def.name} upgraded to level ${upgrades[def.id]}.`;
       saveTycoon();
       refillCustomers();
+      buildMiniGame();
       render();
     }
 
@@ -433,15 +471,14 @@
       overlay.classList.add('hidden');
       startBtn.textContent = 'Reset Run';
       refillCustomers();
+      buildMiniGame();
       saveTycoon();
       render();
     }
 
     function addCustomer() {
-      const menu = availableOrders();
-      const order = menu[Math.floor(Math.random() * menu.length)];
-      customers.push({ id: `${Date.now()}-${Math.random()}`, name: names[Math.floor(Math.random() * names.length)], order, cooked: false });
-      if (!activeId) selectCustomer(customers[0].id);
+      customers.push({ id: `${Date.now()}-${Math.random()}`, name: names[Math.floor(Math.random() * names.length)] });
+      if (!activeId) activeId = customers[0].id;
     }
 
     function refillCustomers() {
@@ -450,6 +487,11 @@
 
     function selectCustomer(id) {
       activeId = id;
+      if (stockCount() > 0) {
+        serveCustomer(id);
+        return;
+      }
+      message.textContent = 'Make food first.';
       buildMiniGame();
       render();
     }
@@ -459,27 +501,21 @@
     }
 
     function buildMiniGame() {
-      const customer = activeCustomer();
       miniGame.innerHTML = '';
-      if (!customer) {
+      const food = activeFood();
+      if (!food) {
         foodIcon.textContent = '🍞';
-        miniTitle.textContent = 'No active order';
-        miniHelp.textContent = 'Customers appear right away.';
+        miniTitle.textContent = 'No food selected';
+        miniHelp.textContent = 'Unlock food to start cooking.';
         serveBtn.disabled = true;
         return;
       }
-      foodIcon.textContent = customer.order.icon;
-      if (customer.cooked) {
-        miniTitle.textContent = `${customer.order.name} is ready`;
-        miniHelp.textContent = '';
-        serveBtn.disabled = false;
-        message.textContent = '';
-        return;
-      }
-      serveBtn.disabled = true;
-      miniTitle.textContent = `Cook ${customer.order.name}`;
+      foodIcon.textContent = food.icon;
+      miniTitle.textContent = `Make ${food.name}`;
+      miniHelp.textContent = `In stock: ${stock[food.id] || 0}`;
+      serveBtn.disabled = !activeCustomer() || stockCount() <= 0;
       message.textContent = '';
-      taskBuilders[customer.order.task]();
+      taskBuilders[food.task]();
     }
 
     function buildBreadTask() {
@@ -550,39 +586,41 @@
     }
 
     function finishCooking() {
-      const customer = activeCustomer();
-      if (customer) customer.cooked = true;
-      serveBtn.disabled = false;
+      const food = activeFood();
+      if (food) stock[food.id] = (stock[food.id] || 0) + 1;
+      serveBtn.disabled = !activeCustomer() || stockCount() <= 0;
       miniGame.innerHTML = '';
-      miniHelp.textContent = '';
+      miniHelp.textContent = food ? `In stock: ${stock[food.id] || 0}` : '';
       message.textContent = '';
+      saveTycoon();
       render();
+      buildMiniGame();
     }
 
     function serveOrder() {
       const customer = activeCustomer();
-      if (!customer?.cooked) return;
+      if (!customer) return;
       serveCustomer(customer.id);
     }
 
     function serveCustomer(id) {
       const customer = customers.find(item => item.id === id);
-      if (!customer?.cooked) return;
-      const earned = orderValue(customer.order);
+      if (!customer) return;
+      const food = stockedFood().sort((a, b) => orderValue(b) - orderValue(a))[0];
+      if (!food) {
+        message.textContent = 'Make food first.';
+        return;
+      }
+      const earned = orderValue(food);
+      stock[food.id]--;
       served++;
       tips += earned;
       cash += earned;
       customers = customers.filter(item => item.id !== customer.id);
       refillCustomers();
-      activeId = customers.find(item => !item.cooked)?.id || customers[0]?.id || null;
+      activeId = customers[0]?.id || null;
       serveBtn.disabled = true;
       if (activeId) buildMiniGame();
-      else {
-        miniGame.innerHTML = '';
-        foodIcon.textContent = '🍞';
-        miniTitle.textContent = 'Ready for customers';
-        miniHelp.textContent = 'Customers appear right away.';
-      }
       saveTycoon();
       message.textContent = '';
       render();
@@ -595,6 +633,8 @@
       levelVal.textContent = cafeLevel();
       bestVal.textContent = best;
       renderUpgrades();
+      serveBtn.disabled = !activeCustomer() || stockCount() <= 0;
+      renderStock();
       customerList.innerHTML = '';
       if (!customers.length) {
         customerList.innerHTML = '<div class="customer"><div class="mini-help">No customers right now.</div></div>';
@@ -602,14 +642,31 @@
       }
       customers.forEach(customer => {
         const el = document.createElement('button');
-        el.className = `customer${customer.id === activeId ? ' active' : ''}${customer.cooked ? ' ready' : ''}`;
+        el.className = `customer${customer.id === activeId ? ' active' : ''}`;
         el.type = 'button';
         el.innerHTML = `
-          <div class="cust-top"><span class="cust-name">${customer.name}</span><span>${customer.order.icon}</span></div>
-          <div class="order">${customer.cooked ? 'Ready: ' : ''}${customer.order.name}</div>
+          <div class="cust-top"><span class="cust-name">${customer.name}</span><span>🛒</span></div>
+          <div class="order">${stockCount() > 0 ? 'Will buy stocked food' : 'Waiting for food'}</div>
           <div class="bar"><div class="bar-fill"></div></div>`;
         el.addEventListener('click', () => selectCustomer(customer.id));
         customerList.appendChild(el);
+      });
+    }
+
+    function renderStock() {
+      foodStock.innerHTML = '';
+      availableOrders().forEach(order => {
+        const btn = document.createElement('button');
+        btn.className = `stock-item${order.id === activeFoodId ? ' active' : ''}`;
+        btn.type = 'button';
+        btn.innerHTML = `<span>${order.icon} ${order.name}</span><strong>${stock[order.id] || 0}</strong>`;
+        btn.addEventListener('click', () => {
+          activeFoodId = order.id;
+          saveTycoon();
+          buildMiniGame();
+          render();
+        });
+        foodStock.appendChild(btn);
       });
     }
 
