@@ -120,72 +120,67 @@
     .food { font-size: 4rem; line-height: 1; }
     .mini-title { font-size: 1.25rem; font-weight: 1000; }
     .mini-help { color: var(--muted); font-weight: 750; }
-    .puzzle-choice, .ingredient, button.command {
+    button.command {
       border: 0;
       border-radius: 12px;
       cursor: pointer;
       font: inherit;
       font-weight: 1000;
     }
-    .puzzle-game {
+    .clicker-game {
       width: min(420px, 100%);
       background: #15131a;
       border: 1px solid var(--border);
       border-radius: 14px;
       padding: 1rem;
       display: grid;
-      gap: .8rem;
+      gap: .85rem;
     }
-    .puzzle-board {
-      display: grid;
-      gap: .6rem;
-      padding: .85rem;
-      border: 1px solid rgba(255,255,255,.1);
-      border-radius: 12px;
-      background: rgba(255,255,255,.05);
+    .clicker-progress {
+      height: 16px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.1);
+      overflow: hidden;
     }
-    .puzzle-row {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: .55rem;
-      flex-wrap: wrap;
-      color: var(--cream);
-      font-size: 1.15rem;
-      font-weight: 1000;
+    .clicker-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--mint), var(--gold));
+      transition: width .12s ease;
     }
-    .puzzle-token {
-      min-width: 54px;
-      padding: .65rem .75rem;
-      border-radius: 10px;
-      background: rgba(255,255,255,.12);
-      border: 1px solid rgba(255,255,255,.1);
-    }
-    .puzzle-choices {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(110px, 1fr));
-      gap: .6rem;
-    }
-    .puzzle-choice {
+    .big-action {
+      min-height: 92px;
+      border: 0;
+      border-radius: 16px;
       background: var(--gold);
       color: #422006;
-      padding: .8rem 1rem;
+      cursor: pointer;
+      font: inherit;
+      font-size: 1.15rem;
+      font-weight: 1000;
+      box-shadow: 0 14px 28px rgba(0,0,0,.22);
     }
-    .puzzle-choice.selected {
-      background: var(--mint);
-      color: #052e2b;
+    .big-action:active { transform: scale(.98); }
+    .catch-area {
+      height: 220px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.1);
+      position: relative;
+      overflow: hidden;
     }
-    .ingredients {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: .55rem;
-    }
-    .ingredient {
+    .catch-item {
+      position: absolute;
+      min-width: 88px;
+      border: 0;
+      border-radius: 999px;
       background: var(--cream);
       color: #3b2414;
-      padding: .75rem .85rem;
-      min-width: 96px;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 1000;
+      padding: .65rem .75rem;
     }
     .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .6rem; }
     button.command {
@@ -265,7 +260,7 @@
     <section class="hud">
       <div class="title">
         <h1>The Little Cup</h1>
-        <p class="sub">Cook puzzle orders, earn cash, and build the cafe into a tycoon.</p>
+        <p class="sub">Cook quick cafe tasks, earn cash, and build the cafe into a tycoon.</p>
       </div>
       <div class="stat"><div class="label">Cash</div><div class="value">$<span id="cashVal">0</span></div></div>
       <div class="stat"><div class="label">Served</div><div class="value" id="servedVal">0</div></div>
@@ -307,27 +302,26 @@
   <div class="overlay" id="overlay">
     <div class="modal">
       <h1>The Little Cup</h1>
-      <p>Serve puzzle orders to earn cash. Buy upgrades to make each shift stronger and grow the cafe.</p>
+      <p>Serve quick cafe tasks to earn cash. Buy upgrades to make each shift stronger and grow the cafe.</p>
       <button class="command" id="modalStartBtn" type="button">Open Cafe</button>
     </div>
   </div>
 
   <script>
     const orders = [
-      { name: 'Latte', icon: '☕', puzzle: 'combine', tip: 5 },
-      { name: 'Soup', icon: '🍜', puzzle: 'sillySoup', tip: 9 },
-      { name: 'Sandwich', icon: '🥪', puzzle: 'order', tip: 8 },
-      { name: 'Donut Box', icon: '🍩', puzzle: 'pattern', tip: 6 },
-      { name: 'Salad', icon: '🥗', puzzle: 'odd', tip: 7 },
-      { name: 'Tea', icon: '🍵', puzzle: 'sort', tip: 5 },
-      { name: 'Cookies', icon: '🍪', puzzle: 'decorate', tip: 7 },
-      { name: 'Smoothie', icon: '🥤', puzzle: 'mix', tip: 8 },
-      { name: 'Bagel', icon: '🥯', puzzle: 'spread', tip: 6 },
-      { name: 'Lunch Tray', icon: '🍱', puzzle: 'logic', tip: 10 }
+      { name: 'Latte', icon: '☕', task: 'combine', tip: 5 },
+      { name: 'Soup', icon: '🍜', task: 'sillySoup', tip: 9 },
+      { name: 'Sandwich', icon: '🥪', task: 'order', tip: 8 },
+      { name: 'Donut Box', icon: '🍩', task: 'pattern', tip: 6 },
+      { name: 'Salad', icon: '🥗', task: 'odd', tip: 7 },
+      { name: 'Tea', icon: '🍵', task: 'sort', tip: 5 },
+      { name: 'Cookies', icon: '🍪', task: 'decorate', tip: 7 },
+      { name: 'Smoothie', icon: '🥤', task: 'mix', tip: 8 },
+      { name: 'Bagel', icon: '🥯', task: 'spread', tip: 6 },
+      { name: 'Lunch Tray', icon: '🍱', task: 'logic', tip: 10 }
     ];
     const names = ['Mia', 'Jay', 'Ava', 'Leo', 'Zoe', 'Max', 'Nora', 'Kai', 'Ivy', 'Ezra'];
-    const ingredientPool = ['Bread', 'Cheese', 'Lettuce', 'Tomato', 'Egg', 'Sauce', 'Chicken', 'Avocado'];
-    const puzzleBuilders = {
+    const taskBuilders = {
       combine: buildCombinePuzzle,
       sillySoup: buildSillySoupPuzzle,
       order: buildOrderPuzzle,
@@ -450,7 +444,7 @@
       spawnTimer = 0;
       lastTick = performance.now();
       overlay.querySelector('h1').textContent = 'The Little Cup';
-      overlay.querySelector('p').textContent = 'Serve puzzle orders to earn cash. Buy upgrades to make each shift stronger and grow the cafe.';
+      overlay.querySelector('p').textContent = 'Serve quick cafe tasks to earn cash. Buy upgrades to make each shift stronger and grow the cafe.';
       modalStartBtn.textContent = 'Open Cafe';
       overlay.classList.add('hidden');
       startBtn.textContent = 'Restart shift';
@@ -491,213 +485,128 @@
       foodIcon.textContent = customer.order.icon;
       miniTitle.textContent = `Cook ${customer.order.name}`;
       message.textContent = '';
-      puzzleBuilders[customer.order.puzzle]();
+      taskBuilders[customer.order.task]();
     }
 
-    function shuffle(items) {
-      return [...items].sort(() => Math.random() - .5);
-    }
-
-    function renderChoicePuzzle(help, boardHtml, choices, answer, wrongText = 'Not quite. Try again.') {
+    function buildTapGame(help, buttonText, needed) {
       miniHelp.textContent = help;
-      miniState = { answer };
+      miniState = { hits: 0, needed };
       miniGame.innerHTML = `
-        <div class="puzzle-game">
-          <div class="puzzle-board">${boardHtml}</div>
-          <div class="puzzle-choices"></div>
+        <div class="clicker-game">
+          <div class="clicker-progress"><div class="clicker-fill"></div></div>
+          <button class="big-action" type="button">${buttonText}</button>
         </div>`;
-      const choicesWrap = miniGame.querySelector('.puzzle-choices');
-      shuffle(choices).forEach(choice => {
-        const btn = document.createElement('button');
-        btn.className = 'puzzle-choice';
-        btn.type = 'button';
-        btn.textContent = choice;
-        btn.addEventListener('click', () => {
-          if (choice === miniState.answer) finishCooking();
-          else message.textContent = wrongText;
-        });
-        choicesWrap.appendChild(btn);
+      const fill = miniGame.querySelector('.clicker-fill');
+      const btn = miniGame.querySelector('.big-action');
+      btn.addEventListener('click', () => {
+        miniState.hits++;
+        fill.style.width = `${Math.min(100, miniState.hits / miniState.needed * 100)}%`;
+        message.textContent = `${Math.max(0, miniState.needed - miniState.hits)} more`;
+        if (miniState.hits >= miniState.needed) finishCooking();
       });
+      message.textContent = `${needed} taps`;
+    }
+
+    function buildHoldGame(help, buttonText) {
+      miniHelp.textContent = help;
+      miniState = { fill: 0, timer: null };
+      miniGame.innerHTML = `
+        <div class="clicker-game">
+          <div class="clicker-progress"><div class="clicker-fill"></div></div>
+          <button class="big-action" type="button">${buttonText}</button>
+        </div>`;
+      const fill = miniGame.querySelector('.clicker-fill');
+      const btn = miniGame.querySelector('.big-action');
+      const stop = () => {
+        clearInterval(miniState.timer);
+        miniState.timer = null;
+      };
+      const start = () => {
+        if (miniState.timer) return;
+        miniState.timer = setInterval(() => {
+          miniState.fill = Math.min(100, miniState.fill + 4);
+          fill.style.width = `${miniState.fill}%`;
+          message.textContent = `${Math.round(miniState.fill)}%`;
+          if (miniState.fill >= 100) {
+            stop();
+            finishCooking();
+          }
+        }, 70);
+      };
+      btn.addEventListener('pointerdown', start);
+      btn.addEventListener('pointerup', stop);
+      btn.addEventListener('pointerleave', stop);
+      message.textContent = 'Hold it down';
+    }
+
+    function buildCatchGame(help, items) {
+      miniHelp.textContent = help;
+      miniState = { left: [...items] };
+      miniGame.innerHTML = `
+        <div class="clicker-game">
+          <div class="catch-area"></div>
+        </div>`;
+      const area = miniGame.querySelector('.catch-area');
+      const placeItems = () => {
+        area.innerHTML = '';
+        miniState.left.forEach(item => {
+          const btn = document.createElement('button');
+          btn.className = 'catch-item';
+          btn.type = 'button';
+          btn.textContent = item;
+          btn.style.left = `${8 + Math.random() * 58}%`;
+          btn.style.top = `${10 + Math.random() * 68}%`;
+          btn.addEventListener('click', () => {
+            miniState.left = miniState.left.filter(value => value !== item);
+            message.textContent = `${miniState.left.length} left`;
+            if (!miniState.left.length) finishCooking();
+            else placeItems();
+          });
+          area.appendChild(btn);
+        });
+      };
+      message.textContent = `${items.length} to grab`;
+      placeItems();
     }
 
     function buildCombinePuzzle() {
-      const puzzles = [
-        { left: 'Steam', right: 'Milk', answer: 'Foam', wrong: ['Syrup', 'Ice', 'Cream'] },
-        { left: 'Beans', right: 'Water', answer: 'Espresso', wrong: ['Tea', 'Cocoa', 'Honey'] },
-        { left: 'Espresso', right: 'Foam', answer: 'Latte', wrong: ['Mocha', 'Soda', 'Juice'] },
-        { left: 'Cup', right: 'Lid', answer: 'To Go', wrong: ['Plate', 'Bowl', 'Fork'] }
-      ];
-      const puzzle = puzzles[Math.floor(Math.random() * puzzles.length)];
-      renderChoicePuzzle(
-        'Solve the recipe pair.',
-        `<div class="puzzle-row"><span class="puzzle-token">${puzzle.left}</span><span>+</span><span class="puzzle-token">${puzzle.right}</span><span>=</span><span class="puzzle-token">?</span></div>`,
-        [puzzle.answer, ...puzzle.wrong],
-        puzzle.answer,
-        'That recipe does not match. Try again.'
-      );
+      buildTapGame('Tap fast to foam the latte.', 'Foam the latte', 7);
     }
 
     function buildSillySoupPuzzle() {
-      const puzzles = [
-        { clue: 'Make it spooky and green.', answer: 'Monster Soup', wrong: ['Sunshine Soup', 'Rainbow Soup', 'Snow Soup'] },
-        { clue: 'Make it bright like a sunny day.', answer: 'Sunshine Soup', wrong: ['Monster Soup', 'Midnight Soup', 'Cloud Soup'] },
-        { clue: 'Make it colorful for a party.', answer: 'Rainbow Soup', wrong: ['Plain Soup', 'Snow Soup', 'Shadow Soup'] }
-      ];
-      const puzzle = puzzles[Math.floor(Math.random() * puzzles.length)];
-      renderChoicePuzzle(
-        'Pick the soup style the customer wants.',
-        `<div class="puzzle-row"><span class="puzzle-token">${puzzle.clue}</span></div>`,
-        [puzzle.answer, ...puzzle.wrong],
-        puzzle.answer
-      );
+      buildHoldGame('Hold to stir the soup until it is ready.', 'Stir soup');
     }
 
     function buildOrderPuzzle() {
-      const shuffled = shuffle(ingredientPool);
-      miniState = { recipe: shuffled.slice(0, 4), index: 0 };
-      miniHelp.textContent = 'Solve the hidden recipe order.';
-      message.textContent = `Need: ${miniState.recipe.join(' -> ')}`;
-      const wrap = document.createElement('div');
-      wrap.className = 'ingredients';
-      shuffled.slice(0, 6).forEach(item => {
-        const btn = document.createElement('button');
-        btn.className = 'ingredient';
-        btn.type = 'button';
-        btn.textContent = item;
-        btn.addEventListener('click', () => pickIngredient(item));
-        wrap.appendChild(btn);
-      });
-      miniGame.appendChild(wrap);
-    }
-
-    function pickIngredient(item) {
-      if (item !== miniState.recipe[miniState.index]) {
-        miniState.index = 0;
-        message.textContent = `Wrong ingredient. Need: ${miniState.recipe.join(' -> ')}`;
-        return;
-      }
-      miniState.index++;
-      if (miniState.index >= miniState.recipe.length) finishCooking();
-      else message.textContent = `Good. Next: ${miniState.recipe[miniState.index]}`;
+      buildCatchGame('Grab the sandwich toppings.', ['Bread', 'Cheese', 'Lettuce', 'Tomato']);
     }
 
     function buildPatternPuzzle() {
-      const puzzles = [
-        { row: ['Ring', 'Glaze', 'Ring', 'Glaze', '?'], answer: 'Ring', wrong: ['Sprinkle', 'Box', 'Sugar'] },
-        { row: ['Small', 'Medium', 'Large', 'Small', 'Medium', '?'], answer: 'Large', wrong: ['Tiny', 'Box', 'Plain'] },
-        { row: ['A', 'B', 'B', 'A', 'B', 'B', '?'], answer: 'A', wrong: ['B', 'C', 'D'] }
-      ];
-      const puzzle = puzzles[Math.floor(Math.random() * puzzles.length)];
-      renderChoicePuzzle(
-        'Find the missing piece in the pattern.',
-        `<div class="puzzle-row">${puzzle.row.map(item => `<span class="puzzle-token">${item}</span>`).join('')}</div>`,
-        [puzzle.answer, ...puzzle.wrong],
-        puzzle.answer
-      );
+      buildTapGame('Pack the donut box.', 'Add donut', 6);
     }
 
     function buildOddPuzzle() {
-      const puzzles = [
-        { group: ['Lettuce', 'Spinach', 'Kale', 'Cookie'], answer: 'Cookie' },
-        { group: ['Tomato', 'Cucumber', 'Pepper', 'Milk'], answer: 'Milk' },
-        { group: ['Fork', 'Spoon', 'Knife', 'Banana'], answer: 'Banana' }
-      ];
-      const puzzle = puzzles[Math.floor(Math.random() * puzzles.length)];
-      renderChoicePuzzle(
-        'Pick the item that does not belong.',
-        `<div class="puzzle-row">${puzzle.group.map(item => `<span class="puzzle-token">${item}</span>`).join('')}</div>`,
-        puzzle.group,
-        puzzle.answer
-      );
+      buildCatchGame('Grab fresh salad toppings.', ['Lettuce', 'Tomato', 'Avocado', 'Egg']);
     }
 
     function buildSortPuzzle() {
-      const steps = shuffle(['Warm', 'Steep', 'Pour', 'Honey']);
-      miniState = { recipe: ['Warm', 'Steep', 'Pour', 'Honey'], index: 0 };
-      miniHelp.textContent = 'Put the tea steps in order.';
-      message.textContent = 'First step?';
-      const wrap = document.createElement('div');
-      wrap.className = 'ingredients';
-      steps.forEach(step => {
-        const btn = document.createElement('button');
-        btn.className = 'ingredient';
-        btn.type = 'button';
-        btn.textContent = step;
-        btn.addEventListener('click', () => pickSortStep(step));
-        wrap.appendChild(btn);
-      });
-      miniGame.appendChild(wrap);
-    }
-
-    function pickSortStep(step) {
-      if (step !== miniState.recipe[miniState.index]) {
-        miniState.index = 0;
-        message.textContent = 'Wrong order. Start again with Warm.';
-        return;
-      }
-      miniState.index++;
-      if (miniState.index >= miniState.recipe.length) finishCooking();
-      else message.textContent = `Next: ${miniState.recipe[miniState.index]}`;
+      buildHoldGame('Hold to steep the tea.', 'Steep tea');
     }
 
     function buildDecoratePuzzle() {
-      const puzzles = [
-        { prompt: 'A unicorn cookie needs...', answer: 'Rainbow sprinkles', wrong: ['Pickle chips', 'Soup noodles', 'Toast crumbs'] },
-        { prompt: 'A birthday cookie needs...', answer: 'Star sprinkles', wrong: ['Lettuce', 'Mustard', 'Tiny onions'] },
-        { prompt: 'A snow cookie needs...', answer: 'White icing', wrong: ['Hot sauce', 'Avocado', 'Tomato sauce'] }
-      ];
-      const puzzle = puzzles[Math.floor(Math.random() * puzzles.length)];
-      renderChoicePuzzle(
-        'Decorate the cookie.',
-        `<div class="puzzle-row"><span class="puzzle-token">${puzzle.prompt}</span></div>`,
-        [puzzle.answer, ...puzzle.wrong],
-        puzzle.answer
-      );
+      buildTapGame('Tap to cover the cookies in sprinkles.', 'Sprinkle', 8);
     }
 
     function buildMixPuzzle() {
-      const puzzles = [
-        { left: 'Strawberry', right: 'Banana', answer: 'Pink Smoothie', wrong: ['Green Smoothie', 'Iced Tea', 'Soup'] },
-        { left: 'Blueberry', right: 'Yogurt', answer: 'Purple Smoothie', wrong: ['Orange Juice', 'Latte', 'Salad'] },
-        { left: 'Mango', right: 'Pineapple', answer: 'Tropical Smoothie', wrong: ['Mocha', 'Plain Water', 'Toast'] }
-      ];
-      const puzzle = puzzles[Math.floor(Math.random() * puzzles.length)];
-      renderChoicePuzzle(
-        'Match the smoothie blend.',
-        `<div class="puzzle-row"><span class="puzzle-token">${puzzle.left}</span><span>+</span><span class="puzzle-token">${puzzle.right}</span></div>`,
-        [puzzle.answer, ...puzzle.wrong],
-        puzzle.answer
-      );
+      buildHoldGame('Hold to blend the smoothie.', 'Blend smoothie');
     }
 
     function buildSpreadPuzzle() {
-      const puzzles = [
-        { prompt: 'Dragon bagel', answer: 'Spicy red spread', wrong: ['Cloud cream', 'Berry swirl', 'Plain butter'] },
-        { prompt: 'Mermaid bagel', answer: 'Blueberry wave', wrong: ['Hot pepper jam', 'Pumpkin dust', 'Pizza sauce'] },
-        { prompt: 'Garden bagel', answer: 'Green herb cream', wrong: ['Chocolate syrup', 'Candy rocks', 'Lemon sparkle'] }
-      ];
-      const puzzle = puzzles[Math.floor(Math.random() * puzzles.length)];
-      renderChoicePuzzle(
-        'Match the bagel with its spread.',
-        `<div class="puzzle-row"><span class="puzzle-token">${puzzle.prompt}</span></div>`,
-        [puzzle.answer, ...puzzle.wrong],
-        puzzle.answer
-      );
+      buildTapGame('Tap to spread the bagel.', 'Spread', 7);
     }
 
     function buildLogicPuzzle() {
-      const puzzles = [
-        { clue: 'No dairy. No meat. Needs something green.', answer: 'Avocado Salad', wrong: ['Cheese Melt', 'Chicken Soup', 'Milk Tea'] },
-        { clue: 'Hot drink. No coffee. Add honey.', answer: 'Honey Tea', wrong: ['Latte', 'Iced Soda', 'Cold Brew'] },
-        { clue: 'Sweet box. No chocolate. Round shape.', answer: 'Vanilla Donut', wrong: ['Brownie', 'Pretzel', 'Soup Cup'] }
-      ];
-      const puzzle = puzzles[Math.floor(Math.random() * puzzles.length)];
-      renderChoicePuzzle(
-        'Use the clue to pick the right order.',
-        `<div class="puzzle-row"><span class="puzzle-token">${puzzle.clue}</span></div>`,
-        [puzzle.answer, ...puzzle.wrong],
-        puzzle.answer
-      );
+      buildCatchGame('Load the lunch tray.', ['Drink', 'Snack', 'Fruit', 'Napkin']);
     }
 
     function finishCooking() {
