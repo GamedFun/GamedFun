@@ -264,8 +264,8 @@
         <p class="sub">Cook quick cafe tasks, earn cash, and build the cafe into a tycoon.</p>
       </div>
       <div class="stat"><div class="label">Cash</div><div class="value">$<span id="cashVal">0</span></div></div>
-      <div class="stat"><div class="label">Served</div><div class="value" id="servedVal">0</div></div>
-      <div class="stat"><div class="label">Shift</div><div class="value">$<span id="tipsVal">0</span></div></div>
+      <div class="stat"><div class="label">Sold</div><div class="value" id="servedVal">0</div></div>
+      <div class="stat"><div class="label">Run Cash</div><div class="value">$<span id="tipsVal">0</span></div></div>
       <div class="stat"><div class="label">Level</div><div class="value" id="levelVal">1</div></div>
       <div class="stat"><div class="label">Best</div><div class="value" id="bestVal">0</div></div>
     </section>
@@ -282,13 +282,13 @@
           <div class="ticket">
             <div class="food" id="foodIcon">☕</div>
             <div class="mini-title" id="miniTitle">Ready for customers</div>
-            <div class="mini-help" id="miniHelp">Start the shift to open the cafe.</div>
+            <div class="mini-help" id="miniHelp">Open the cafe to start making food.</div>
           </div>
           <div id="miniGame"></div>
           <div class="message" id="message"></div>
           <div class="actions">
-            <button class="command" id="startBtn" type="button">Start shift</button>
-            <button class="command secondary" id="serveBtn" type="button" disabled>Serve</button>
+            <button class="command" id="startBtn" type="button">Open Cafe</button>
+            <button class="command secondary" id="serveBtn" type="button" disabled>Sell</button>
           </div>
         </div>
       </div>
@@ -303,7 +303,7 @@
   <div class="overlay" id="overlay">
     <div class="modal">
       <h1>The Little Cup</h1>
-      <p>Start with bread, serve customers, and unlock better foods as your cafe grows.</p>
+      <p>Start with bread, sell food, and unlock better foods as your cafe grows.</p>
       <button class="command" id="modalStartBtn" type="button">Open Cafe</button>
     </div>
   </div>
@@ -448,10 +448,10 @@
       served = 0;
       tips = 0;
       overlay.querySelector('h1').textContent = 'The Little Cup';
-      overlay.querySelector('p').textContent = 'Start with bread, serve customers, and unlock better foods as your cafe grows.';
+      overlay.querySelector('p').textContent = 'Start with bread, sell food, and unlock better foods as your cafe grows.';
       modalStartBtn.textContent = 'Open Cafe';
       overlay.classList.add('hidden');
-      startBtn.textContent = 'Restart shift';
+      startBtn.textContent = 'Reset Run';
       refillCustomers();
       saveTycoon();
       render();
@@ -491,7 +491,7 @@
       foodIcon.textContent = customer.order.icon;
       if (customer.cooked) {
         miniTitle.textContent = `${customer.order.name} is ready`;
-        miniHelp.textContent = 'Leave it ready or press Serve when you want.';
+        miniHelp.textContent = 'Leave it ready or press Sell when you want.';
         serveBtn.disabled = false;
         message.textContent = 'Ready to serve.';
         return;
@@ -636,7 +636,7 @@
       if (customer) customer.cooked = true;
       serveBtn.disabled = false;
       miniGame.innerHTML = '';
-      miniHelp.textContent = 'Order is cooked. Leave it ready or press Serve.';
+      miniHelp.textContent = 'Order is cooked. Leave it ready or press Sell.';
       message.textContent = 'Ready to serve.';
       render();
     }
@@ -662,11 +662,11 @@
       else {
         miniGame.innerHTML = '';
         foodIcon.textContent = '✅';
-        miniTitle.textContent = 'Served';
+        miniTitle.textContent = 'Sold';
         miniHelp.textContent = 'Customers appear right away.';
       }
       saveTycoon();
-      message.textContent = `Served ${customer.order.name}. +$${earned}`;
+      message.textContent = `Sold ${customer.order.name}. +$${earned}`;
       render();
     }
 
