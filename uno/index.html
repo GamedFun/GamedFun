@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UNO Duel</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f172a;
+      --panel: #18233a;
+      --panel-2: #22304d;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --border: rgba(255,255,255,0.13);
+      --red: #ef4444;
+      --yellow: #facc15;
+      --green: #22c55e;
+      --blue: #3b82f6;
+      --wild: #111827;
+    }
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 18% 16%, rgba(239,68,68,.22), transparent 24rem),
+        radial-gradient(circle at 84% 12%, rgba(59,130,246,.22), transparent 24rem),
+        radial-gradient(circle at 50% 90%, rgba(34,197,94,.16), transparent 24rem),
+        var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.2rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .brand {
+      color: var(--text);
+      font-size: 1.1rem;
+      font-weight: 900;
+      text-decoration: none;
+    }
+    .home-link {
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: .45rem .7rem;
+      text-decoration: none;
+      font-size: .82rem;
+      font-weight: 800;
+    }
+    main {
+      width: min(1060px, 100%);
+      margin: 0 auto;
+      padding: 1.2rem;
+      display: grid;
+      gap: .9rem;
+    }
+    .table {
+      display: grid;
+      gap: .9rem;
+      min-height: calc(100vh - 86px);
+      grid-template-rows: auto 1fr auto;
+    }
+    .panel {
+      background: rgba(24,35,58,.9);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 18px 42px rgba(0,0,0,.26);
+    }
+    .opponent, .status, .player {
+      padding: 1rem;
+    }
+    .label {
+      color: var(--muted);
+      font-size: .68rem;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .count {
+      font-size: 1.15rem;
+      font-weight: 900;
+    }
+    .center {
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: 1rem;
+      padding: 1rem;
+    }
+    .piles {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .deck {
+      width: 90px;
+      height: 128px;
+      border-radius: 14px;
+      border: 2px solid rgba(255,255,255,.72);
+      background:
+        linear-gradient(135deg, transparent 0 46%, rgba(255,255,255,.85) 46% 54%, transparent 54%),
+        linear-gradient(45deg, var(--red) 0 25%, var(--blue) 25% 50%, var(--green) 50% 75%, var(--yellow) 75%);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-size: 1rem;
+      font-weight: 1000;
+      box-shadow: 0 12px 28px rgba(0,0,0,.32);
+    }
+    .card {
+      width: 90px;
+      height: 128px;
+      border-radius: 14px;
+      border: 2px solid rgba(255,255,255,.78);
+      color: #fff;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      font-size: 1.9rem;
+      font-weight: 1000;
+      position: relative;
+      box-shadow: 0 12px 28px rgba(0,0,0,.32);
+      transform: translateY(0);
+      transition: transform .14s ease, filter .14s ease, opacity .14s ease;
+    }
+    .card::before, .card::after {
+      content: attr(data-label);
+      position: absolute;
+      font-size: .72rem;
+      font-weight: 1000;
+    }
+    .card::before { top: .55rem; left: .58rem; }
+    .card::after { right: .58rem; bottom: .55rem; transform: rotate(180deg); }
+    .card:hover { transform: translateY(-8px); }
+    .card.unplayable {
+      cursor: not-allowed;
+      filter: saturate(.5);
+      opacity: .58;
+    }
+    .card.unplayable:hover { transform: none; }
+    .card.red { background: var(--red); }
+    .card.yellow { background: var(--yellow); color: #422006; }
+    .card.green { background: var(--green); }
+    .card.blue { background: var(--blue); }
+    .card.wild {
+      background:
+        radial-gradient(circle at 28% 28%, var(--red) 0 18%, transparent 19%),
+        radial-gradient(circle at 72% 28%, var(--yellow) 0 18%, transparent 19%),
+        radial-gradient(circle at 28% 72%, var(--green) 0 18%, transparent 19%),
+        radial-gradient(circle at 72% 72%, var(--blue) 0 18%, transparent 19%),
+        var(--wild);
+    }
+    .hand {
+      display: flex;
+      gap: .55rem;
+      overflow-x: auto;
+      padding: .85rem .1rem .3rem;
+      min-height: 150px;
+    }
+    .npc-hand {
+      justify-content: center;
+      min-height: 72px;
+      padding-top: .8rem;
+    }
+    .card-back {
+      width: 46px;
+      height: 64px;
+      flex: 0 0 auto;
+      border-radius: 9px;
+      border: 1px solid rgba(255,255,255,.62);
+      background:
+        linear-gradient(135deg, transparent 0 46%, rgba(255,255,255,.75) 46% 54%, transparent 54%),
+        linear-gradient(45deg, var(--red) 0 25%, var(--blue) 25% 50%, var(--green) 50% 75%, var(--yellow) 75%);
+      box-shadow: 0 8px 18px rgba(0,0,0,.24);
+    }
+    .message {
+      min-height: 1.4rem;
+      color: var(--text);
+      font-size: .95rem;
+      font-weight: 800;
+      text-align: center;
+    }
+    .meta {
+      color: var(--muted);
+      font-size: .82rem;
+      font-weight: 800;
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: .55rem;
+    }
+    button {
+      background: #fff;
+      border: 0;
+      border-radius: 10px;
+      color: #111827;
+      cursor: pointer;
+      font: inherit;
+      font-size: .9rem;
+      font-weight: 900;
+      padding: .72rem .95rem;
+    }
+    button.secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    button:disabled {
+      cursor: not-allowed;
+      opacity: .5;
+    }
+    .color-picker {
+      display: none;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: .45rem;
+    }
+    .color-picker.on { display: flex; }
+    .color-btn {
+      min-width: 76px;
+      color: #fff;
+    }
+    .color-btn.yellow { color: #422006; }
+    .active-color {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      color: var(--muted);
+      font-size: .8rem;
+      font-weight: 900;
+    }
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: currentColor;
+    }
+    @media (max-width: 640px) {
+      main { padding: .75rem; }
+      .card, .deck { width: 74px; height: 106px; border-radius: 12px; }
+      .card { font-size: 1.5rem; }
+      .hand { min-height: 126px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="brand" href="/">gamed.fun</a>
+    <a class="home-link" href="/">All games</a>
+  </header>
+
+  <main>
+    <section class="table">
+      <div class="opponent panel">
+        <div class="row">
+          <div>
+            <div class="label">NPC</div>
+            <div class="count"><span id="npcCount">7</span> cards</div>
+          </div>
+          <div class="active-color"><span class="dot" id="colorDot"></span><span id="colorName">red</span></div>
+        </div>
+        <div class="npc-hand" id="npcHand"></div>
+      </div>
+
+      <div class="center panel">
+        <div class="piles">
+          <button class="deck" id="drawBtn" type="button">DRAW</button>
+          <div id="discard"></div>
+        </div>
+        <div class="message" id="message"></div>
+        <div class="meta" id="deckCount"></div>
+        <div class="color-picker" id="colorPicker">
+          <button class="color-btn red" data-pick="red" type="button">Red</button>
+          <button class="color-btn yellow" data-pick="yellow" type="button">Yellow</button>
+          <button class="color-btn green" data-pick="green" type="button">Green</button>
+          <button class="color-btn blue" data-pick="blue" type="button">Blue</button>
+        </div>
+        <div class="controls">
+          <button class="secondary" id="newGameBtn" type="button">New game</button>
+        </div>
+      </div>
+
+      <div class="player panel">
+        <div class="row">
+          <div>
+            <div class="label">You</div>
+            <div class="count"><span id="playerCount">7</span> cards</div>
+          </div>
+        </div>
+        <div class="hand" id="playerHand"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const colors = ['red', 'yellow', 'green', 'blue'];
+    const playerHandEl = document.getElementById('playerHand');
+    const npcHandEl = document.getElementById('npcHand');
+    const discardEl = document.getElementById('discard');
+    const messageEl = document.getElementById('message');
+    const deckCountEl = document.getElementById('deckCount');
+    const playerCountEl = document.getElementById('playerCount');
+    const npcCountEl = document.getElementById('npcCount');
+    const drawBtn = document.getElementById('drawBtn');
+    const newGameBtn = document.getElementById('newGameBtn');
+    const colorPicker = document.getElementById('colorPicker');
+    const colorDot = document.getElementById('colorDot');
+    const colorName = document.getElementById('colorName');
+
+    let deck = [];
+    let discard = [];
+    let player = [];
+    let npc = [];
+    let currentColor = 'red';
+    let turn = 'player';
+    let gameOver = false;
+    let pendingWild = null;
+
+    function buildDeck() {
+      const cards = [];
+      colors.forEach(color => {
+        cards.push(card(color, 'number', '0'));
+        for (let n = 1; n <= 9; n++) {
+          cards.push(card(color, 'number', String(n)), card(color, 'number', String(n)));
+        }
+        ['Skip', 'Reverse', '+2'].forEach(value => {
+          cards.push(card(color, 'action', value), card(color, 'action', value));
+        });
+      });
+      for (let i = 0; i < 4; i++) cards.push(card('wild', 'wild', 'Wild'), card('wild', 'wild4', '+4'));
+      return shuffle(cards);
+    }
+
+    function card(color, type, value) {
+      const id = globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : `${color}-${type}-${value}-${Math.random()}`;
+      return { id, color, type, value };
+    }
+
+    function shuffle(items) {
+      const arr = [...items];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function startGame() {
+      deck = buildDeck();
+      discard = [];
+      player = [];
+      npc = [];
+      turn = 'player';
+      gameOver = false;
+      pendingWild = null;
+      for (let i = 0; i < 7; i++) {
+        player.push(deck.pop());
+        npc.push(deck.pop());
+      }
+      let first = deck.pop();
+      while (first.color === 'wild' || first.type !== 'number') {
+        deck.unshift(first);
+        deck = shuffle(deck);
+        first = deck.pop();
+      }
+      discard.push(first);
+      currentColor = first.color;
+      messageEl.textContent = 'Your turn.';
+      colorPicker.classList.remove('on');
+      applyCardEffect(first, 'start');
+      render();
+    }
+
+    function topCard() {
+      return discard[discard.length - 1];
+    }
+
+    function canPlay(cardToCheck) {
+      const top = topCard();
+      return cardToCheck.color === 'wild'
+        || cardToCheck.color === currentColor
+        || cardToCheck.value === top.value;
+    }
+
+    function drawCard(hand) {
+      if (!deck.length) recycleDeck();
+      if (deck.length) hand.push(deck.pop());
+    }
+
+    function recycleDeck() {
+      if (discard.length <= 1) return;
+      const top = discard.pop();
+      deck = shuffle(discard.map(item => ({ ...item })));
+      discard = [top];
+    }
+
+    function playFrom(hand, index, owner) {
+      const played = hand[index];
+      if (!played || !canPlay(played) || gameOver) return false;
+      hand.splice(index, 1);
+      discard.push(played);
+      currentColor = played.color === 'wild' ? currentColor : played.color;
+      if (played.color === 'wild' && owner === 'player') {
+        pendingWild = played;
+        turn = 'choosing';
+        messageEl.textContent = 'Pick a color.';
+        colorPicker.classList.add('on');
+        render();
+        return true;
+      }
+      if (played.color === 'wild') currentColor = chooseNpcColor();
+      finishPlayedCard(played, owner);
+      return true;
+    }
+
+    function finishPlayedCard(played, owner) {
+      colorPicker.classList.remove('on');
+      if (checkWinner(owner)) return;
+      applyCardEffect(played, owner);
+      render();
+      if (turn === 'npc') setTimeout(npcTurn, 650);
+    }
+
+    function applyCardEffect(played, owner) {
+      const other = owner === 'player' ? npc : player;
+      if (played.value === '+2') {
+        drawCard(other);
+        drawCard(other);
+        turn = owner;
+        messageEl.textContent = `${owner === 'player' ? 'NPC' : 'You'} drew 2. ${owner === 'player' ? 'Your' : 'NPC'} turn again.`;
+      } else if (played.value === '+4') {
+        for (let i = 0; i < 4; i++) drawCard(other);
+        turn = owner;
+        messageEl.textContent = `${owner === 'player' ? 'NPC' : 'You'} drew 4. ${owner === 'player' ? 'Your' : 'NPC'} turn again.`;
+      } else if (played.value === 'Skip' || played.value === 'Reverse') {
+        turn = owner;
+        messageEl.textContent = `${owner === 'player' ? 'NPC' : 'You'} got skipped.`;
+      } else if (owner === 'start') {
+        turn = 'player';
+        messageEl.textContent = 'Your turn.';
+      } else {
+        turn = owner === 'player' ? 'npc' : 'player';
+        messageEl.textContent = turn === 'player' ? 'Your turn.' : 'NPC turn.';
+      }
+    }
+
+    function checkWinner(owner) {
+      if (owner === 'player' && player.length === 0) {
+        win('You win.');
+        return true;
+      }
+      if (owner === 'npc' && npc.length === 0) {
+        win('NPC wins.');
+        return true;
+      }
+      return false;
+    }
+
+    function win(text) {
+      gameOver = true;
+      turn = 'over';
+      messageEl.textContent = text;
+      colorPicker.classList.remove('on');
+      render();
+    }
+
+    function chooseNpcColor() {
+      const counts = Object.fromEntries(colors.map(color => [color, 0]));
+      npc.forEach(item => {
+        if (counts[item.color] !== undefined) counts[item.color]++;
+      });
+      return colors.reduce((best, color) => counts[color] > counts[best] ? color : best, colors[0]);
+    }
+
+    function npcTurn() {
+      if (gameOver || turn !== 'npc') return;
+      const playableIndex = npc.findIndex(canPlay);
+      if (playableIndex >= 0) {
+        const played = npc[playableIndex];
+        playFrom(npc, playableIndex, 'npc');
+        messageEl.textContent = `NPC played ${labelFor(played)}.`;
+      } else {
+        drawCard(npc);
+        const drawn = npc[npc.length - 1];
+        if (drawn && canPlay(drawn)) {
+          playFrom(npc, npc.length - 1, 'npc');
+          messageEl.textContent = `NPC drew and played ${labelFor(drawn)}.`;
+        } else {
+          turn = 'player';
+          messageEl.textContent = 'NPC drew. Your turn.';
+          render();
+        }
+      }
+    }
+
+    function labelFor(item) {
+      return item.color === 'wild' ? item.value : `${item.color} ${item.value}`;
+    }
+
+    function renderCard(item, playable, onClick) {
+      const el = document.createElement('button');
+      el.className = `card ${item.color}${playable ? '' : ' unplayable'}`;
+      el.type = 'button';
+      el.dataset.label = item.value;
+      el.textContent = item.value;
+      el.disabled = !playable;
+      el.addEventListener('click', onClick);
+      return el;
+    }
+
+    function render() {
+      playerHandEl.innerHTML = '';
+      player.forEach((item, index) => {
+        playerHandEl.appendChild(renderCard(item, turn === 'player' && canPlay(item), () => {
+          if (turn === 'player') playFrom(player, index, 'player');
+        }));
+      });
+      npcHandEl.innerHTML = '';
+      npc.forEach(() => {
+        const back = document.createElement('div');
+        back.className = 'card-back';
+        npcHandEl.appendChild(back);
+      });
+      discardEl.innerHTML = '';
+      discardEl.appendChild(renderCard(topCard(), false, () => {}));
+      playerCountEl.textContent = player.length;
+      npcCountEl.textContent = npc.length;
+      deckCountEl.textContent = `${deck.length} cards left in deck`;
+      drawBtn.disabled = turn !== 'player' || gameOver;
+      colorDot.style.color = `var(--${currentColor})`;
+      colorName.textContent = currentColor;
+    }
+
+    drawBtn.addEventListener('click', () => {
+      if (turn !== 'player' || gameOver) return;
+      drawCard(player);
+      const drawn = player[player.length - 1];
+      if (drawn && canPlay(drawn)) {
+        messageEl.textContent = 'You drew a playable card.';
+      } else {
+        turn = 'npc';
+        messageEl.textContent = 'You drew. NPC turn.';
+        setTimeout(npcTurn, 650);
+      }
+      render();
+    });
+
+    colorPicker.addEventListener('click', event => {
+      const btn = event.target.closest('[data-pick]');
+      if (!btn || !pendingWild) return;
+      currentColor = btn.dataset.pick;
+      const played = pendingWild;
+      pendingWild = null;
+      finishPlayedCard(played, 'player');
+    });
+
+    newGameBtn.addEventListener('click', startGame);
+    startGame();
+  </script>
+</body>
+</html>

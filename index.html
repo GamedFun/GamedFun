@@ -366,6 +366,44 @@
       background-clip: text;
     }
 
+    .uno-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .uno-mark {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background:
+        linear-gradient(135deg, transparent 0 44%, rgba(255,255,255,0.9) 45% 55%, transparent 56%),
+        linear-gradient(45deg, #ef4444 0 25%, #3b82f6 25% 50%, #22c55e 50% 75%, #facc15 75%);
+      border: 2px solid #fff;
+      box-shadow: 0 12px 24px -14px rgba(239, 68, 68, 0.7);
+      flex: 0 0 auto;
+      transition: transform 0.18s ease;
+    }
+
+    .card:hover .uno-mark {
+      transform: scale(1.08) rotate(-6deg);
+    }
+
+    .uno-word {
+      font-size: 1.18rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.04;
+    }
+
+    .uno-word span {
+      background: linear-gradient(135deg, #ef4444 0%, #3b82f6 50%, #22c55e 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
     .card-title {
       font-size: 1.05rem;
       font-weight: 700;
@@ -473,6 +511,7 @@
       <a class="quick-action" href="/typeflow/">Play TypeFlow</a>
       <a class="quick-action" href="/universe-clicker/">Play Universe Destroyer</a>
       <a class="quick-action" href="/word-scramble/">Play Word Scramble</a>
+      <a class="quick-action" href="/uno/">Play UNO Duel</a>
     </div>
   </header>
 
@@ -517,6 +556,17 @@
         </div>
         <div class="card-desc">Unscramble the same daily words as everyone else and chase a perfect score.</div>
         <div class="card-cta">Play Word Scramble</div>
+        <span class="card-arrow">↗</span>
+      </a>
+
+      <!-- UNO Duel -->
+      <a class="card card--amber" href="/uno/">
+        <div class="uno-logo" aria-label="UNO Duel">
+          <div class="uno-mark" aria-hidden="true"></div>
+          <div class="uno-word"><span>UNO Duel</span> <span class="badge">new</span></div>
+        </div>
+        <div class="card-desc">Play against an NPC with one balanced deck and no rigged hands.</div>
+        <div class="card-cta">Play UNO Duel</div>
         <span class="card-arrow">↗</span>
       </a>
 
