@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>document.documentElement.dataset.theme=localStorage.getItem('gf-theme')||'light';</script>
   <title>gamed.fun</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -375,9 +376,17 @@
     @media (max-width: 400px) {
       .grid  { grid-template-columns: 1fr; }
     }
+    [data-theme="dark"] { --text: #f8fafc; --muted: #9ca3af; --border: rgba(255,255,255,.1); --bg: #111827; }
+    [data-theme="dark"] body { background: #111827; background-image: radial-gradient(circle,#374151 1px,transparent 1px); background-size: 28px 28px; }
+    [data-theme="dark"] .blob-wrap { opacity: .35; }
+    [data-theme="dark"] .card { background: #1f2937; }
+    [data-theme="dark"] .quick-action { background: #1f2937; }
+    [data-theme="dark"] footer { background: #1f2937; }
+    #themeBtn-home { position:fixed; top:16px; right:20px; z-index:100; background:var(--bg); border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:1rem; padding:.3rem .55rem; color:var(--muted); line-height:1; }
   </style>
 </head>
 <body>
+<button id="themeBtn-home" onclick="toggleTheme()">🌙</button>
 <div class="blob-wrap">
   <div class="blob blob-1"></div>
   <div class="blob blob-2"></div>
@@ -553,5 +562,9 @@
   </footer>
 </div>
 
+<script>
+(function(){const t=localStorage.getItem('gf-theme')||'light';document.getElementById('themeBtn-home').textContent=t==='light'?'🌙':'☀️';})();
+function toggleTheme(){const n=document.documentElement.dataset.theme==='light'?'dark':'light';document.documentElement.dataset.theme=n;localStorage.setItem('gf-theme',n);document.getElementById('themeBtn-home').textContent=n==='light'?'🌙':'☀️';}
+</script>
 </body>
 </html>

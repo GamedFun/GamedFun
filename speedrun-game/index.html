@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>document.documentElement.dataset.theme=localStorage.getItem('gf-theme')||'dark';</script>
+  <title>The Speedrun Game – gamed.fun</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d0f14;
+      --panel: #13161f;
+      --text: #f0f4fc;
+      --muted: #6b7280;
+      --border: rgba(255,255,255,.09);
+      --gold: #fbbf24;
+      --accent: #818cf8;
+    }
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    header {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: .6rem 1.2rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(13,15,20,.95);
+      backdrop-filter: blur(8px);
+      position: sticky; top: 0; z-index: 10;
+    }
+    .brand { text-decoration: none; font-weight: 900; color: var(--gold); font-size: 1rem; }
+    .home-link { text-decoration: none; color: var(--muted); font-size: .83rem; border: 1px solid var(--border); border-radius: 7px; padding: .35rem .65rem; }
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.4rem 1rem 2rem;
+      gap: 1rem;
+      width: 100%;
+    }
+    h1 { font-size: 1.7rem; font-weight: 900; letter-spacing: -.02em; }
+    .tagline { color: var(--muted); font-size: .85rem; margin-top: .2rem; text-align: center; }
+
+    .hud-row {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      font-size: .82rem;
+      color: var(--muted);
+    }
+    .stat strong {
+      display: block;
+      font-size: 1.3rem;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+      letter-spacing: -.02em;
+    }
+    .stat.best strong { color: var(--gold); }
+
+    #canvas-wrap {
+      position: relative;
+      width: min(820px, 100%);
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: 0 28px 56px rgba(0,0,0,.6);
+      cursor: pointer;
+    }
+    canvas { display: block; width: 100%; aspect-ratio: 820/400; }
+
+    .hint { font-size: .78rem; color: var(--muted); text-align: center; }
+    .restart-btn {
+      padding: .5rem 1.3rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--text);
+      font: inherit;
+      font-size: .88rem;
+      cursor: pointer;
+      transition: background .12s;
+    }
+    .restart-btn:hover { background: #1c2030; }
+    [data-theme="light"] { --bg: #f5f5f5; --panel: #ffffff; --text: #111827; --muted: #6b7280; --border: rgba(0,0,0,.1); }
+    [data-theme="light"] body { background: #f5f5f5; }
+    [data-theme="light"] header { background: rgba(245,245,250,.95); }
+  </style>
+</head>
+<body>
+<header>
+  <a class="brand" href="/">🎮 gamed.fun</a>
+  <button id="themeBtn" onclick="toggleTheme()" style="background:none;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:1rem;padding:.3rem .55rem;color:var(--muted);line-height:1">☀️</button>
+  <a class="home-link" href="/">← Home</a>
+</header>
+<main>
+  <div>
+    <h1>The Speedrun Game</h1>
+    <p class="tagline">Slow down too much and you die. Don't slow down.</p>
+  </div>
+
+  <div class="hud-row">
+    <div class="stat">
+      <strong id="timerEl">0:00.000</strong>
+      Time
+    </div>
+    <div class="stat best">
+      <strong id="bestEl">--:--.---</strong>
+      Best
+    </div>
+  </div>
+
+  <div id="canvas-wrap">
+    <canvas id="game" width="820" height="400"></canvas>
+  </div>
+
+  <p class="hint">Space · Up Arrow · Tap to jump &nbsp;·&nbsp; Double jump allowed &nbsp;·&nbsp; R to restart</p>
+  <button class="restart-btn" id="restartBtn">↺ Restart</button>
+</main>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = 820, H = 400;
+
+// ── CONSTANTS ──────────────────────────────────────────────────
+const GRAVITY       = 0.58;
+const JUMP1         = -13.5;
+const JUMP2         = -11;
+const PW            = 26;   // player width
+const PH            = 36;   // player height
+const SCREEN_X      = 150;  // player's fixed screen position
+const GROUND_Y      = 300;  // top of ground surface
+
+const SPEED_START   = 6.2;
+const SPEED_MAX     = 9.0;
+const SPEED_MIN     = 2.4;   // below this → too slow death
+const SPEED_DANGER  = 3.6;   // warning zone
+const SPEED_DRAIN   = 0.0025; // natural drag per frame
+const SPEED_BOOST   = 1.4;   // boost pad pickup amount
+const SPEED_HIT_MUL = 0.72;  // speed multiplied by this on block crash
+
+// ── LEVEL DATA ─────────────────────────────────────────────────
+// Ground segments [startX, width] — gaps between them
+const GROUNDS = [
+  [0,    620],
+  [740,  300],
+  [1160, 200],
+  [1480, 340],
+  [1940, 140],
+  [2190, 140],
+  [2440, 460],
+  [3020, 210],
+  [3350, 360],
+  [3830, 490],
+  [4440, 140],
+  [4700, 2000],  // final stretch
+];
+
+// Obstacle blocks [x, width, height] — sit on top of ground
+const BLOCKS = [
+  [440,  42, 55],
+  [770,  42, 62],
+  [970,  42, 55],
+  [1220, 42, 65],
+  [1540, 42, 58],
+  [1700, 42, 65],
+  [2490, 42, 60],
+  [2650, 42, 55],
+  [2800, 42, 70],
+  [3060, 42, 65],
+  [3210, 42, 55],
+  [3390, 42, 60],
+  [3870, 42, 65],
+  [4020, 42, 58],
+  [4180, 42, 72],
+  [4750, 42, 60],
+  [4910, 42, 55],
+  [5070, 42, 68],
+  [5230, 42, 60],
+  [5390, 42, 55],
+  [5550, 42, 65],
+  [5710, 42, 58],
+];
+
+// Boost pads [x] — glow on ground, give speed
+const BOOSTS = [320, 900, 1380, 2370, 3280, 4380, 5150, 5470];
+
+const FINISH_X = 6300;
+
+// ── STATE ──────────────────────────────────────────────────────
+let cam = 0;
+let gameState = 'idle'; // idle | running | dead | finished
+let deathMsg  = '';
+let deadTimer = 0;
+let startTime = 0;
+let finishMs  = 0;
+let bestMs    = parseInt(localStorage.getItem('sr_best') || '0') || 0;
+
+// hit-set tracks which blocks already penalized this frame
+const hitBlocks = new Set();
+
+// ── PLAYER ─────────────────────────────────────────────────────
+const P = {
+  wx: 80,         // world x
+  y: GROUND_Y - PH,
+  vy: 0,
+  speed: SPEED_START,
+  onGround: false,
+  jumps: 2,
+  frame: 0,
+  legT: 0,
+  // screen shake
+  shakeX: 0,
+  shakeY: 0,
+};
+
+// ── INPUT ──────────────────────────────────────────────────────
+function jump() {
+  if (gameState === 'dead' || gameState === 'finished') return;
+  if (gameState === 'idle') {
+    gameState = 'running';
+    startTime = performance.now();
+  }
+  if (P.jumps > 0) {
+    P.vy = P.jumps === 2 ? JUMP1 : JUMP2;
+    P.jumps--;
+    P.onGround = false;
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); jump(); }
+  if (e.code === 'KeyR') restart();
+});
+canvas.addEventListener('click', jump);
+canvas.addEventListener('touchstart', e => { e.preventDefault(); jump(); }, { passive: false });
+document.getElementById('restartBtn').addEventListener('click', restart);
+
+// ── HELPERS ────────────────────────────────────────────────────
+function onGround(wx) {
+  const cx = wx + PW / 2;
+  for (const [gx, gw] of GROUNDS) if (cx >= gx && cx <= gx + gw) return true;
+  return false;
+}
+
+function fmtTime(ms) {
+  const m = Math.floor(ms / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  const ms3 = Math.floor(ms % 1000);
+  return `${m}:${String(s).padStart(2,'0')}.${String(ms3).padStart(3,'0')}`;
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+// ── UPDATE ─────────────────────────────────────────────────────
+function update() {
+  if (gameState === 'idle' || gameState === 'finished') return;
+
+  if (gameState === 'dead') {
+    deadTimer--;
+    P.shakeX = (Math.random() - .5) * 6 * (deadTimer / 50);
+    P.shakeY = (Math.random() - .5) * 4 * (deadTimer / 50);
+    if (deadTimer <= 0) restart();
+    return;
+  }
+
+  // Movement
+  P.wx  += P.speed;
+  P.vy  += GRAVITY;
+  P.y   += P.vy;
+  P.shakeX *= 0.8;
+  P.shakeY *= 0.8;
+
+  // Camera
+  cam = P.wx - SCREEN_X;
+
+  // Speed drain
+  P.speed = Math.max(0, P.speed - SPEED_DRAIN);
+
+  // Ground collision
+  const landed = onGround(P.wx);
+  if (landed && P.y + PH >= GROUND_Y && P.vy >= 0) {
+    P.y       = GROUND_Y - PH;
+    P.vy      = 0;
+    P.onGround = true;
+    P.jumps   = 2;
+  } else {
+    P.onGround = false;
+  }
+
+  // Block collision — phase-through with speed penalty
+  hitBlocks.clear();
+  for (let i = 0; i < BLOCKS.length; i++) {
+    const [bx, bw, bh] = BLOCKS[i];
+    const blockTop = GROUND_Y - bh;
+    const pr = P.wx + PW;
+    const pl = P.wx;
+    const pb = P.y + PH;
+    const pt = P.y;
+    if (pr > bx && pl < bx + bw && pb > blockTop && pt < GROUND_Y) {
+      // Player overlaps block
+      const fromTop = pb - blockTop;
+      const fromSide = pr - bx;
+      if (fromTop < fromSide && P.vy >= 0) {
+        // Landing on top of block
+        P.y       = blockTop - PH;
+        P.vy      = 0;
+        P.onGround = true;
+        P.jumps   = 2;
+      } else if (!hitBlocks.has(i)) {
+        // Running through block — speed penalty
+        hitBlocks.add(i);
+        P.speed  *= SPEED_HIT_MUL;
+        P.shakeX  = (Math.random() > .5 ? 1 : -1) * 5;
+        P.shakeY  = -3;
+      }
+    }
+  }
+
+  // Boost pads
+  for (const bx of BOOSTS) {
+    if (P.wx + PW > bx && P.wx < bx + 36 && P.onGround) {
+      P.speed = Math.min(SPEED_MAX, P.speed + SPEED_BOOST);
+    }
+  }
+
+  // Fall into gap
+  if (P.y > H + 60) {
+    die('Fell!');
+    return;
+  }
+
+  // Too slow
+  if (P.speed < SPEED_MIN) {
+    die('Too slow!');
+    return;
+  }
+
+  // Finish
+  if (P.wx + PW >= FINISH_X) {
+    gameState = 'finished';
+    finishMs  = performance.now() - startTime;
+    if (!bestMs || finishMs < bestMs) {
+      bestMs = Math.round(finishMs);
+      localStorage.setItem('sr_best', bestMs);
+    }
+    document.getElementById('bestEl').textContent = fmtTime(bestMs);
+    return;
+  }
+
+  // Leg animation
+  if (P.onGround) {
+    P.legT += P.speed * 0.04;
+  }
+  P.frame++;
+}
+
+function die(msg) {
+  gameState = 'dead';
+  deathMsg  = msg;
+  deadTimer = 70;
+  P.shakeX  = 8;
+  P.shakeY  = -5;
+}
+
+// ── DRAW ───────────────────────────────────────────────────────
+function drawBg() {
+  // sky
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, '#0d0f14');
+  sky.addColorStop(1, '#151a26');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, W, H);
+
+  // stars
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  for (let i = 0; i < 90; i++) {
+    const sx = ((i * 139 + 40 - cam * 0.04) % (W + 80) + W + 80) % (W + 80) - 40;
+    const sy = (i * 71.3 + 15) % (H * 0.68);
+    ctx.fillRect(Math.round(sx), Math.round(sy), i % 4 === 0 ? 2 : 1, i % 4 === 0 ? 2 : 1);
+  }
+
+  // buildings (parallax 0.28)
+  for (let i = 0; i < 24; i++) {
+    const bx = ((i * 360 + 60 - cam * 0.28) % (W + 240) + W + 240) % (W + 240) - 120;
+    const bh = 55 + (i * 47) % 95;
+    const bw = 38 + (i * 31) % 55;
+    const by = GROUND_Y - 35 - bh;
+    ctx.fillStyle = i % 2 === 0 ? '#151922' : '#121820';
+    ctx.fillRect(bx, by, bw, bh + 36);
+    // windows
+    const wc = i % 3 === 0 ? 'rgba(129,140,248,0.38)' : i % 3 === 1 ? 'rgba(56,189,248,0.28)' : 'rgba(251,191,36,0.22)';
+    ctx.fillStyle = wc;
+    for (let wy = 0; wy < 5; wy++) {
+      for (let wx = 0; wx < 3; wx++) {
+        if ((i + wx + wy) % 3 !== 0) ctx.fillRect(bx + 6 + wx * 12, by + 8 + wy * 16, 8, 9);
+      }
+    }
+  }
+}
+
+function drawGround() {
+  for (const [gx, gw] of GROUNDS) {
+    const sx = gx - cam;
+    if (sx + gw < -20 || sx > W + 20) continue;
+    const gr = ctx.createLinearGradient(0, GROUND_Y, 0, H);
+    gr.addColorStop(0, '#1e2738');
+    gr.addColorStop(0.08, '#192032');
+    gr.addColorStop(1, '#0d1117');
+    ctx.fillStyle = gr;
+    ctx.fillRect(sx, GROUND_Y, gw, H - GROUND_Y);
+    // neon edge
+    ctx.fillStyle = '#818cf8';
+    ctx.fillRect(sx, GROUND_Y, gw, 3);
+    // grid lines
+    ctx.strokeStyle = 'rgba(129,140,248,0.1)';
+    ctx.lineWidth = 1;
+    for (let tx = Math.floor(gx / 60) * 60; tx < gx + gw; tx += 60) {
+      ctx.beginPath(); ctx.moveTo(tx - cam, GROUND_Y); ctx.lineTo(tx - cam, H); ctx.stroke();
+    }
+  }
+}
+
+function drawBoosts() {
+  for (const bx of BOOSTS) {
+    const sx = bx - cam;
+    if (sx + 36 < 0 || sx > W) continue;
+    // glow
+    ctx.save();
+    ctx.shadowColor = '#3fb950';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = '#3fb950';
+    ctx.fillRect(sx, GROUND_Y - 5, 36, 5);
+    // arrow
+    ctx.fillStyle = '#6ee7b7';
+    ctx.font = 'bold 12px ui-sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('▲', sx + 18, GROUND_Y - 7);
+    ctx.restore();
+  }
+}
+
+function drawBlocks() {
+  for (let i = 0; i < BLOCKS.length; i++) {
+    const [bx, bw, bh] = BLOCKS[i];
+    const sx = bx - cam;
+    if (sx + bw < 0 || sx > W) continue;
+    const top = GROUND_Y - bh;
+    const hit = hitBlocks.has(i);
+    const gr = ctx.createLinearGradient(0, top, 0, GROUND_Y);
+    gr.addColorStop(0, hit ? '#3a1a1a' : '#2a1f2e');
+    gr.addColorStop(1, hit ? '#200e0e' : '#1a1525');
+    ctx.fillStyle = gr;
+    ctx.fillRect(sx, top, bw, bh);
+    // top edge
+    ctx.save();
+    ctx.shadowColor = hit ? '#ef4444' : '#f87171';
+    ctx.shadowBlur = hit ? 10 : 5;
+    ctx.fillStyle = hit ? '#ef4444' : '#f87171';
+    ctx.fillRect(sx, top, bw, 3);
+    ctx.restore();
+    // left highlight
+    ctx.fillStyle = 'rgba(248,113,113,0.18)';
+    ctx.fillRect(sx, top, 3, bh);
+  }
+}
+
+function drawPlayer() {
+  const sx = SCREEN_X + P.shakeX;
+  const py = P.y + P.shakeY;
+  const inAir = !P.onGround;
+
+  // shadow
+  if (onGround(P.wx)) {
+    const dist = (GROUND_Y) - (py + PH);
+    const a = Math.max(0, 0.28 - dist * 0.003);
+    const sc = Math.max(0.35, 1 - dist * 0.007);
+    ctx.save();
+    ctx.fillStyle = `rgba(129,140,248,${a})`;
+    ctx.beginPath();
+    ctx.ellipse(sx + PW / 2, GROUND_Y + 3, (PW / 2 + 2) * sc, 4 * sc, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.shadowColor = '#818cf8';
+  ctx.shadowBlur = inAir ? 18 : 10;
+
+  // body
+  ctx.fillStyle = inAir ? '#a5b4fc' : '#818cf8';
+  roundRect(sx + 4, py + 13, PW - 8, PH - 18, 4);
+  ctx.fill();
+
+  // head
+  ctx.fillStyle = '#c4b5fd';
+  roundRect(sx + 5, py, PW - 10, 16, 5);
+  ctx.fill();
+
+  // eyes
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#1e1b4b';
+  ctx.fillRect(sx + 8, py + 4, 4, 5);
+  ctx.fillRect(sx + 15, py + 4, 4, 5);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(sx + 9, py + 4, 2, 2);
+  ctx.fillRect(sx + 16, py + 4, 2, 2);
+
+  // legs
+  ctx.strokeStyle = '#818cf8';
+  ctx.lineWidth = 5;
+  ctx.lineCap = 'round';
+  ctx.shadowColor = '#818cf8';
+  ctx.shadowBlur = 6;
+  const lt = Math.sin(P.legT);
+  ctx.beginPath(); ctx.moveTo(sx + 10, py + PH - 8); ctx.lineTo(sx + 10 + lt * 10, py + PH + 2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(sx + 18, py + PH - 8); ctx.lineTo(sx + 18 - lt * 10, py + PH + 2); ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawFinish() {
+  const sx = FINISH_X - cam;
+  if (sx < -60 || sx > W + 60) return;
+  // pole
+  ctx.save();
+  ctx.shadowColor = '#fbbf24';
+  ctx.shadowBlur = 18;
+  ctx.fillStyle = '#fbbf24';
+  ctx.fillRect(sx, GROUND_Y - 90, 5, 90);
+  // flag
+  ctx.beginPath();
+  ctx.moveTo(sx + 5, GROUND_Y - 90);
+  ctx.lineTo(sx + 38, GROUND_Y - 76);
+  ctx.lineTo(sx + 5, GROUND_Y - 62);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+  // checkerboard zone
+  ctx.globalAlpha = 0.22;
+  for (let i = 0; i < 22; i++) {
+    for (let j = 0; j < 5; j++) {
+      if ((i + j) % 2 === 0) {
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillRect(sx - 80 + i * 9, GROUND_Y - j * 9, 9, 9);
+      }
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawSpeedBar() {
+  const bx = 12, by = 12, bw = 200, bh = 14;
+  const pct = Math.max(0, Math.min(1, (P.speed - SPEED_MIN) / (SPEED_MAX - SPEED_MIN)));
+  const danger = P.speed < SPEED_DANGER;
+
+  // bg
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  roundRect(bx - 2, by - 2, bw + 4, bh + 4, 5);
+  ctx.fill();
+
+  // track
+  ctx.fillStyle = 'rgba(255,255,255,0.07)';
+  roundRect(bx, by, bw, bh, 3);
+  ctx.fill();
+
+  // fill
+  const barColor = danger ? (Math.floor(P.frame / 8) % 2 === 0 ? '#ef4444' : '#f87171') : '#818cf8';
+  ctx.save();
+  ctx.shadowColor = danger ? '#ef4444' : '#818cf8';
+  ctx.shadowBlur = 8;
+  ctx.fillStyle = barColor;
+  roundRect(bx, by, bw * pct, bh, 3);
+  ctx.fill();
+  ctx.restore();
+
+  // danger line
+  const dangerX = bx + bw * ((SPEED_DANGER - SPEED_MIN) / (SPEED_MAX - SPEED_MIN));
+  ctx.fillStyle = 'rgba(239,68,68,0.7)';
+  ctx.fillRect(dangerX, by - 2, 2, bh + 4);
+
+  // label
+  ctx.fillStyle = danger ? '#f87171' : '#8b949e';
+  ctx.font = '11px ui-sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(danger ? '⚠ TOO SLOW' : '⚡ SPEED', bx + bw + 8, by + 10);
+
+  // progress dots
+  const prog = Math.min(1, P.wx / FINISH_X);
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  roundRect(bx, by + 20, bw, 6, 3);
+  ctx.fill();
+  ctx.fillStyle = '#818cf8';
+  roundRect(bx, by + 20, bw * prog, 6, 3);
+  ctx.fill();
+  ctx.fillStyle = '#6b7280';
+  ctx.font = '10px ui-sans-serif';
+  ctx.fillText('🏁 ' + Math.round(prog * 100) + '%', bx + bw + 8, by + 26);
+}
+
+function drawOverlay() {
+  if (gameState === 'idle') {
+    ctx.fillStyle = 'rgba(13,15,20,0.78)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#f0f4fc';
+    ctx.font = 'bold 30px ui-sans-serif';
+    ctx.fillText('The Speedrun Game', W / 2, H / 2 - 48);
+    ctx.fillStyle = 'rgba(248,113,113,0.9)';
+    ctx.font = 'bold 16px ui-sans-serif';
+    ctx.fillText('Slow down → you die. Don\'t slow down.', W / 2, H / 2 - 14);
+    ctx.fillStyle = '#6b7280';
+    ctx.font = '15px ui-sans-serif';
+    ctx.fillText('Space · Up Arrow · Tap to start', W / 2, H / 2 + 18);
+    ctx.fillText('Jump over blocks — crashing through kills your speed', W / 2, H / 2 + 42);
+    ctx.textAlign = 'left';
+    return;
+  }
+
+  if (gameState === 'dead') {
+    ctx.fillStyle = 'rgba(20,8,8,0.72)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center';
+    ctx.save();
+    ctx.shadowColor = '#ef4444';
+    ctx.shadowBlur = 20;
+    ctx.fillStyle = '#f87171';
+    ctx.font = 'bold 36px ui-sans-serif';
+    ctx.fillText(deathMsg === 'Fell!' ? '💀 Fell off!' : '🐢 Too Slow!', W / 2, H / 2 - 10);
+    ctx.restore();
+    ctx.fillStyle = '#6b7280';
+    ctx.font = '14px ui-sans-serif';
+    ctx.fillText('Restarting...', W / 2, H / 2 + 28);
+    ctx.textAlign = 'left';
+    return;
+  }
+
+  if (gameState === 'finished') {
+    ctx.fillStyle = 'rgba(13,15,20,0.84)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center';
+    const isNew = finishMs === bestMs;
+    ctx.save();
+    ctx.shadowColor = isNew ? '#fbbf24' : '#818cf8';
+    ctx.shadowBlur = 24;
+    ctx.fillStyle = isNew ? '#fbbf24' : '#f0f4fc';
+    ctx.font = 'bold 32px ui-sans-serif';
+    ctx.fillText(isNew ? '🏆 New Best!' : '🏁 Finished!', W / 2, H / 2 - 52);
+    ctx.restore();
+    ctx.fillStyle = '#3fb950';
+    ctx.font = 'bold 52px ui-monospace';
+    ctx.fillText(fmtTime(finishMs), W / 2, H / 2 + 12);
+    if (!isNew && bestMs) {
+      ctx.fillStyle = '#6b7280';
+      ctx.font = '15px ui-sans-serif';
+      ctx.fillText('Best: ' + fmtTime(bestMs), W / 2, H / 2 + 46);
+    }
+    ctx.fillStyle = '#4b5563';
+    ctx.font = '13px ui-sans-serif';
+    ctx.fillText('Press R or Restart to go again', W / 2, H / 2 + 88);
+    ctx.textAlign = 'left';
+  }
+}
+
+// ── LOOP ───────────────────────────────────────────────────────
+function loop() {
+  update();
+  ctx.clearRect(0, 0, W, H);
+  drawBg();
+  drawGround();
+  drawBoosts();
+  drawBlocks();
+  drawFinish();
+  drawPlayer();
+  drawSpeedBar();
+  drawOverlay();
+
+  // timer
+  if (gameState === 'running') {
+    document.getElementById('timerEl').textContent = fmtTime(performance.now() - startTime);
+  }
+
+  requestAnimationFrame(loop);
+}
+
+function restart() {
+  P.wx = 80; P.y = GROUND_Y - PH; P.vy = 0;
+  P.speed = SPEED_START; P.onGround = true; P.jumps = 2;
+  P.frame = 0; P.legT = 0; P.shakeX = 0; P.shakeY = 0;
+  cam = 0;
+  gameState = 'idle';
+  hitBlocks.clear();
+  document.getElementById('timerEl').textContent = '0:00.000';
+}
+
+// init
+if (bestMs) document.getElementById('bestEl').textContent = fmtTime(bestMs);
+loop();
+document.getElementById('themeBtn').textContent=document.documentElement.dataset.theme==='dark'?'☀️':'🌙';
+function toggleTheme(){const n=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=n;localStorage.setItem('gf-theme',n);document.getElementById('themeBtn').textContent=n==='dark'?'☀️':'🌙';}
+</script>
+</body>
+</html>

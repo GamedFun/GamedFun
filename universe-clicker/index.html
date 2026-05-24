@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>document.documentElement.dataset.theme=localStorage.getItem('gf-theme')||'dark';</script>
   <title>Cosmic Clicker</title>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -163,11 +164,24 @@
     #flashbang-overlay { display:none; position:fixed; inset:0; z-index:9999; background:#fff; pointer-events:none; }
     #flashbang-overlay.bang { display:block; animation:flashOut 1.1s ease-out forwards; }
     @keyframes flashOut { 0%{opacity:1} 100%{opacity:0} }
+    [data-theme="light"] { --bg: #f0f0f8; }
+    [data-theme="light"] html, [data-theme="light"] body { background: #f0f0f8; color: #1e1e30; }
+    [data-theme="light"] #top { background: rgba(220,220,240,.9); border-bottom-color: rgba(0,0,0,.08); }
+    [data-theme="light"] #prog-wrap { background: rgba(0,0,0,.04); }
+    [data-theme="light"] #prog-track { background: rgba(0,0,0,.1); }
+    [data-theme="light"] .upg { background: rgba(0,0,0,.04); border-color: rgba(0,0,0,.1); }
+    [data-theme="light"] .upg.can { background: rgba(0,0,0,.07); }
+    [data-theme="light"] #home-brand { background: rgba(230,230,245,.9); border-color: rgba(0,0,0,.15); color: #333; }
+    [data-theme="light"] #lofi-btn { background: rgba(230,230,245,.9); border-color: rgba(0,0,0,.15); color: #555; }
+    [data-theme="light"] #stars { display: none; }
+    #themeBtn-uc { position:fixed; top:10px; right:80px; z-index:300; background:rgba(0,0,0,.6); border:1px solid rgba(255,255,255,.2); color:rgba(255,255,255,.6); font-size:.85rem; padding:4px 9px; border-radius:14px; cursor:pointer; }
+    [data-theme="light"] #themeBtn-uc { background:rgba(230,230,245,.9); border-color:rgba(0,0,0,.15); color:#555; }
 
   </style>
 </head>
 <body>
 <div id="stars"></div>
+<button id="themeBtn-uc" onclick="toggleTheme()">☀️</button>
 <a id="home-brand" href="https://gamed.fun/" aria-label="gamed.fun"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.5 11.5h4M10.5 9.5v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="9.5" r="1.4" fill="currentColor"/><circle cx="15" cy="15.5" r="1.4" fill="currentColor"/></svg><span>gamed.fun</span></a>
 <div id="tidal-bg"><div class="tw"></div><div class="tw"></div><div class="tw"></div></div>
 <div id="subway-corner"><img src="https://media1.tenor.com/m/NmtI99JHKj0AAAAd/save-me-subway-surfer.gif" alt="subway"></div>
@@ -990,6 +1004,8 @@ if (G.funCounts[1] > 0) startElixir(); // index 1 = clash
 makeStars();
 renderEra();
 updateHUD();
+document.getElementById('themeBtn-uc').textContent=document.documentElement.dataset.theme==='dark'?'☀️':'🌙';
+function toggleTheme(){const n=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=n;localStorage.setItem('gf-theme',n);document.getElementById('themeBtn-uc').textContent=n==='dark'?'☀️':'🌙';}
 if (G.gameOver)     setTimeout(() => gameOverEl.classList.add('on'), 200);
 else if (G.awaitingMs) setTimeout(() => showMilestone(), 400);
 </script>

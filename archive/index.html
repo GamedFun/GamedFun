@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>document.documentElement.dataset.theme=localStorage.getItem('gf-theme')||'light';</script>
   <title>gamed.fun archive</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -149,9 +150,15 @@
       header, main { padding-inline: 24px; }
       header { padding-top: 52px; }
     }
+    [data-theme="dark"] { --bg: #111827; --text: #f8fafc; --muted: #9ca3af; --border: rgba(255,255,255,.1); }
+    [data-theme="dark"] body { background: #111827; background-image: none; }
+    [data-theme="dark"] .card { background: #1f2937; }
+    [data-theme="dark"] .back { background: #1f2937; color: var(--text); border-color: var(--border); }
+    #themeBtn-arc { position:fixed; top:16px; right:20px; z-index:100; background:var(--bg); border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:1rem; padding:.3rem .55rem; color:var(--muted); line-height:1; }
   </style>
 </head>
 <body>
+<button id="themeBtn-arc" onclick="toggleTheme()">🌙</button>
   <header>
     <a class="site-name" href="https://gamed.fun/" aria-label="gamed.fun">
       <span class="site-mark" aria-hidden="true">
@@ -202,5 +209,9 @@
       </a>
     </div>
   </main>
+<script>
+(function(){const t=localStorage.getItem('gf-theme')||'light';document.getElementById('themeBtn-arc').textContent=t==='light'?'🌙':'☀️';})();
+function toggleTheme(){const n=document.documentElement.dataset.theme==='light'?'dark':'light';document.documentElement.dataset.theme=n;localStorage.setItem('gf-theme',n);document.getElementById('themeBtn-arc').textContent=n==='light'?'🌙':'☀️';}
+</script>
 </body>
 </html>
