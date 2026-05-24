@@ -111,18 +111,6 @@
       filter: drop-shadow(0 0 10px var(--cyan)) drop-shadow(0 0 18px var(--pink));
       pointer-events: none;
     }
-    .trail {
-      position: absolute;
-      left: 4%;
-      width: 118px;
-      height: 36px;
-      border-radius: 999px;
-      background: linear-gradient(90deg, #ff004c, #ff8a00, #ffe600, #2cff00, #00d9ff, #5f48ff);
-      filter: blur(.5px) drop-shadow(0 0 12px rgba(255,255,255,.35));
-      opacity: .82;
-      z-index: 2;
-      pointer-events: none;
-    }
     .obstacle {
       position: absolute;
       right: -80px;
@@ -185,7 +173,6 @@
     @media (max-width: 640px) {
       main { padding: .55rem; }
       .cat { width: 76px; height: 52px; }
-      .trail { width: 94px; height: 30px; }
       .obstacle { width: 44px; }
       .coin { width: 26px; height: 26px; }
       .stat { min-width: 92px; }
@@ -220,7 +207,6 @@
 
     <section class="game" id="game">
       <div class="stars"></div>
-      <div class="trail" id="trail"></div>
       <img class="cat" id="cat" src="https://media.tenor.com/8lR3_1m-i94AAAAj/cat.gif" alt="Neon flying cat">
       <div class="center" id="overlay">
         <div class="modal">
@@ -235,7 +221,6 @@
   <script>
     const game = document.getElementById('game');
     const cat = document.getElementById('cat');
-    const trail = document.getElementById('trail');
     const overlay = document.getElementById('overlay');
     const startBtn = document.getElementById('startBtn');
     const scoreEl = document.getElementById('score');
@@ -251,9 +236,9 @@
     let running = false;
     let lastTime = 0;
     let spawnTimer = 0;
-    let orbTimer = 0;
     let obstacles = [];
     let orbs = [];
+    let lastGap = null;
     let best = Number(localStorage.getItem('neon_cat_best') || 0);
     bestEl.textContent = Math.floor(best);
 
@@ -268,7 +253,7 @@
       coins = 0;
       speed = 1;
       spawnTimer = 0;
-      orbTimer = 0;
+      lastGap = null;
       running = true;
       lastTime = performance.now();
       overlay.classList.add('hidden');
@@ -289,6 +274,8 @@
       const bottomTop = topHeight + gap;
       createObstacle(0, topHeight);
       createObstacle(bottomTop, game.clientHeight - bottomTop);
+      lastGap = { top: topHeight + 26, bottom: bottomTop - 26 };
+      if (Math.random() < 0.82) spawnOrb(lastGap);
     }
 
     function createObstacle(top, height) {
@@ -302,15 +289,17 @@
       obstacles.push({ el, x: game.clientWidth + 80, top, width: 54, height });
     }
 
-    function spawnOrb() {
+    function spawnOrb(gap = lastGap) {
       const el = document.createElement('div');
       el.className = 'coin';
-      const top = 36 + Math.random() * Math.max(30, game.clientHeight - 72);
+      const safeTop = gap ? gap.top : 56;
+      const safeBottom = gap ? gap.bottom : game.clientHeight - 56;
+      const top = safeTop + Math.random() * Math.max(12, safeBottom - safeTop);
       el.style.left = '0';
       el.style.right = 'auto';
       el.style.top = `${top}px`;
       game.appendChild(el);
-      orbs.push({ el, x: game.clientWidth + 60, top, size: 28 });
+      orbs.push({ el, x: game.clientWidth + 135, top, size: 28 });
     }
 
     function loop(now) {
@@ -322,14 +311,9 @@
       y += velocity * dt;
       score += 70 * speed * dt;
       spawnTimer -= dt;
-      orbTimer -= dt;
       if (spawnTimer <= 0) {
         spawnObstacle();
         spawnTimer = Math.max(.9, 1.35 - score / 2400);
-      }
-      if (orbTimer <= 0) {
-        spawnOrb();
-        orbTimer = 2.4 + Math.random() * 1.8;
       }
       updateObjects(dt);
       render();
@@ -367,7 +351,6 @@
       const angle = Math.max(-18, Math.min(22, velocity / 35));
       cat.style.top = `${y}px`;
       cat.style.transform = `translateY(-50%) rotate(${angle}deg)`;
-      trail.style.top = `${y - 18}px`;
       scoreEl.textContent = Math.floor(score);
       coinsEl.textContent = coins;
       speedEl.textContent = speed.toFixed(1);
