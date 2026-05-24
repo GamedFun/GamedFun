@@ -676,8 +676,10 @@ function spawnToScreen(emoji, rKey) {
 function collect(emoji, rKey, el, timeout) {
   clearTimeout(timeout);
   activeEmojis = activeEmojis.filter(a => a.el !== el);
-  el.classList.add('fade-out');
-  setTimeout(() => el.remove(), 300);
+  if (el.classList) {
+    el.classList.add('fade-out');
+    setTimeout(() => el.remove(), 300);
+  }
 
   const isNew = !collection[emoji.n];
   collection[emoji.n] = (collection[emoji.n] || 0) + 1;
