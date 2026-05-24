@@ -117,6 +117,8 @@
     /* LOFI BUTTON */
     #lofi-btn { position:fixed; top:10px; right:10px; z-index:300; background:rgba(0,0,0,.6); border:1px solid rgba(255,255,255,.2); color:rgba(255,255,255,.6); font-size:.7rem; padding:4px 9px; border-radius:14px; cursor:pointer; letter-spacing:.04em; }
     #lofi-btn.on { border-color:#cc88ff; color:#cc88ff; }
+    #home-brand { position:fixed; top:10px; left:10px; z-index:320; background:rgba(0,0,0,.62); border:1px solid rgba(255,255,255,.22); border-radius:14px; color:rgba(255,255,255,.72); font-size:.72rem; font-weight:800; letter-spacing:.03em; padding:4px 9px; text-decoration:none; }
+    #home-brand:hover { border-color:var(--era); color:var(--era); }
 
     .critter { position: fixed; z-index: 200; pointer-events: none; animation: critterRun linear forwards; }
     @keyframes critterRun { to { transform: translateX(calc(100vw + 8rem)); } }
@@ -165,6 +167,7 @@
 </head>
 <body>
 <div id="stars"></div>
+<a id="home-brand" href="https://gamed.fun/">gamed.fun</a>
 <div id="tidal-bg"><div class="tw"></div><div class="tw"></div><div class="tw"></div></div>
 <div id="subway-corner"><img src="https://media1.tenor.com/m/NmtI99JHKj0AAAAd/save-me-subway-surfer.gif" alt="subway"></div>
 <button id="lofi-btn">🎵 Lofi</button>

@@ -103,6 +103,21 @@ header {
   letter-spacing: 0.05em;
   padding: 0;
 }
+.brand-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+}
+.home-brand {
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.42rem 0.62rem;
+  text-decoration: none;
+}
+.home-brand:hover { color: var(--accent); border-color: var(--accent); }
 .logo:hover { filter: brightness(1.15); }
 .logo:focus-visible {
   outline: 2px solid var(--accent);
@@ -668,6 +683,7 @@ main {
 
 @media (max-width: 720px) {
   header { padding: 1rem; align-items: flex-start; }
+  .brand-wrap { flex-direction: column; gap: 0.45rem; }
   .header-right { flex-wrap: wrap; justify-content: flex-end; }
   .options-bar { grid-template-columns: 1fr; }
   .setup-title,
