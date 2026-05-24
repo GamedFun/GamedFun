@@ -443,6 +443,72 @@
       background-clip: text;
     }
 
+    .neon-cat-mark {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: #0f172a;
+      border: 2px solid #39f5ff;
+      box-shadow: 0 12px 24px -14px rgba(57, 245, 255, 0.85);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 18px;
+      transition: transform 0.18s ease;
+    }
+
+    .neon-cat-mark::before {
+      content: '';
+      position: absolute;
+      width: 34px;
+      height: 18px;
+      left: 13px;
+      top: 18px;
+      border-radius: 9px;
+      background: #ff4fd8;
+      box-shadow: 0 0 12px rgba(255,79,216,0.8);
+    }
+
+    .neon-cat-mark::after {
+      content: '';
+      position: absolute;
+      width: 36px;
+      height: 18px;
+      left: -18px;
+      top: 18px;
+      background: linear-gradient(90deg, #ff004c, #ff8a00, #ffe600, #2cff00, #00d9ff, #5f48ff);
+      border-radius: 999px;
+      box-shadow: 0 0 10px rgba(255,255,255,.4);
+    }
+
+    .neon-cat-face {
+      position: absolute;
+      width: 16px;
+      height: 14px;
+      right: 8px;
+      top: 12px;
+      border-radius: 8px 8px 7px 7px;
+      background: #39f5ff;
+      box-shadow: 0 0 10px rgba(57,245,255,.8);
+    }
+
+    .neon-cat-face::before,
+    .neon-cat-face::after {
+      content: '';
+      position: absolute;
+      top: -5px;
+      width: 8px;
+      height: 8px;
+      background: #39f5ff;
+      transform: rotate(45deg);
+    }
+
+    .neon-cat-face::before { left: 1px; }
+    .neon-cat-face::after { right: 1px; }
+
+    .card:hover .neon-cat-mark {
+      transform: scale(1.08) rotate(-5deg);
+    }
+
     .card-title {
       font-size: 1.05rem;
       font-weight: 700;
@@ -624,7 +690,7 @@
 
       <!-- Neon Cat Dash -->
       <a class="card card--blue" href="/neon-cat/">
-        <div class="card-icon" aria-hidden="true">🌈</div>
+        <div class="neon-cat-mark" aria-hidden="true"><span class="neon-cat-face"></span></div>
         <div class="card-title">Neon Cat Dash <span class="badge">new</span></div>
         <div class="card-desc">Fly through neon space as a rainbow cat and dodge obstacles for distance.</div>
         <div class="card-cta">Play Neon Cat Dash</div>

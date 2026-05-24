@@ -132,16 +132,25 @@
       box-shadow: 0 0 18px rgba(57,245,255,.55), inset 0 0 12px rgba(255,255,255,.2);
       z-index: 2;
     }
-    .orb {
+    .coin {
       position: absolute;
       right: -60px;
-      width: 28px;
-      height: 28px;
+      width: 30px;
+      height: 30px;
       border-radius: 50%;
-      background: var(--yellow);
+      background:
+        radial-gradient(circle at 34% 28%, rgba(255,255,255,.9), transparent 18%),
+        radial-gradient(circle at center, #fff59d 0 34%, #fbbf24 35% 72%, #b45309 73%);
+      border: 2px solid #fde68a;
       box-shadow: 0 0 18px rgba(255,230,109,.75);
       z-index: 2;
+      display: grid;
+      place-items: center;
+      color: #78350f;
+      font-size: .78rem;
+      font-weight: 1000;
     }
+    .coin::after { content: '$'; }
     .center {
       position: absolute;
       inset: 0;
@@ -178,6 +187,7 @@
       .cat { width: 76px; height: 52px; }
       .trail { width: 94px; height: 30px; }
       .obstacle { width: 44px; }
+      .coin { width: 26px; height: 26px; }
       .stat { min-width: 92px; }
     }
   </style>
@@ -197,6 +207,10 @@
       <div class="stat">
         <div class="label">Best</div>
         <div class="value"><span id="best">0</span>m</div>
+      </div>
+      <div class="stat">
+        <div class="label">Coins</div>
+        <div class="value"><span id="coins">0</span></div>
       </div>
       <div class="stat">
         <div class="label">Speed</div>
@@ -226,11 +240,13 @@
     const startBtn = document.getElementById('startBtn');
     const scoreEl = document.getElementById('score');
     const bestEl = document.getElementById('best');
+    const coinsEl = document.getElementById('coins');
     const speedEl = document.getElementById('speed');
 
     let y = 0;
     let velocity = 0;
     let score = 0;
+    let coins = 0;
     let speed = 1;
     let running = false;
     let lastTime = 0;
@@ -249,6 +265,7 @@
       y = game.clientHeight * 0.45;
       velocity = 0;
       score = 0;
+      coins = 0;
       speed = 1;
       spawnTimer = 0;
       orbTimer = 0;
@@ -287,7 +304,7 @@
 
     function spawnOrb() {
       const el = document.createElement('div');
-      el.className = 'orb';
+      el.className = 'coin';
       const top = 36 + Math.random() * Math.max(30, game.clientHeight - 72);
       el.style.left = '0';
       el.style.right = 'auto';
@@ -352,6 +369,7 @@
       cat.style.transform = `translateY(-50%) rotate(${angle}deg)`;
       trail.style.top = `${y - 18}px`;
       scoreEl.textContent = Math.floor(score);
+      coinsEl.textContent = coins;
       speedEl.textContent = speed.toFixed(1);
     }
 
@@ -376,6 +394,7 @@
       }
       orbs = orbs.filter(item => {
         if (overlaps(box, { left: item.x, top: item.top, width: item.size, height: item.size })) {
+          coins++;
           score += 100;
           item.el.remove();
           return false;
@@ -391,7 +410,7 @@
       localStorage.setItem('neon_cat_best', String(best));
       bestEl.textContent = Math.floor(best);
       overlay.querySelector('h1').textContent = `${Math.floor(score)}m`;
-      overlay.querySelector('p').textContent = `Best: ${Math.floor(best)}m. Try again and dodge farther.`;
+      overlay.querySelector('p').textContent = `Coins: ${coins}. Best: ${Math.floor(best)}m. Try again and dodge farther.`;
       startBtn.textContent = 'Retry';
       overlay.classList.remove('hidden');
     }
