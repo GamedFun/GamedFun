@@ -148,7 +148,7 @@
     }
     .actions {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: .6rem;
     }
     button {
@@ -162,6 +162,7 @@
     }
     button:disabled { cursor: not-allowed; opacity: .48; }
     .accept { background: var(--good); color: #052e16; }
+    .add { background: var(--blue); color: #082f49; }
     .cancel { background: transparent; border: 1px solid var(--border); color: var(--muted); }
     .steal { background: var(--bad); color: #fff; }
     .new { background: var(--gold); color: #422006; }
@@ -267,6 +268,7 @@
 
         <div class="actions">
           <button class="accept" id="acceptBtn" type="button">Accept</button>
+          <button class="add" id="addBtn" type="button">Ask Add</button>
           <button class="cancel" id="cancelBtn" type="button">Cancel</button>
           <button class="steal" id="stealBtn" type="button">Steal 50/50</button>
         </div>
@@ -325,6 +327,15 @@
     ];
     const items = buildItems();
     const npcs = buildTraders();
+    const tradeTiers = [
+      { min: 0, label: 'Starter', boost: 1 },
+      { min: 1_000, label: 'Better', boost: 2.4 },
+      { min: 10_000, label: 'Elite', boost: 8 },
+      { min: 100_000, label: 'Legend', boost: 30 },
+      { min: 1_000_000, label: 'Millionaire', boost: 120 },
+      { min: 10_000_000, label: 'Mythic', boost: 520 },
+      { min: 100_000_000, label: 'Cosmic', boost: 2_500 }
+    ];
 
     const inventoryEl = document.getElementById('inventory');
     const netWorthEl = document.getElementById('netWorth');
@@ -339,6 +350,7 @@
     const takeName = document.getElementById('takeName');
     const takeValue = document.getElementById('takeValue');
     const acceptBtn = document.getElementById('acceptBtn');
+    const addBtn = document.getElementById('addBtn');
     const cancelBtn = document.getElementById('cancelBtn');
     const stealBtn = document.getElementById('stealBtn');
     const newRunBtn = document.getElementById('newRunBtn');
@@ -358,7 +370,7 @@
           generated.push({
             name: `${adjective} ${noun}`,
             icon: itemIcons[index % itemIcons.length],
-            value: 6 + adjectiveIndex * 9 + nounIndex * 5 + (index % 7)
+            value: Math.round((8 + adjectiveIndex * 14 + nounIndex * 9 + (index % 7)) * (1 + adjectiveIndex / 12))
           });
         });
       });
@@ -380,14 +392,35 @@
       return generated;
     }
 
-    function freshItem(base = randomItem()) {
-      return { ...base, id: `${base.name}-${Date.now()}-${Math.random()}` };
+    function freshItem(base = randomItem(), multiplier = 1) {
+      return {
+        ...base,
+        value: Math.max(1, Math.round(base.value * multiplier)),
+        id: `${base.name}-${Date.now()}-${Math.random()}`
+      };
     }
 
-    function randomItem() {
+    function randomItem(tier = currentTier()) {
       const roll = Math.random();
-      const pool = roll > .86 ? items.slice(8) : roll > .54 ? items.slice(3, 9) : items.slice(0, 6);
+      const start = Math.min(items.length - 1, Math.floor(Math.log10(tier.min || 1) * 24));
+      const size = roll > .86 ? 180 : roll > .54 ? 120 : 70;
+      const end = Math.min(items.length, start + size);
+      const pool = items.slice(start, end);
       return pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    function currentTier() {
+      const worth = netWorth();
+      return tradeTiers.reduce((best, tier) => worth >= tier.min ? tier : best, tradeTiers[0]);
+    }
+
+    function offerMultiplier(tier) {
+      const luck = .9 + Math.random() * .8;
+      return tier.boost * luck;
+    }
+
+    function formatValue(value) {
+      return new Intl.NumberFormat('en-US', { notation: value >= 100_000 ? 'compact' : 'standard', maximumFractionDigits: 1 }).format(value);
     }
 
     function startRun() {
@@ -415,13 +448,14 @@
       selectedIndex = Math.min(selectedIndex, inventory.length - 1);
       const npc = npcs[Math.floor(Math.random() * npcs.length)];
       const give = inventory[selectedIndex];
-      let take = freshItem(randomItem());
+      const tier = currentTier();
+      let take = freshItem(randomItem(tier), offerMultiplier(tier));
       let guard = 0;
       while (take.name === give.name && guard < 8) {
-        take = freshItem(randomItem());
+        take = freshItem(randomItem(tier), offerMultiplier(tier));
         guard++;
       }
-      offer = { npc, take };
+      offer = { npc, take, tier: tier.label };
       render();
       saveGame();
     }
@@ -437,9 +471,10 @@
     function render() {
       const give = selectedItem();
       const locked = !offer || !give;
-      netWorthEl.textContent = netWorth();
+      netWorthEl.textContent = formatValue(netWorth());
       turnCountEl.textContent = deals;
       acceptBtn.disabled = locked;
+      addBtn.disabled = locked || Boolean(offer?.askedAdd);
       cancelBtn.disabled = !offer;
       stealBtn.disabled = locked;
 
@@ -448,8 +483,10 @@
         npcName.textContent = offer.npc.name;
         npcLine.textContent = offer.npc.line;
         takeIcon.textContent = offer.take.icon;
-        takeName.textContent = offer.take.name;
-        takeValue.textContent = `Value ${offer.take.value}`;
+        takeName.textContent = offer.addOn ? `${offer.take.name} + ${offer.addOn.name}` : offer.take.name;
+        const totalOffer = offer.take.value + (offer.addOn?.value || 0);
+        const addLabel = offer.addOn ? ` · add-on ${formatValue(offer.addOn.value)}` : '';
+        takeValue.textContent = `Value ${formatValue(totalOffer)}${addLabel} · ${offer.tier || currentTier().label} trade`;
       } else {
         npcAvatar.textContent = '🧳';
         npcName.textContent = 'No trader';
@@ -462,7 +499,7 @@
       if (give) {
         giveIcon.textContent = give.icon;
         giveName.textContent = give.name;
-        giveValue.textContent = `Value ${give.value}`;
+        giveValue.textContent = `Value ${formatValue(give.value)}`;
       } else {
         giveIcon.textContent = '∅';
         giveName.textContent = 'Nothing left';
@@ -478,7 +515,7 @@
         const row = document.createElement('button');
         row.className = `inv-item${index === selectedIndex ? ' selected' : ''}`;
         row.type = 'button';
-        row.innerHTML = `<span class="inv-icon">${item.icon}</span><span><span class="inv-name">${item.name}</span><br><span class="inv-value">Value ${item.value}</span></span><span>Offer</span>`;
+        row.innerHTML = `<span class="inv-icon">${item.icon}</span><span><span class="inv-name">${item.name}</span><br><span class="inv-value">Value ${formatValue(item.value)}</span></span><span>Offer</span>`;
         row.addEventListener('click', () => {
           selectedIndex = index;
           nextOffer();
@@ -528,7 +565,24 @@
       const give = selectedItem();
       if (!offer || !give) return;
       inventory.splice(selectedIndex, 1, offer.take);
-      finishDeal(`Accepted: traded ${give.name} for ${offer.take.name}.`);
+      if (offer.addOn) inventory.push(offer.addOn);
+      finishDeal(`Accepted: traded ${give.name} for ${offer.addOn ? `${offer.take.name} and ${offer.addOn.name}` : offer.take.name}.`);
+    });
+
+    addBtn.addEventListener('click', () => {
+      const give = selectedItem();
+      if (!offer || !give || offer.askedAdd) return;
+      offer.askedAdd = true;
+      const tier = currentTier();
+      const acceptChance = offer.take.value < give.value ? .72 : .42;
+      if (Math.random() < acceptChance) {
+        offer.addOn = freshItem(randomItem(tier), offerMultiplier(tier) * .35);
+        logEl.textContent = `${offer.npc.name} agreed to add ${offer.addOn.name}.`;
+      } else {
+        logEl.textContent = `${offer.npc.name} declined to add anything.`;
+      }
+      render();
+      saveGame();
     });
 
     cancelBtn.addEventListener('click', () => {
@@ -541,7 +595,8 @@
       if (!offer || !give) return;
       if (Math.random() < .5) {
         inventory.push(offer.take);
-        finishDeal(`Steal worked. You kept ${give.name} and took ${offer.take.name}.`);
+        if (offer.addOn) inventory.push(offer.addOn);
+        finishDeal(`Steal worked. You kept ${give.name} and took the offer.`);
       } else {
         inventory.splice(selectedIndex, 1);
         finishDeal(`Steal failed. You lost ${give.name} and got nothing back.`);
