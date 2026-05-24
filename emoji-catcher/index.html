@@ -673,7 +673,7 @@ function spawnToScreen(emoji, rKey) {
 }
 
 // ── COLLECT ────────────────────────────────────────────────
-function collect(emoji, rKey, el, timeout) {
+function collect(emoji, rKey, el, timeout, noCoins) {
   clearTimeout(timeout);
   activeEmojis = activeEmojis.filter(a => a.el !== el);
   if (el.classList) {
@@ -690,7 +690,7 @@ function collect(emoji, rKey, el, timeout) {
   clearTimeout(streakTimer);
   streakTimer = setTimeout(() => { streak = 0; updateHUD(); }, 3000);
   const mult = Math.min(streak, 10);
-  const earned = Math.ceil(RARITIES[rKey].coins * (1 + (mult - 1) * 0.2));
+  const earned = noCoins ? 0 : Math.ceil(RARITIES[rKey].coins * (1 + (mult - 1) * 0.2));
   coins += earned;
 
   // Coin popup
@@ -719,7 +719,7 @@ function doSummon(type) {
   const weights = SUMMON_WEIGHTS[type];
   const rKey = rollRarity(rarityList, weights);
   const emoji = rollEmoji(rKey);
-  collect(emoji, rKey, { getBoundingClientRect: () => ({ left: window.innerWidth/2-28, top: window.innerHeight/2-28, width:56, height:56 }) }, null);
+  collect(emoji, rKey, { getBoundingClientRect: () => ({ left: window.innerWidth/2-28, top: window.innerHeight/2-28, width:56, height:56 }) }, null, true);
   showSummonResult(emoji, rKey);
 }
 
