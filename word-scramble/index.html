@@ -169,6 +169,10 @@
       font-weight: 900;
       padding: 0.78rem 1rem;
     }
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
     button.secondary {
       background: transparent;
       border: 1px solid var(--border);
@@ -387,7 +391,8 @@
       dailyLabel.textContent = `${difficulty} / ${dayKey}`;
       scoreVal.textContent = score;
       answerInput.disabled = false;
-      restartBtn.disabled = false;
+      restartBtn.disabled = true;
+      saveCurrentAttempt();
       renderWord();
       renderRecords();
       answerInput.focus();
@@ -423,7 +428,7 @@
       wordIndex.textContent = index + 1;
       answerInput.value = '';
       feedback.className = 'feedback';
-      feedback.textContent = 'Unscramble the daily word.';
+      feedback.textContent = 'This is your only attempt for today.';
     }
 
     function finish() {
