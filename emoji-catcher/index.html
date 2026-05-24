@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Emoji Catcher – gamed.fun</title>
+<style>
+  :root {
+    --bg: #1a1625;
+    --panel: #231f30;
+    --text: #fff7ed;
+    --muted: #b8a99a;
+    --gold: #fbbf24;
+    --border: rgba(255,255,255,.13);
+    --c-common:    #9ca3af;
+    --c-uncommon:  #34d399;
+    --c-rare:      #60a5fa;
+    --c-epic:      #c084fc;
+    --c-legendary: #fbbf24;
+    --c-mythic:    #f87171;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    height: 100dvh;
+    overflow: hidden;
+    background: linear-gradient(180deg, #181219 0%, var(--bg) 100%);
+    color: var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+    display: flex;
+    flex-direction: column;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* HEADER */
+  header {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: .5rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(18,16,20,.9);
+    backdrop-filter: blur(8px);
+    z-index: 20;
+  }
+  .brand { text-decoration: none; font-weight: 900; color: var(--gold); font-size: .95rem; }
+  .home-link { text-decoration: none; color: var(--muted); font-size: .82rem; }
+
+  /* HUD */
+  #hud {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: .4rem 1rem;
+    font-size: .88rem;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+  #hud .stat { display: flex; align-items: center; gap: .35rem; color: var(--muted); }
+  #hud .stat strong { color: var(--text); font-size: 1rem; }
+
+  /* GAME AREA */
+  #game-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    cursor: crosshair;
+  }
+
+  /* FLOATING EMOJIS */
+  .emoji-bubble {
+    position: absolute;
+    font-size: 2.2rem;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    animation: bobble 3s ease-in-out infinite;
+    transition: transform .08s;
+    z-index: 5;
+  }
+  .emoji-bubble:hover { transform: scale(1.15); }
+  .emoji-bubble:active { transform: scale(0.9); }
+
+  .emoji-bubble.common    { border-color: var(--c-common);    box-shadow: 0 0 8px  var(--c-common);    background: rgba(156,163,175,.1); }
+  .emoji-bubble.uncommon  { border-color: var(--c-uncommon);  box-shadow: 0 0 10px var(--c-uncommon);  background: rgba(52,211,153,.1); }
+  .emoji-bubble.rare      { border-color: var(--c-rare);      box-shadow: 0 0 12px var(--c-rare);      background: rgba(96,165,250,.12); }
+  .emoji-bubble.epic      { border-color: var(--c-epic);      box-shadow: 0 0 16px var(--c-epic);      background: rgba(192,132,252,.12); }
+  .emoji-bubble.legendary { border-color: var(--c-legendary); box-shadow: 0 0 20px var(--c-legendary); background: rgba(251,191,36,.12); animation: bobble 2s ease-in-out infinite, shimmer 1.5s ease-in-out infinite; }
+  .emoji-bubble.mythic    { border-color: var(--c-mythic);    box-shadow: 0 0 28px var(--c-mythic), 0 0 50px rgba(248,113,113,.3); background: rgba(248,113,113,.15); animation: bobble 1.5s ease-in-out infinite, pulse-mythic 1s ease-in-out infinite; font-size: 2.6rem; width: 64px; height: 64px; }
+
+  @keyframes bobble {
+    0%,100% { transform: translateY(0); }
+    50%      { transform: translateY(-10px); }
+  }
+  @keyframes shimmer {
+    0%,100% { box-shadow: 0 0 20px var(--c-legendary); }
+    50%      { box-shadow: 0 0 30px var(--c-legendary), 0 0 50px rgba(251,191,36,.3); }
+  }
+  @keyframes pulse-mythic {
+    0%,100% { box-shadow: 0 0 28px var(--c-mythic), 0 0 50px rgba(248,113,113,.3); }
+    50%      { box-shadow: 0 0 40px var(--c-mythic), 0 0 80px rgba(248,113,113,.5); }
+  }
+
+  .emoji-bubble.fade-out {
+    animation: fadeOut .3s forwards !important;
+  }
+  @keyframes fadeOut {
+    to { transform: scale(1.8); opacity: 0; }
+  }
+  .emoji-bubble.vanish {
+    animation: vanish .6s forwards !important;
+  }
+  @keyframes vanish {
+    to { transform: scale(0); opacity: 0; }
+  }
+
+  /* COIN POPUP */
+  .coin-pop {
+    position: fixed;
+    font-size: .9rem;
+    font-weight: 900;
+    pointer-events: none;
+    z-index: 100;
+    animation: floatUp .8s ease-out forwards;
+  }
+  @keyframes floatUp {
+    0%   { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-60px); opacity: 0; }
+  }
+
+  /* BOTTOM BAR */
+  #bottom-bar {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+  }
+  #summon-row {
+    display: flex;
+    gap: .4rem;
+    padding: .5rem .7rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  #summon-row::-webkit-scrollbar { display: none; }
+  .summon-btn {
+    flex-shrink: 0;
+    padding: .4rem .8rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #2a2438;
+    color: var(--text);
+    font-size: .8rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    transition: background .12s;
+  }
+  .summon-btn:hover { background: #332d45; }
+  .summon-btn.disabled { opacity: .45; cursor: default; }
+  .summon-btn .cost { font-size: .7rem; color: var(--gold); }
+  #collection-toggle {
+    border: none;
+    background: none;
+    color: var(--muted);
+    font-size: .82rem;
+    padding: .3rem;
+    cursor: pointer;
+    text-align: center;
+    width: 100%;
+    border-top: 1px solid var(--border);
+  }
+  #collection-toggle:hover { color: var(--text); }
+
+  /* COLLECTION OVERLAY */
+  #collection-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: rgba(10,8,16,.97);
+    display: flex;
+    flex-direction: column;
+    transform: translateY(100%);
+    transition: transform .3s ease;
+  }
+  #collection-overlay.open { transform: translateY(0); }
+  #coll-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: .8rem 1rem;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  #coll-header h2 { font-size: 1.1rem; font-weight: 900; }
+  #close-coll {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 1.4rem;
+    cursor: pointer;
+    padding: 0 .3rem;
+  }
+  #rarity-filter {
+    display: flex;
+    gap: .4rem;
+    padding: .5rem .8rem;
+    overflow-x: auto;
+    flex-shrink: 0;
+    scrollbar-width: none;
+    border-bottom: 1px solid var(--border);
+  }
+  #rarity-filter::-webkit-scrollbar { display: none; }
+  .filter-btn {
+    flex-shrink: 0;
+    padding: .25rem .7rem;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    background: transparent;
+    font-size: .78rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--muted);
+    transition: all .12s;
+  }
+  .filter-btn.active { color: var(--bg); }
+  .filter-btn[data-r="all"].active    { background: var(--text); border-color: var(--text); color: var(--bg); }
+  .filter-btn[data-r="common"].active    { background: var(--c-common);    border-color: var(--c-common); }
+  .filter-btn[data-r="uncommon"].active  { background: var(--c-uncommon);  border-color: var(--c-uncommon); }
+  .filter-btn[data-r="rare"].active      { background: var(--c-rare);      border-color: var(--c-rare); }
+  .filter-btn[data-r="epic"].active      { background: var(--c-epic);      border-color: var(--c-epic); }
+  .filter-btn[data-r="legendary"].active { background: var(--c-legendary); border-color: var(--c-legendary); }
+  .filter-btn[data-r="mythic"].active    { background: var(--c-mythic);    border-color: var(--c-mythic); }
+
+  #coll-grid {
+    flex: 1;
+    overflow-y: auto;
+    padding: .8rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
+    gap: .5rem;
+    align-content: start;
+  }
+  .coll-cell {
+    aspect-ratio: 1;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: #231f30;
+    border: 1px solid var(--border);
+    font-size: 1.8rem;
+    position: relative;
+    transition: transform .1s;
+  }
+  .coll-cell:hover { transform: scale(1.05); }
+  .coll-cell.undiscovered { filter: grayscale(1); opacity: .3; }
+  .coll-cell.common    { border-color: rgba(156,163,175,.4); }
+  .coll-cell.uncommon  { border-color: rgba(52,211,153,.4); }
+  .coll-cell.rare      { border-color: rgba(96,165,250,.4); }
+  .coll-cell.epic      { border-color: rgba(192,132,252,.4); }
+  .coll-cell.legendary { border-color: rgba(251,191,36,.5); box-shadow: 0 0 8px rgba(251,191,36,.2); }
+  .coll-cell.mythic    { border-color: rgba(248,113,113,.6); box-shadow: 0 0 10px rgba(248,113,113,.3); }
+  .coll-count {
+    font-size: .62rem;
+    font-weight: 700;
+    color: var(--muted);
+    line-height: 1;
+  }
+  .coll-cell .rarity-dot {
+    position: absolute;
+    top: 4px; right: 4px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+  }
+  .coll-cell.common .rarity-dot    { background: var(--c-common); }
+  .coll-cell.uncommon .rarity-dot  { background: var(--c-uncommon); }
+  .coll-cell.rare .rarity-dot      { background: var(--c-rare); }
+  .coll-cell.epic .rarity-dot      { background: var(--c-epic); }
+  .coll-cell.legendary .rarity-dot { background: var(--c-legendary); }
+  .coll-cell.mythic .rarity-dot    { background: var(--c-mythic); }
+
+  /* TOOLTIP */
+  .coll-cell[title] { cursor: default; }
+
+  /* NEW badge */
+  .new-badge {
+    position: absolute;
+    top: -4px; left: -4px;
+    background: var(--c-mythic);
+    color: white;
+    font-size: .55rem;
+    font-weight: 900;
+    padding: 1px 4px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="brand" href="/">🎮 gamed.fun</a>
+  <a class="home-link" href="/">← Home</a>
+</header>
+
+<div id="hud">
+  <div class="stat">🪙 <strong id="coinCount">0</strong> coins</div>
+  <div class="stat">📦 <strong id="progress">0 / 63</strong> collected</div>
+  <div class="stat" id="spawnLabel" style="font-size:.75rem">tap emojis!</div>
+</div>
+
+<div id="game-area"></div>
+
+<div id="bottom-bar">
+  <div id="summon-row">
+    <button class="summon-btn" onclick="doSummon('basic')">
+      <span>Basic Pull</span>
+      <span class="cost">10 🪙</span>
+    </button>
+    <button class="summon-btn" onclick="doSummon('uncommon')">
+      <span>Uncommon+</span>
+      <span class="cost">50 🪙</span>
+    </button>
+    <button class="summon-btn" onclick="doSummon('rare')">
+      <span>Rare+</span>
+      <span class="cost">150 🪙</span>
+    </button>
+    <button class="summon-btn" onclick="doSummon('epic')">
+      <span>Epic+</span>
+      <span class="cost">500 🪙</span>
+    </button>
+    <button class="summon-btn" onclick="doSummon('legendary')">
+      <span>Legendary+</span>
+      <span class="cost">2000 🪙</span>
+    </button>
+  </div>
+  <button id="collection-toggle" onclick="openCollection()">📖 View Collection ▲</button>
+</div>
+
+<div id="collection-overlay">
+  <div id="coll-header">
+    <h2>📖 Collection</h2>
+    <button id="close-coll" onclick="closeCollection()">✕</button>
+  </div>
+  <div id="rarity-filter">
+    <button class="filter-btn active" data-r="all" onclick="setFilter('all')">All</button>
+    <button class="filter-btn" data-r="common"    onclick="setFilter('common')"    style="color:var(--c-common)">Common</button>
+    <button class="filter-btn" data-r="uncommon"  onclick="setFilter('uncommon')"  style="color:var(--c-uncommon)">Uncommon</button>
+    <button class="filter-btn" data-r="rare"      onclick="setFilter('rare')"      style="color:var(--c-rare)">Rare</button>
+    <button class="filter-btn" data-r="epic"      onclick="setFilter('epic')"      style="color:var(--c-epic)">Epic</button>
+    <button class="filter-btn" data-r="legendary" onclick="setFilter('legendary')" style="color:var(--c-legendary)">Legendary</button>
+    <button class="filter-btn" data-r="mythic"    onclick="setFilter('mythic')"    style="color:var(--c-mythic)">Mythic</button>
+  </div>
+  <div id="coll-grid"></div>
+</div>
+
+<script>
+const RARITIES = {
+  common:    { name:'Common',    color:'var(--c-common)',    weight:50, coins:1,   spawnMs:2500  },
+  uncommon:  { name:'Uncommon',  color:'var(--c-uncommon)',  weight:25, coins:3,   spawnMs:4000  },
+  rare:      { name:'Rare',      color:'var(--c-rare)',      weight:12, coins:10,  spawnMs:7000  },
+  epic:      { name:'Epic',      color:'var(--c-epic)',      weight:8,  coins:30,  spawnMs:12000 },
+  legendary: { name:'Legendary', color:'var(--c-legendary)', weight:4,  coins:80,  spawnMs:20000 },
+  mythic:    { name:'Mythic',    color:'var(--c-mythic)',    weight:1,  coins:300, spawnMs:40000 },
+};
+
+const EMOJIS = [
+  // Common (20)
+  {e:'🍎',n:'Apple',r:'common'},{e:'🍊',n:'Orange',r:'common'},{e:'🍋',n:'Lemon',r:'common'},
+  {e:'🍇',n:'Grapes',r:'common'},{e:'🍓',n:'Strawberry',r:'common'},{e:'🍉',n:'Watermelon',r:'common'},
+  {e:'🥕',n:'Carrot',r:'common'},{e:'🌽',n:'Corn',r:'common'},{e:'🌻',n:'Sunflower',r:'common'},
+  {e:'🌹',n:'Rose',r:'common'},{e:'🍄',n:'Mushroom',r:'common'},{e:'🌿',n:'Herb',r:'common'},
+  {e:'🍞',n:'Bread',r:'common'},{e:'🧁',n:'Cupcake',r:'common'},{e:'🎈',n:'Balloon',r:'common'},
+  {e:'🍕',n:'Pizza',r:'common'},{e:'🌮',n:'Taco',r:'common'},{e:'💧',n:'Droplet',r:'common'},
+  {e:'❄️',n:'Snowflake',r:'common'},{e:'🍩',n:'Donut',r:'common'},
+  // Uncommon (15)
+  {e:'🐶',n:'Dog',r:'uncommon'},{e:'🐱',n:'Cat',r:'uncommon'},{e:'🐭',n:'Mouse',r:'uncommon'},
+  {e:'🐰',n:'Rabbit',r:'uncommon'},{e:'🦊',n:'Fox',r:'uncommon'},{e:'🐻',n:'Bear',r:'uncommon'},
+  {e:'🐼',n:'Panda',r:'uncommon'},{e:'🐨',n:'Koala',r:'uncommon'},{e:'🐯',n:'Tiger',r:'uncommon'},
+  {e:'🐸',n:'Frog',r:'uncommon'},{e:'🐵',n:'Monkey',r:'uncommon'},{e:'🦆',n:'Duck',r:'uncommon'},
+  {e:'🐧',n:'Penguin',r:'uncommon'},{e:'🦉',n:'Owl',r:'uncommon'},{e:'🐺',n:'Wolf',r:'uncommon'},
+  // Rare (12)
+  {e:'🦄',n:'Unicorn',r:'rare'},{e:'🦋',n:'Butterfly',r:'rare'},{e:'🐙',n:'Octopus',r:'rare'},
+  {e:'🦑',n:'Squid',r:'rare'},{e:'🦀',n:'Crab',r:'rare'},{e:'🐬',n:'Dolphin',r:'rare'},
+  {e:'🦈',n:'Shark',r:'rare'},{e:'🐊',n:'Crocodile',r:'rare'},{e:'🦁',n:'Lion',r:'rare'},
+  {e:'🦒',n:'Giraffe',r:'rare'},{e:'🦓',n:'Zebra',r:'rare'},{e:'🐘',n:'Elephant',r:'rare'},
+  // Epic (8)
+  {e:'🐉',n:'Dragon',r:'epic'},{e:'🦕',n:'Sauropod',r:'epic'},{e:'🦖',n:'T-Rex',r:'epic'},
+  {e:'🧙',n:'Wizard',r:'epic'},{e:'🧜',n:'Merperson',r:'epic'},{e:'🧝',n:'Elf',r:'epic'},
+  {e:'🦸',n:'Superhero',r:'epic'},{e:'🧞',n:'Genie',r:'epic'},
+  // Legendary (5)
+  {e:'💎',n:'Diamond',r:'legendary'},{e:'👑',n:'Crown',r:'legendary'},{e:'🏆',n:'Trophy',r:'legendary'},
+  {e:'🔮',n:'Crystal Ball',r:'legendary'},{e:'🌈',n:'Rainbow',r:'legendary'},
+  // Mythic (3)
+  {e:'🌌',n:'Milky Way',r:'mythic'},{e:'🪄',n:'Magic Wand',r:'mythic'},{e:'⚡',n:'Lightning',r:'mythic'},
+];
+
+const TOTAL = EMOJIS.length; // 63
+const MAX_ACTIVE = 12;
+const LIFETIME = 8000;
+const SUMMON_COSTS = { basic:10, uncommon:50, rare:150, epic:500, legendary:2000 };
+const SUMMON_POOLS = {
+  basic:    ['common','uncommon','rare','epic','legendary','mythic'],
+  uncommon: ['uncommon','rare','epic','legendary','mythic'],
+  rare:     ['rare','rare','epic','legendary','mythic'],
+  epic:     ['epic','epic','legendary','mythic'],
+  legendary:['legendary','legendary','legendary','mythic'],
+};
+const SUMMON_WEIGHTS = {
+  basic:    [50,25,12,8,4,1],
+  uncommon: [40,25,20,10,5],
+  rare:     [15,40,30,15],
+  epic:     [10,50,30,10],
+  legendary:[60,60,60,20],
+};
+
+let coins = 0;
+let collection = {}; // { emoji_name: count }
+let newlyFound = new Set();
+let activeEmojis = [];
+let filterRarity = 'all';
+let collOpen = false;
+
+const gameArea = document.getElementById('game-area');
+const coinCountEl = document.getElementById('coinCount');
+const progressEl = document.getElementById('progress');
+
+// ── RARITY ROLL ────────────────────────────────────────────
+function rollRarity(rarityList, weights) {
+  const total = weights.reduce((a,b) => a+b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < weights.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return rarityList[i];
+  }
+  return rarityList[0];
+}
+
+function rollEmoji(rarityKey) {
+  const pool = EMOJIS.filter(e => e.r === rarityKey);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// ── SPAWN ──────────────────────────────────────────────────
+function spawnEmoji() {
+  if (activeEmojis.length >= MAX_ACTIVE) return;
+  const rarityList = Object.keys(RARITIES);
+  const weights = rarityList.map(r => RARITIES[r].weight);
+  const rKey = rollRarity(rarityList, weights);
+  const emoji = rollEmoji(rKey);
+  spawnToScreen(emoji, rKey);
+}
+
+function spawnToScreen(emoji, rKey) {
+  const area = gameArea.getBoundingClientRect();
+  const size = rKey === 'mythic' ? 64 : 56;
+  const x = Math.random() * (area.width  - size - 20) + 10;
+  const y = Math.random() * (area.height - size - 20) + 10;
+  const delay = Math.random() * 2;
+
+  const el = document.createElement('div');
+  el.className = `emoji-bubble ${rKey}`;
+  el.textContent = emoji.e;
+  el.title = `${emoji.n} · ${RARITIES[rKey].name}`;
+  el.style.left = x + 'px';
+  el.style.top  = y + 'px';
+  el.style.animationDelay = delay + 's';
+
+  const timeout = setTimeout(() => {
+    el.classList.add('vanish');
+    setTimeout(() => { el.remove(); activeEmojis = activeEmojis.filter(a => a.el !== el); }, 600);
+  }, LIFETIME);
+
+  el.addEventListener('click', ev => { ev.stopPropagation(); collect(emoji, rKey, el, timeout); });
+  gameArea.appendChild(el);
+  activeEmojis.push({ emoji, rKey, el, timeout });
+}
+
+// ── COLLECT ────────────────────────────────────────────────
+function collect(emoji, rKey, el, timeout) {
+  clearTimeout(timeout);
+  activeEmojis = activeEmojis.filter(a => a.el !== el);
+  el.classList.add('fade-out');
+  setTimeout(() => el.remove(), 300);
+
+  const isNew = !collection[emoji.n];
+  collection[emoji.n] = (collection[emoji.n] || 0) + 1;
+  if (isNew) newlyFound.add(emoji.n);
+
+  const earned = RARITIES[rKey].coins;
+  coins += earned;
+
+  // Coin popup
+  const rect = el.getBoundingClientRect();
+  const pop = document.createElement('div');
+  pop.className = 'coin-pop';
+  pop.style.cssText = `left:${rect.left + rect.width/2}px;top:${rect.top}px;color:${RARITIES[rKey].color};`;
+  pop.textContent = '+' + earned + '🪙' + (isNew ? ' NEW!' : '');
+  document.body.appendChild(pop);
+  setTimeout(() => pop.remove(), 850);
+
+  updateHUD();
+  if (collOpen) renderCollection();
+}
+
+// ── SUMMON ─────────────────────────────────────────────────
+function doSummon(type) {
+  const cost = SUMMON_COSTS[type];
+  if (coins < cost) { flashBtn(type); return; }
+  coins -= cost;
+  const rarityList = SUMMON_POOLS[type];
+  const weights = SUMMON_WEIGHTS[type];
+  const rKey = rollRarity(rarityList, weights);
+  const emoji = rollEmoji(rKey);
+  collect(emoji, rKey, { getBoundingClientRect: () => ({ left: window.innerWidth/2-28, top: window.innerHeight/2-28, width:56, height:56 }) }, null);
+  showSummonResult(emoji, rKey);
+}
+
+function showSummonResult(emoji, rKey) {
+  const el = document.createElement('div');
+  el.style.cssText = `position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);z-index:200;font-size:4rem;text-align:center;pointer-events:none;animation:floatUp 1.2s ease-out forwards;`;
+  el.innerHTML = `<div>${emoji.e}</div><div style="font-size:1rem;font-weight:900;color:${RARITIES[rKey].color};margin-top:.3rem">${RARITIES[rKey].name}</div>`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1300);
+}
+
+function flashBtn(type) {
+  const btns = document.querySelectorAll('.summon-btn');
+  const costs = Object.values(SUMMON_COSTS);
+  const idx = Object.keys(SUMMON_COSTS).indexOf(type);
+  if (btns[idx]) { btns[idx].style.background = '#4c1d2e'; setTimeout(() => btns[idx].style.background = '', 300); }
+}
+
+// ── HUD ────────────────────────────────────────────────────
+function updateHUD() {
+  coinCountEl.textContent = coins.toLocaleString();
+  const found = Object.keys(collection).length;
+  progressEl.textContent = found + ' / ' + TOTAL;
+  // Update summon button states
+  document.querySelectorAll('.summon-btn').forEach((btn, i) => {
+    const cost = Object.values(SUMMON_COSTS)[i];
+    btn.classList.toggle('disabled', coins < cost);
+  });
+}
+
+// ── COLLECTION ─────────────────────────────────────────────
+function openCollection() {
+  collOpen = true;
+  document.getElementById('collection-overlay').classList.add('open');
+  renderCollection();
+}
+function closeCollection() {
+  collOpen = false;
+  document.getElementById('collection-overlay').classList.remove('open');
+}
+function setFilter(r) {
+  filterRarity = r;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.r === r));
+  renderCollection();
+}
+
+function renderCollection() {
+  const grid = document.getElementById('coll-grid');
+  const list = filterRarity === 'all' ? EMOJIS : EMOJIS.filter(e => e.r === filterRarity);
+  grid.innerHTML = '';
+  for (const e of list) {
+    const count = collection[e.n] || 0;
+    const found = count > 0;
+    const isNew = newlyFound.has(e.n);
+    const cell = document.createElement('div');
+    cell.className = 'coll-cell ' + e.r + (found ? '' : ' undiscovered');
+    cell.title = found ? `${e.n} · ${RARITIES[e.r].name} · ×${count}` : '???';
+    cell.innerHTML = `
+      <div class="rarity-dot"></div>
+      ${isNew && found ? '<div class="new-badge">new</div>' : ''}
+      <span>${found ? e.e : '❓'}</span>
+      ${found ? `<span class="coll-count">×${count}</span>` : ''}
+    `;
+    if (found && isNew) cell.addEventListener('click', () => { newlyFound.delete(e.n); renderCollection(); }, { once: true });
+    grid.appendChild(cell);
+  }
+}
+
+// ── SPAWN LOOP ─────────────────────────────────────────────
+function scheduleSpawn() {
+  const delay = 1200 + Math.random() * 1800;
+  setTimeout(() => { spawnEmoji(); scheduleSpawn(); }, delay);
+}
+
+// Initial burst
+for (let i = 0; i < 5; i++) {
+  setTimeout(spawnEmoji, i * 400);
+}
+scheduleSpawn();
+updateHUD();
+</script>
+</body>
+</html>
