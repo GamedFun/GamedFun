@@ -592,18 +592,18 @@ const TOTAL = EMOJIS.length; // 148
 const MAX_ACTIVE = 12;
 const SUMMON_COSTS = { basic:10, uncommon:50, rare:150, epic:500, legendary:2000 };
 const SUMMON_POOLS = {
-  basic:    ['common','uncommon','rare','epic','legendary','mythic'],
-  uncommon: ['uncommon','rare','epic','legendary','mythic'],
-  rare:     ['rare','rare','epic','legendary','mythic'],
-  epic:     ['epic','epic','legendary','mythic'],
-  legendary:['legendary','legendary','legendary','mythic'],
+  basic:    ['common','uncommon'],
+  uncommon: ['uncommon','rare'],
+  rare:     ['rare','epic'],
+  epic:     ['epic','legendary'],
+  legendary:['legendary','mythic'],
 };
 const SUMMON_WEIGHTS = {
-  basic:    [50,25,12,8,4,1],
-  uncommon: [40,25,20,10,5],
-  rare:     [15,40,30,15],
-  epic:     [10,50,30,10],
-  legendary:[60,60,60,1],
+  basic:    [75,25],
+  uncommon: [65,35],
+  rare:     [70,30],
+  epic:     [75,25],
+  legendary:[95,5],
 };
 
 let coins = 0;
