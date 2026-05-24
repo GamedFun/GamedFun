@@ -53,7 +53,7 @@
     }
     .hud {
       display: grid;
-      grid-template-columns: 1fr auto auto auto;
+      grid-template-columns: 1fr auto auto auto auto;
       gap: .75rem;
       align-items: stretch;
     }
@@ -77,10 +77,10 @@
     .value { color: var(--cream); font-size: 1.45rem; font-weight: 1000; }
     .grid {
       display: grid;
-      grid-template-columns: minmax(280px, .85fr) minmax(320px, 1.15fr);
+      grid-template-columns: minmax(240px, .75fr) minmax(320px, 1.1fr) minmax(240px, .75fr);
       gap: 1rem;
     }
-    .customers, .station { padding: 1rem; display: grid; gap: .8rem; align-content: start; }
+    .customers, .station, .upgrades { padding: 1rem; display: grid; gap: .8rem; align-content: start; }
     #customerList { display: grid; gap: .7rem; }
     .customer {
       background: var(--panel-2);
@@ -200,6 +200,34 @@
     }
     button:disabled { opacity: .48; cursor: not-allowed; }
     .message { min-height: 1.4rem; color: var(--cream); font-weight: 850; }
+    .upgrade-list { display: grid; gap: .7rem; }
+    .upgrade {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: .8rem;
+      display: grid;
+      gap: .5rem;
+    }
+    .upgrade-top {
+      display: flex;
+      justify-content: space-between;
+      gap: .75rem;
+      align-items: center;
+    }
+    .upgrade-name { color: var(--cream); font-weight: 1000; }
+    .upgrade-desc { color: var(--muted); font-size: .86rem; font-weight: 750; line-height: 1.35; }
+    .upgrade-buy {
+      background: var(--mint);
+      color: #052e2b;
+      border: 0;
+      border-radius: 10px;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 1000;
+      padding: .7rem .85rem;
+    }
+    .upgrade-buy:disabled { opacity: .48; cursor: not-allowed; }
     .overlay {
       position: fixed;
       inset: 0;
@@ -237,10 +265,12 @@
     <section class="hud">
       <div class="title">
         <h1>The Little Cup</h1>
-        <p class="sub">Cook with mini-games, serve fast, and keep the cafe alive.</p>
+        <p class="sub">Cook puzzle orders, earn cash, and build the cafe into a tycoon.</p>
       </div>
+      <div class="stat"><div class="label">Cash</div><div class="value">$<span id="cashVal">0</span></div></div>
       <div class="stat"><div class="label">Served</div><div class="value" id="servedVal">0</div></div>
-      <div class="stat"><div class="label">Tips</div><div class="value">$<span id="tipsVal">0</span></div></div>
+      <div class="stat"><div class="label">Shift</div><div class="value">$<span id="tipsVal">0</span></div></div>
+      <div class="stat"><div class="label">Level</div><div class="value" id="levelVal">1</div></div>
       <div class="stat"><div class="label">Best</div><div class="value" id="bestVal">0</div></div>
     </section>
 
@@ -266,13 +296,18 @@
           </div>
         </div>
       </div>
+
+      <div class="upgrades panel">
+        <div class="label">Cafe Upgrades</div>
+        <div class="upgrade-list" id="upgradeList"></div>
+      </div>
     </section>
   </main>
 
   <div class="overlay" id="overlay">
     <div class="modal">
       <h1>The Little Cup</h1>
-      <p>Customers arrive with orders. Finish the cooking mini-game, then serve before their patience runs out. If anyone runs out of time, you lose.</p>
+      <p>Serve puzzle orders to earn cash. Buy upgrades to make each shift stronger and grow the cafe.</p>
       <button class="command" id="modalStartBtn" type="button">Open Cafe</button>
     </div>
   </div>
@@ -304,6 +339,12 @@
       compare: buildComparePuzzle,
       logic: buildLogicPuzzle
     };
+    const SAVE_KEY = 'little_cup_tycoon_save';
+    const upgradeDefs = [
+      { id: 'prices', name: 'Better Menu', desc: 'Earn more cash from every order.', base: 35, scale: 1.75 },
+      { id: 'patience', name: 'Cozy Tables', desc: 'Customers wait longer before leaving.', base: 45, scale: 1.8 },
+      { id: 'seats', name: 'Extra Seats', desc: 'Hold more waiting customers at once.', base: 70, scale: 2.15 }
+    ];
 
     const customerList = document.getElementById('customerList');
     const foodIcon = document.getElementById('foodIcon');
@@ -315,9 +356,12 @@
     const modalStartBtn = document.getElementById('modalStartBtn');
     const serveBtn = document.getElementById('serveBtn');
     const overlay = document.getElementById('overlay');
+    const cashVal = document.getElementById('cashVal');
     const servedVal = document.getElementById('servedVal');
     const tipsVal = document.getElementById('tipsVal');
+    const levelVal = document.getElementById('levelVal');
     const bestVal = document.getElementById('bestVal');
+    const upgradeList = document.getElementById('upgradeList');
 
     let customers = [];
     let activeId = null;
@@ -327,11 +371,76 @@
     let tips = 0;
     let lastTick = 0;
     let spawnTimer = 0;
-    let best = Number(localStorage.getItem('little_cup_best') || 0);
+    let cash = 0;
+    let best = 0;
+    let upgrades = { prices: 0, patience: 0, seats: 0 };
     let miniState = {};
-    bestVal.textContent = best;
+
+    function loadTycoon() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+        cash = Number(saved?.cash || 0);
+        best = Number(saved?.best || localStorage.getItem('little_cup_best') || 0);
+        upgrades = { ...upgrades, ...(saved?.upgrades || {}) };
+      } catch {}
+    }
+
+    function saveTycoon() {
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify({ cash, best, upgrades }));
+        localStorage.setItem('little_cup_best', String(best));
+      } catch {}
+    }
+
+    function cafeLevel() {
+      return 1 + Object.values(upgrades).reduce((sum, level) => sum + level, 0);
+    }
+
+    function upgradeCost(def) {
+      return Math.round(def.base * Math.pow(def.scale, upgrades[def.id]));
+    }
+
+    function maxCustomers() {
+      return 4 + upgrades.seats;
+    }
+
+    function orderValue(order, patience) {
+      return order.tip + Math.ceil(patience / 3) + upgrades.prices * 3;
+    }
+
+    function renderUpgrades() {
+      upgradeList.innerHTML = '';
+      upgradeDefs.forEach(def => {
+        const cost = upgradeCost(def);
+        const level = upgrades[def.id];
+        const wrap = document.createElement('div');
+        wrap.className = 'upgrade';
+        wrap.innerHTML = `
+          <div class="upgrade-top">
+            <div>
+              <div class="upgrade-name">${def.name}</div>
+              <div class="upgrade-desc">${def.desc}</div>
+            </div>
+            <div class="label">Lv ${level}</div>
+          </div>
+          <button class="upgrade-buy" type="button"${cash < cost ? ' disabled' : ''}>Buy $${cost}</button>`;
+        wrap.querySelector('button').addEventListener('click', () => buyUpgrade(def));
+        upgradeList.appendChild(wrap);
+      });
+    }
+
+    function buyUpgrade(def) {
+      const cost = upgradeCost(def);
+      if (cash < cost) return;
+      cash -= cost;
+      upgrades[def.id]++;
+      message.textContent = `${def.name} upgraded to level ${upgrades[def.id]}.`;
+      saveTycoon();
+      render();
+    }
 
     function startShift() {
+      if (served > best) best = served;
       customers = [];
       activeId = null;
       running = true;
@@ -340,16 +449,20 @@
       tips = 0;
       spawnTimer = 0;
       lastTick = performance.now();
+      overlay.querySelector('h1').textContent = 'The Little Cup';
+      overlay.querySelector('p').textContent = 'Serve puzzle orders to earn cash. Buy upgrades to make each shift stronger and grow the cafe.';
+      modalStartBtn.textContent = 'Open Cafe';
       overlay.classList.add('hidden');
       startBtn.textContent = 'Restart shift';
       addCustomer();
+      saveTycoon();
       render();
       requestAnimationFrame(loop);
     }
 
     function addCustomer() {
       const order = orders[Math.floor(Math.random() * orders.length)];
-      const patience = Math.max(12, 24 - served * 0.45);
+      const patience = Math.max(12, 24 + upgrades.patience * 4 - served * 0.35);
       customers.push({ id: `${Date.now()}-${Math.random()}`, name: names[Math.floor(Math.random() * names.length)], order, patience, maxPatience: patience });
       if (!activeId) selectCustomer(customers[0].id);
     }
@@ -457,7 +570,7 @@
           if (total === miniState.target) finishCooking();
           if (total > miniState.target) {
             message.textContent = 'Too much in the pot. Puzzle reset.';
-            buildSoupPuzzle();
+            buildSumPuzzle();
           }
         });
         choices.appendChild(btn);
@@ -623,9 +736,10 @@
     function serveOrder() {
       const customer = activeCustomer();
       if (!customer || !cooked) return;
-      const bonus = Math.ceil(customer.patience / 3);
+      const earned = orderValue(customer.order, customer.patience);
       served++;
-      tips += customer.order.tip + bonus;
+      tips += earned;
+      cash += earned;
       customers = customers.filter(item => item.id !== customer.id);
       activeId = customers[0]?.id || null;
       cooked = false;
@@ -637,7 +751,8 @@
         miniTitle.textContent = 'Served';
         miniHelp.textContent = 'Waiting for the next customer.';
       }
-      message.textContent = `Served ${customer.order.name}. +$${customer.order.tip + bonus}`;
+      saveTycoon();
+      message.textContent = `Served ${customer.order.name}. +$${earned}`;
       render();
     }
 
@@ -646,9 +761,9 @@
       const dt = Math.min(.05, (now - lastTick) / 1000);
       lastTick = now;
       spawnTimer -= dt;
-      if (spawnTimer <= 0 && customers.length < 4) {
+      if (spawnTimer <= 0 && customers.length < maxCustomers()) {
         addCustomer();
-        spawnTimer = Math.max(3.1, 6.2 - served * .18);
+        spawnTimer = Math.max(2.8, 6.2 - served * .15 - upgrades.seats * .12);
       }
       customers.forEach(customer => customer.patience -= dt);
       if (customers.some(customer => customer.patience <= 0)) return lose();
@@ -657,9 +772,12 @@
     }
 
     function render() {
+      cashVal.textContent = cash;
       servedVal.textContent = served;
       tipsVal.textContent = tips;
+      levelVal.textContent = cafeLevel();
       bestVal.textContent = best;
+      renderUpgrades();
       customerList.innerHTML = '';
       if (!customers.length) {
         customerList.innerHTML = '<div class="customer"><div class="mini-help">No customers right now.</div></div>';
@@ -681,9 +799,9 @@
     function lose() {
       running = false;
       best = Math.max(best, served);
-      localStorage.setItem('little_cup_best', String(best));
+      saveTycoon();
       overlay.querySelector('h1').textContent = 'Shift Failed';
-      overlay.querySelector('p').textContent = `You served ${served} customers and made $${tips}. Best shift: ${best} served.`;
+      overlay.querySelector('p').textContent = `You served ${served} customers and made $${tips}. Cafe cash: $${cash}. Best shift: ${best} served.`;
       modalStartBtn.textContent = 'Try Again';
       overlay.classList.remove('hidden');
       render();
@@ -692,6 +810,8 @@
     startBtn.addEventListener('click', startShift);
     modalStartBtn.addEventListener('click', startShift);
     serveBtn.addEventListener('click', serveOrder);
+    loadTycoon();
+    render();
   </script>
 </body>
 </html>
