@@ -634,7 +634,17 @@ function buyBuilding(b) {
   if (G.cash < cost) return;
   G.cash -= cost;
   G.owned[b.id] = (G.owned[b.id] || 0) + 1;
-  fillThingSlots();
+  const slotIdx = G.thingSlots.indexOf(b.id);
+  if (slotIdx !== -1) {
+    const visible = ALL_THINGS.filter(t => (G.owned[t.id]||0) > 0 || G.totalEarned >= t.baseCost * 0.1);
+    const pool = visible.filter(t => !G.thingSlots.includes(t.id));
+    if (pool.length > 0) {
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      G.thingSlots[slotIdx] = pick.id;
+    } else {
+      G.thingSlots.splice(slotIdx, 1);
+    }
+  }
   save(); render();
 }
 
@@ -645,7 +655,6 @@ function buyUpgrade(u) {
   G.bought.push(u.id);
   G.upgradeSlots = G.upgradeSlots.filter(id => id !== u.id);
   fillUpgradeSlots();
-  fillThingSlots();
   showToast(u.icon + ' ' + u.name, u.desc);
   save(); render();
 }
