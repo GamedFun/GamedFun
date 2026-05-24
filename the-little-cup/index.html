@@ -471,9 +471,9 @@
       foodIcon.textContent = customer.order.icon;
       if (customer.cooked) {
         miniTitle.textContent = `${customer.order.name} is ready`;
-        miniHelp.textContent = 'Leave it ready or press Sell when you want.';
+        miniHelp.textContent = '';
         serveBtn.disabled = false;
-        message.textContent = 'Ready to serve.';
+        message.textContent = '';
         return;
       }
       serveBtn.disabled = true;
@@ -554,8 +554,8 @@
       if (customer) customer.cooked = true;
       serveBtn.disabled = false;
       miniGame.innerHTML = '';
-      miniHelp.textContent = 'Order is cooked. Leave it ready or press Sell.';
-      message.textContent = 'Ready to serve.';
+      miniHelp.textContent = '';
+      message.textContent = '';
       render();
     }
 
@@ -579,12 +579,12 @@
       if (activeId) buildMiniGame();
       else {
         miniGame.innerHTML = '';
-        foodIcon.textContent = '✅';
-        miniTitle.textContent = 'Sold';
+        foodIcon.textContent = '🍞';
+        miniTitle.textContent = 'Ready for customers';
         miniHelp.textContent = 'Customers appear right away.';
       }
       saveTycoon();
-      message.textContent = `Sold ${customer.order.name}. +$${earned}`;
+      message.textContent = '';
       render();
     }
 
