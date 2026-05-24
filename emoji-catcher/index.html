@@ -872,9 +872,10 @@ const STAT_RANGES = {
 };
 
 function emojiStats(emoji) {
-  const rng = STAT_RANGES[emoji.r];
-  const h1 = strHash(emoji.n);             // overall power level within range
-  const h2 = strHash(emoji.e + emoji.n);   // tank (high HP) vs glass cannon (high ATK)
+  const rng = STAT_RANGES[emoji.r] || STAT_RANGES.common;
+  const name = emoji.n || emoji.name || '';
+  const h1 = strHash(name);
+  const h2 = strHash(emoji.e + name);
   const power = 0.55 + h1 * 0.45;         // 55-100% of the range
   const shift  = (h2 - 0.5) * 0.45;       // ±22.5% HP/ATK trade-off
   const clamp = (v) => Math.max(0, Math.min(1, v));
