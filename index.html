@@ -227,6 +227,8 @@
       width: 30px;
       height: 30px;
       display: block;
+      position: relative;
+      z-index: 1;
     }
 
     .game-mark::after {
@@ -374,7 +376,13 @@
       <!-- Universe Destroyer -->
       <a class="card card--violet" href="/universe-clicker/">
         <div class="game-logo logo-universe" aria-label="Universe Destroyer">
-          <div class="game-mark" aria-hidden="true">UD</div>
+          <div class="game-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" role="img">
+              <circle cx="16" cy="16" r="8" fill="none" stroke="currentColor" stroke-width="3"/>
+              <path d="M5 18c5.2 5.1 16.1 5.1 22 0M6 14c5.1-5.2 15.9-5.2 20 0" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+              <circle cx="21.5" cy="10.5" r="2" fill="currentColor"/>
+            </svg>
+          </div>
           <div class="game-word"><span>Universe Destroyer</span></div>
         </div>
         <div class="card-desc">Crack open the cosmos, collect energy, and push through cosmic eras.</div>
@@ -385,7 +393,15 @@
       <!-- Daily Word Scramble -->
       <a class="card card--green" href="/word-scramble/">
         <div class="game-logo logo-scramble" aria-label="Daily Word Scramble">
-          <div class="game-mark" aria-hidden="true">WS</div>
+          <div class="game-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" role="img">
+              <rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="2.2"/>
+              <rect x="18" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="2.2"/>
+              <rect x="5" y="18" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="2.2"/>
+              <rect x="18" y="18" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="2.2"/>
+              <path d="M8.5 10h2M21.5 10h2M8 23h3M21 23h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
           <div class="game-word"><span>Daily Word Scramble</span> <span class="badge">new</span></div>
         </div>
         <div class="card-desc">Unscramble the same daily words as everyone else and chase a perfect score.</div>
@@ -396,7 +412,13 @@
       <!-- UNO Duel -->
       <a class="card card--amber" href="/uno/">
         <div class="game-logo logo-uno" aria-label="UNO Duel">
-          <div class="game-mark" aria-hidden="true">UNO</div>
+          <div class="game-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" role="img">
+              <rect x="7" y="6" width="12" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="2.4" transform="rotate(-10 13 15)"/>
+              <rect x="13" y="8" width="12" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="2.4" transform="rotate(10 19 17)"/>
+              <path d="M12 15h5M16 18h5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+            </svg>
+          </div>
           <div class="game-word"><span>UNO Duel</span> <span class="badge">new</span></div>
         </div>
         <div class="card-desc">Play against an NPC with one balanced deck and no rigged hands.</div>
@@ -407,7 +429,13 @@
       <!-- Trade Alley -->
       <a class="card card--pink" href="/trade-alley/">
         <div class="game-logo logo-trade" aria-label="Trade Alley">
-          <div class="game-mark" aria-hidden="true">TA</div>
+          <div class="game-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" role="img">
+              <circle cx="16" cy="16" r="5" fill="none" stroke="currentColor" stroke-width="2.4"/>
+              <path d="M7 11h14l-3-3M25 21H11l3 3" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16 12.5v7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
           <div class="game-word"><span>Trade Alley</span> <span class="badge">new</span></div>
         </div>
         <div class="card-desc">Accept deals, cancel offers, or risk a 50/50 steal from random NPC traders.</div>
@@ -418,7 +446,13 @@
       <!-- The Little Cup -->
       <a class="card card--amber" href="/the-little-cup/">
         <div class="game-logo logo-cup" aria-label="The Little Cup">
-          <div class="game-mark" aria-hidden="true">LC</div>
+          <div class="game-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" role="img">
+              <path d="M8 13h13v6a6 6 0 0 1-6 6h-1a6 6 0 0 1-6-6v-6Z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
+              <path d="M21 15h2.5a3 3 0 0 1 0 6H21M10 9c0-2 2-2 2-4M16 9c0-2 2-2 2-4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+              <path d="M9 26h12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+            </svg>
+          </div>
           <div class="game-word"><span>The Little Cup</span> <span class="badge">new</span></div>
         </div>
         <div class="card-desc">Run a cafe by cooking orders with quick mini-games before customers run out of time.</div>
