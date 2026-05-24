@@ -82,6 +82,22 @@
       transform: translateY(-4px);
       box-shadow: 0 12px 36px -8px rgba(0,0,0,.12);
     }
+    .typeflow-mark {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 12px 24px -14px rgba(37,99,235,.7);
+      margin-bottom: 18px;
+    }
+    .typeflow-mark svg {
+      width: 30px;
+      height: 30px;
+      display: block;
+    }
     .neon-cat-mark {
       width: 52px;
       height: 52px;
@@ -163,6 +179,18 @@
   <main>
     <p class="section-label">Archive</p>
     <div class="grid">
+      <a class="card" href="/typeflow/">
+        <div class="typeflow-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" role="img">
+            <rect x="5" y="8" width="22" height="16" rx="4" fill="none" stroke="currentColor" stroke-width="2.4"/>
+            <path d="M10 14h2M15 14h2M20 14h2M10 19h12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="title">TypeFlow</div>
+        <div class="desc">A typing speed test with daily mode, personal bests, and rank progress.</div>
+        <div class="cta">Play archived game</div>
+      </a>
+
       <a class="card" href="/neon-cat/">
         <div class="neon-cat-mark" aria-hidden="true"><span class="neon-cat-face"></span></div>
         <div class="title">Neon Cat Dash</div>
