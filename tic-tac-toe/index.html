@@ -270,6 +270,19 @@ function getBotMove() {
   if (!empty.length) return -1;
 
   if (difficulty === 'easy') {
+    if (Math.random() < 0.5) {
+      // Half the time, play smart enough to win or block
+      for (const i of empty) {
+        board[i] = 'O';
+        if (checkWinner(board)) { board[i] = null; return i; }
+        board[i] = null;
+      }
+      for (const i of empty) {
+        board[i] = 'X';
+        if (checkWinner(board)) { board[i] = null; return i; }
+        board[i] = null;
+      }
+    }
     return empty[Math.floor(Math.random() * empty.length)];
   }
 

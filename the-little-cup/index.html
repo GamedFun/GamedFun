@@ -91,6 +91,8 @@
     .upg-card.affordable { border-color: rgba(251,191,36,.55); }
     .upg-card.affordable:hover { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(251,191,36,.15); }
     .upg-card.too-costly { opacity: .55; cursor: default; }
+    .upg-card.milestone-upg { border-color: rgba(251,191,36,.7); background: rgba(251,191,36,.06); }
+    .upg-card.milestone-upg .upg-name { color: var(--gold); }
     .upg-icon { font-size: 1.35rem; flex-shrink: 0; line-height: 1; padding-top: .1rem; }
     .upg-name { font-size: .83rem; font-weight: 900; color: var(--cream); }
     .upg-desc { font-size: .7rem; color: var(--muted); margin-top: .12rem; line-height: 1.35; }
@@ -337,6 +339,14 @@ const UPGRADES = [
   // Global
   { id:'gl1', icon:'☕', name:'Coffee Culture',    desc:'Everything 2× as good.',       cost:500_000,    cond:s => s.totalBld >= 50,                eff:{type:'global',mult:2} },
   { id:'gl2', icon:'🏆', name:'Caffeine Empire',   desc:'Everything 2× as good.',       cost:50_000_000, cond:s => s.totalBld >= 200,               eff:{type:'global',mult:2} },
+  // ── Milestone unlocks ───────────────────────────────────────
+  { id:'m1k',  icon:'⭐', name:'★ First Thousand',   desc:'+50% all income forever.',      cost:500,        cond:s => s.totalEarned >= 1_000,          eff:{type:'global',mult:1.5},  milestone:true },
+  { id:'m10k', icon:'🌟', name:'★ Ten Grand',         desc:'Clicks earn 3× more.',          cost:5_000,      cond:s => s.totalEarned >= 10_000,         eff:{type:'click',mult:3},     milestone:true },
+  { id:'m100k',icon:'💫', name:'★ Big Money',         desc:'All things 3× more output.',    cost:50_000,     cond:s => s.totalEarned >= 100_000,        eff:{type:'global',mult:3},    milestone:true },
+  { id:'m1m',  icon:'💎', name:'★ Millionaire',       desc:'Clicks earn 5× more.',          cost:500_000,    cond:s => s.totalEarned >= 1_000_000,      eff:{type:'click',mult:5},     milestone:true },
+  { id:'m10m', icon:'👑', name:'★ Coffee Baron',      desc:'Everything 5× as good.',        cost:5_000_000,  cond:s => s.totalEarned >= 10_000_000,     eff:{type:'global',mult:5},    milestone:true },
+  { id:'m100m',icon:'🔱', name:'★ Espresso God',      desc:'All things 10× more output.',   cost:50_000_000, cond:s => s.totalEarned >= 100_000_000,    eff:{type:'global',mult:10},   milestone:true },
+  { id:'m1b',  icon:'🌌', name:'★ Coffee Singularity',desc:'Everything 20× as good.',       cost:500_000_000,cond:s => s.totalEarned >= 1_000_000_000,  eff:{type:'global',mult:20},   milestone:true },
 ];
 
 const THING_ADJ  = ['Tiny','Magical','Haunted','Floating','Ancient','Neon','Invisible','Screaming','Sleepy','Caffeinated','Glowing','Frozen','Electric','Crystal','Golden','Cosmic','Grumpy','Sneaky','Dramatic','Radioactive','Fluffy','Legendary','Suspicious','Chunky','Sparkling','Melted','Crispy','Vibing','Anxious','Blessed'];
@@ -362,12 +372,20 @@ function buildGeneratedThings() {
 const ALL_THINGS = [...BUILDINGS, ...buildGeneratedThings()];
 
 const WORKERS = [
-  { id:'w_baker',    icon:'👨‍🍳', name:'Baker',           desc:'Adds +1/sec flat production.',     baseCost:40,   scale:1.38 },
-  { id:'w_driver',   icon:'🚗',   name:'Delivery Driver', desc:'+8% click power per hire.',        baseCost:100,  scale:1.5  },
-  { id:'w_cashier',  icon:'💵',   name:'Cashier',         desc:'+4% all income per hire.',         baseCost:180,  scale:1.55 },
-  { id:'w_roaster',  icon:'🫘',   name:'Head Roaster',    desc:'+6% building output per hire.',    baseCost:300,  scale:1.6  },
-  { id:'w_manager',  icon:'👔',   name:'Manager',         desc:'Cuts building costs by 4%.',       baseCost:600,  scale:1.7  },
-  { id:'w_marketer', icon:'📱',   name:'Marketer',        desc:'+10% click power per hire.',       baseCost:250,  scale:1.62 },
+  { id:'w_intern',     icon:'🎓', name:'Intern',          desc:'Adds +0.5/sec flat production.',   baseCost:20,    scale:1.30 },
+  { id:'w_janitor',    icon:'🧹', name:'Janitor',         desc:'+2% all income per hire.',         baseCost:50,    scale:1.32 },
+  { id:'w_baker',      icon:'👨‍🍳', name:'Baker',          desc:'Adds +1/sec flat production.',     baseCost:40,    scale:1.38 },
+  { id:'w_barista',    icon:'☕', name:'Barista',          desc:'+7% click power per hire.',        baseCost:80,    scale:1.42 },
+  { id:'w_driver',     icon:'🚗', name:'Delivery Driver', desc:'+8% click power per hire.',        baseCost:100,   scale:1.5  },
+  { id:'w_taster',     icon:'👅', name:'Taste Tester',    desc:'+5% all income per hire.',         baseCost:220,   scale:1.58 },
+  { id:'w_cashier',    icon:'💵', name:'Cashier',         desc:'+4% all income per hire.',         baseCost:180,   scale:1.55 },
+  { id:'w_marketer',   icon:'📱', name:'Marketer',        desc:'+10% click power per hire.',       baseCost:250,   scale:1.62 },
+  { id:'w_roaster',    icon:'🫘', name:'Head Roaster',    desc:'+6% thing output per hire.',       baseCost:300,   scale:1.6  },
+  { id:'w_accountant', icon:'📊', name:'Accountant',      desc:'Cuts thing costs by 3% per hire.', baseCost:450,  scale:1.65 },
+  { id:'w_manager',    icon:'👔', name:'Manager',         desc:'Cuts thing costs by 4% per hire.', baseCost:600,  scale:1.7  },
+  { id:'w_chemist',    icon:'🧪', name:'Coffee Chemist',  desc:'+8% thing output per hire.',       baseCost:1200,  scale:1.75 },
+  { id:'w_wizard',     icon:'🧙', name:'Coffee Wizard',   desc:'+12% thing output per hire.',      baseCost:5000,  scale:1.85 },
+  { id:'w_alchemist',  icon:'⚗️', name:'Bean Alchemist',  desc:'+6% all income per hire.',         baseCost:3500,  scale:1.82 },
 ];
 
 const MILESTONES = [
@@ -430,7 +448,7 @@ function bldCps(b) {
 }
 
 function totalCps() {
-  let t = (G.workers.w_baker || 0) * 1;
+  let t = (G.workers.w_baker || 0) * 1 + (G.workers.w_intern || 0) * 0.5;
   for (const b of ALL_THINGS) t += (G.owned[b.id] || 0) * bldCps(b);
   t *= workerGlobalMult();
   if (G.frenzy > 0)     t *= 7;
@@ -442,10 +460,10 @@ function clickVal() {
   return G.clickMult * workerClickMult() + totalCps() * 0.01;
 }
 
-function workerClickMult()  { return Math.pow(1.08, G.workers.w_driver||0) * Math.pow(1.10, G.workers.w_marketer||0); }
-function workerBldMult()    { return Math.pow(1.06, G.workers.w_roaster||0); }
-function workerGlobalMult() { return Math.pow(1.04, G.workers.w_cashier||0); }
-function workerDiscount()   { return Math.pow(0.96, G.workers.w_manager||0); }
+function workerClickMult()  { return Math.pow(1.08, G.workers.w_driver||0) * Math.pow(1.10, G.workers.w_marketer||0) * Math.pow(1.07, G.workers.w_barista||0); }
+function workerBldMult()    { return Math.pow(1.06, G.workers.w_roaster||0) * Math.pow(1.08, G.workers.w_chemist||0) * Math.pow(1.12, G.workers.w_wizard||0); }
+function workerGlobalMult() { return Math.pow(1.04, G.workers.w_cashier||0) * Math.pow(1.05, G.workers.w_taster||0) * Math.pow(1.02, G.workers.w_janitor||0) * Math.pow(1.06, G.workers.w_alchemist||0); }
+function workerDiscount()   { return Math.pow(0.96, G.workers.w_manager||0) * Math.pow(0.97, G.workers.w_accountant||0); }
 function workerCost(w)      { return Math.ceil(w.baseCost * Math.pow(w.scale, G.workers[w.id] || 0)); }
 
 function totalBld() {
@@ -521,7 +539,7 @@ function renderUpgrades() {
     if (!u) continue;
     const canBuy = G.cash >= u.cost;
     const card = document.createElement('div');
-    card.className = 'upg-card ' + (canBuy ? 'affordable' : 'too-costly');
+    card.className = 'upg-card ' + (canBuy ? 'affordable' : 'too-costly') + (u.milestone ? ' milestone-upg' : '');
     card.innerHTML = `
       <div class="upg-icon">${u.icon}</div>
       <div>
@@ -698,7 +716,9 @@ function checkMilestones() {
   for (const m of MILESTONES) {
     if (!G.mseen.includes(m.n) && G.totalEarned >= m.n) {
       G.mseen.push(m.n);
-      showToast('Milestone! 🎉', m.msg);
+      const hasUnlock = UPGRADES.some(u => u.milestone && u.cond({ totalEarned: m.n }) && !G.bought.includes(u.id));
+      showToast('Milestone! 🎉', m.msg + (hasUnlock ? ' ★ New upgrade unlocked in the shop!' : ''));
+      fillUpgradeSlots();
     }
   }
 }
