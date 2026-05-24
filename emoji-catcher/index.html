@@ -88,12 +88,12 @@
   .emoji-bubble:hover { transform: scale(1.15); }
   .emoji-bubble:active { transform: scale(0.9); }
 
-  .emoji-bubble.common    { border-color: var(--c-common);    box-shadow: 0 0 8px  var(--c-common);    background: rgba(156,163,175,.1); }
-  .emoji-bubble.uncommon  { border-color: var(--c-uncommon);  box-shadow: 0 0 10px var(--c-uncommon);  background: rgba(52,211,153,.1); }
-  .emoji-bubble.rare      { border-color: var(--c-rare);      box-shadow: 0 0 12px var(--c-rare);      background: rgba(96,165,250,.12); }
-  .emoji-bubble.epic      { border-color: var(--c-epic);      box-shadow: 0 0 16px var(--c-epic);      background: rgba(192,132,252,.12); }
-  .emoji-bubble.legendary { border-color: var(--c-legendary); box-shadow: 0 0 20px var(--c-legendary); background: rgba(251,191,36,.12); animation: bobble 2s ease-in-out infinite, shimmer 1.5s ease-in-out infinite; }
-  .emoji-bubble.mythic    { border-color: var(--c-mythic);    box-shadow: 0 0 28px var(--c-mythic), 0 0 50px rgba(248,113,113,.3); background: rgba(248,113,113,.15); animation: bobble 1.5s ease-in-out infinite, pulse-mythic 1s ease-in-out infinite; font-size: 2.6rem; width: 64px; height: 64px; }
+  .emoji-bubble.common    { border-color: var(--c-common);    box-shadow: 0 0 6px var(--c-common);                                                       background: rgba(156,163,175,.08); }
+  .emoji-bubble.uncommon  { border-color: var(--c-uncommon);  box-shadow: 0 0 12px var(--c-uncommon), 0 0 24px rgba(52,211,153,.2);                        background: rgba(52,211,153,.1); }
+  .emoji-bubble.rare      { border-color: var(--c-rare);      box-shadow: 0 0 16px var(--c-rare), 0 0 32px rgba(96,165,250,.3);                            background: rgba(96,165,250,.12); border-width: 2px; }
+  .emoji-bubble.epic      { border-color: var(--c-epic);      box-shadow: 0 0 20px var(--c-epic), 0 0 40px rgba(192,132,252,.35);                          background: rgba(192,132,252,.14); border-width: 2px; }
+  .emoji-bubble.legendary { border-color: var(--c-legendary); box-shadow: 0 0 26px var(--c-legendary), 0 0 52px rgba(251,191,36,.4), 0 0 80px rgba(251,191,36,.15); background: rgba(251,191,36,.14); border-width: 3px; animation: bobble 2s ease-in-out infinite, shimmer 1.5s ease-in-out infinite; }
+  .emoji-bubble.mythic    { border-color: var(--c-mythic);    box-shadow: 0 0 34px var(--c-mythic), 0 0 68px rgba(248,113,113,.5), 0 0 110px rgba(248,113,113,.2); background: rgba(248,113,113,.18); border-width: 3px; animation: bobble 1.5s ease-in-out infinite, pulse-mythic 1s ease-in-out infinite; font-size: 2.6rem; width: 64px; height: 64px; }
 
   @keyframes bobble {
     0%,100% { transform: translateY(0); }
@@ -320,7 +320,7 @@
 
 <div id="hud">
   <div class="stat">🪙 <strong id="coinCount">0</strong> coins</div>
-  <div class="stat">📦 <strong id="progress">0 / 63</strong> collected</div>
+  <div class="stat">📦 <strong id="progress">0 / ?</strong> collected</div>
   <div class="stat" id="spawnLabel" style="font-size:.75rem">tap emojis!</div>
 </div>
 
@@ -371,48 +371,64 @@
 
 <script>
 const RARITIES = {
-  common:    { name:'Common',    color:'var(--c-common)',    weight:50, coins:1,   spawnMs:2500  },
-  uncommon:  { name:'Uncommon',  color:'var(--c-uncommon)',  weight:25, coins:3,   spawnMs:4000  },
-  rare:      { name:'Rare',      color:'var(--c-rare)',      weight:12, coins:10,  spawnMs:7000  },
-  epic:      { name:'Epic',      color:'var(--c-epic)',      weight:8,  coins:30,  spawnMs:12000 },
-  legendary: { name:'Legendary', color:'var(--c-legendary)', weight:4,  coins:80,  spawnMs:20000 },
-  mythic:    { name:'Mythic',    color:'var(--c-mythic)',    weight:1,  coins:300, spawnMs:40000 },
+  common:    { name:'Common',    color:'var(--c-common)',    weight:60, coins:1,   lifetime:12000 },
+  uncommon:  { name:'Uncommon',  color:'var(--c-uncommon)',  weight:22, coins:3,   lifetime:9000  },
+  rare:      { name:'Rare',      color:'var(--c-rare)',      weight:10, coins:10,  lifetime:6500  },
+  epic:      { name:'Epic',      color:'var(--c-epic)',      weight:5,  coins:30,  lifetime:4500  },
+  legendary: { name:'Legendary', color:'var(--c-legendary)', weight:2,  coins:80,  lifetime:3000  },
+  mythic:    { name:'Mythic',    color:'var(--c-mythic)',    weight:0.4,coins:300, lifetime:2000  },
 };
 
 const EMOJIS = [
   // Common (20)
+  // Common (35)
   {e:'🍎',n:'Apple',r:'common'},{e:'🍊',n:'Orange',r:'common'},{e:'🍋',n:'Lemon',r:'common'},
   {e:'🍇',n:'Grapes',r:'common'},{e:'🍓',n:'Strawberry',r:'common'},{e:'🍉',n:'Watermelon',r:'common'},
   {e:'🥕',n:'Carrot',r:'common'},{e:'🌽',n:'Corn',r:'common'},{e:'🌻',n:'Sunflower',r:'common'},
   {e:'🌹',n:'Rose',r:'common'},{e:'🍄',n:'Mushroom',r:'common'},{e:'🌿',n:'Herb',r:'common'},
   {e:'🍞',n:'Bread',r:'common'},{e:'🧁',n:'Cupcake',r:'common'},{e:'🎈',n:'Balloon',r:'common'},
   {e:'🍕',n:'Pizza',r:'common'},{e:'🌮',n:'Taco',r:'common'},{e:'💧',n:'Droplet',r:'common'},
-  {e:'❄️',n:'Snowflake',r:'common'},{e:'🍩',n:'Donut',r:'common'},
-  // Uncommon (15)
+  {e:'❄️',n:'Snowflake',r:'common'},{e:'🍩',n:'Donut',r:'common'},{e:'🧀',n:'Cheese',r:'common'},
+  {e:'🥞',n:'Pancakes',r:'common'},{e:'🌵',n:'Cactus',r:'common'},{e:'🍀',n:'Clover',r:'common'},
+  {e:'🎃',n:'Pumpkin',r:'common'},{e:'🍦',n:'Ice Cream',r:'common'},{e:'☁️',n:'Cloud',r:'common'},
+  {e:'🌊',n:'Wave',r:'common'},{e:'🔔',n:'Bell',r:'common'},{e:'🎵',n:'Music Note',r:'common'},
+  {e:'🌙',n:'Moon',r:'common'},{e:'☀️',n:'Sun',r:'common'},{e:'🍂',n:'Fallen Leaf',r:'common'},
+  {e:'🥐',n:'Croissant',r:'common'},{e:'🫐',n:'Blueberries',r:'common'},
+  // Uncommon (25)
   {e:'🐶',n:'Dog',r:'uncommon'},{e:'🐱',n:'Cat',r:'uncommon'},{e:'🐭',n:'Mouse',r:'uncommon'},
   {e:'🐰',n:'Rabbit',r:'uncommon'},{e:'🦊',n:'Fox',r:'uncommon'},{e:'🐻',n:'Bear',r:'uncommon'},
   {e:'🐼',n:'Panda',r:'uncommon'},{e:'🐨',n:'Koala',r:'uncommon'},{e:'🐯',n:'Tiger',r:'uncommon'},
   {e:'🐸',n:'Frog',r:'uncommon'},{e:'🐵',n:'Monkey',r:'uncommon'},{e:'🦆',n:'Duck',r:'uncommon'},
   {e:'🐧',n:'Penguin',r:'uncommon'},{e:'🦉',n:'Owl',r:'uncommon'},{e:'🐺',n:'Wolf',r:'uncommon'},
-  // Rare (12)
-  {e:'🦄',n:'Unicorn',r:'rare'},{e:'🦋',n:'Butterfly',r:'rare'},{e:'🐙',n:'Octopus',r:'rare'},
+  {e:'🐔',n:'Chicken',r:'uncommon'},{e:'🐢',n:'Turtle',r:'uncommon'},{e:'🦔',n:'Hedgehog',r:'uncommon'},
+  {e:'🐿️',n:'Chipmunk',r:'uncommon'},{e:'🦝',n:'Raccoon',r:'uncommon'},{e:'🐇',n:'White Rabbit',r:'uncommon'},
+  {e:'🦜',n:'Parrot',r:'uncommon'},{e:'🐝',n:'Bee',r:'uncommon'},{e:'🦋',n:'Butterfly',r:'uncommon'},
+  {e:'🐛',n:'Caterpillar',r:'uncommon'},
+  // Rare (20)
+  {e:'🦄',n:'Unicorn',r:'rare'},{e:'🐙',n:'Octopus',r:'rare'},
   {e:'🦑',n:'Squid',r:'rare'},{e:'🦀',n:'Crab',r:'rare'},{e:'🐬',n:'Dolphin',r:'rare'},
   {e:'🦈',n:'Shark',r:'rare'},{e:'🐊',n:'Crocodile',r:'rare'},{e:'🦁',n:'Lion',r:'rare'},
   {e:'🦒',n:'Giraffe',r:'rare'},{e:'🦓',n:'Zebra',r:'rare'},{e:'🐘',n:'Elephant',r:'rare'},
-  // Epic (8)
+  {e:'🦏',n:'Rhino',r:'rare'},{e:'🦛',n:'Hippo',r:'rare'},{e:'🐆',n:'Leopard',r:'rare'},
+  {e:'🦬',n:'Bison',r:'rare'},{e:'🦘',n:'Kangaroo',r:'rare'},{e:'🐋',n:'Whale',r:'rare'},
+  {e:'🦭',n:'Seal',r:'rare'},{e:'🐠',n:'Tropical Fish',r:'rare'},{e:'🦩',n:'Flamingo',r:'rare'},
+  // Epic (14)
   {e:'🐉',n:'Dragon',r:'epic'},{e:'🦕',n:'Sauropod',r:'epic'},{e:'🦖',n:'T-Rex',r:'epic'},
   {e:'🧙',n:'Wizard',r:'epic'},{e:'🧜',n:'Merperson',r:'epic'},{e:'🧝',n:'Elf',r:'epic'},
-  {e:'🦸',n:'Superhero',r:'epic'},{e:'🧞',n:'Genie',r:'epic'},
-  // Legendary (5)
+  {e:'🦸',n:'Superhero',r:'epic'},{e:'🧞',n:'Genie',r:'epic'},{e:'🧟',n:'Zombie',r:'epic'},
+  {e:'🧛',n:'Vampire',r:'epic'},{e:'🧌',n:'Troll',r:'epic'},{e:'👾',n:'Alien Monster',r:'epic'},
+  {e:'🤖',n:'Robot',r:'epic'},{e:'👻',n:'Ghost',r:'epic'},
+  // Legendary (8)
   {e:'💎',n:'Diamond',r:'legendary'},{e:'👑',n:'Crown',r:'legendary'},{e:'🏆',n:'Trophy',r:'legendary'},
   {e:'🔮',n:'Crystal Ball',r:'legendary'},{e:'🌈',n:'Rainbow',r:'legendary'},
-  // Mythic (3)
+  {e:'🗝️',n:'Old Key',r:'legendary'},{e:'🧿',n:'Evil Eye',r:'legendary'},{e:'🪬',n:'Hamsa',r:'legendary'},
+  // Mythic (5)
   {e:'🌌',n:'Milky Way',r:'mythic'},{e:'🪄',n:'Magic Wand',r:'mythic'},{e:'⚡',n:'Lightning',r:'mythic'},
+  {e:'🌠',n:'Shooting Star',r:'mythic'},{e:'🔱',n:'Trident',r:'mythic'},
 ];
 
-const TOTAL = EMOJIS.length; // 63
+const TOTAL = EMOJIS.length; // 107
 const MAX_ACTIVE = 12;
-const LIFETIME = 8000;
 const SUMMON_COSTS = { basic:10, uncommon:50, rare:150, epic:500, legendary:2000 };
 const SUMMON_POOLS = {
   basic:    ['common','uncommon','rare','epic','legendary','mythic'],
@@ -484,7 +500,7 @@ function spawnToScreen(emoji, rKey) {
   const timeout = setTimeout(() => {
     el.classList.add('vanish');
     setTimeout(() => { el.remove(); activeEmojis = activeEmojis.filter(a => a.el !== el); }, 600);
-  }, LIFETIME);
+  }, RARITIES[rKey].lifetime);
 
   el.addEventListener('click', ev => { ev.stopPropagation(); collect(emoji, rKey, el, timeout); });
   gameArea.appendChild(el);
