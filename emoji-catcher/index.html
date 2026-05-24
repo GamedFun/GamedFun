@@ -321,7 +321,7 @@
 <div id="hud">
   <div class="stat">🪙 <strong id="coinCount">0</strong> coins</div>
   <div class="stat">📦 <strong id="progress">0 / ?</strong> collected</div>
-  <div class="stat" id="spawnLabel" style="font-size:.75rem">tap emojis!</div>
+  <div class="stat" id="streakDisplay" style="font-size:.85rem;color:#fbbf24;font-weight:900;min-width:60px;text-align:right"></div>
 </div>
 
 <div id="game-area"></div>
@@ -381,7 +381,7 @@ const RARITIES = {
 
 const EMOJIS = [
   // Common (20)
-  // Common (35)
+  // Common (50) — food, treats, nature, toys kids love
   {e:'🍎',n:'Apple',r:'common'},{e:'🍊',n:'Orange',r:'common'},{e:'🍋',n:'Lemon',r:'common'},
   {e:'🍇',n:'Grapes',r:'common'},{e:'🍓',n:'Strawberry',r:'common'},{e:'🍉',n:'Watermelon',r:'common'},
   {e:'🥕',n:'Carrot',r:'common'},{e:'🌽',n:'Corn',r:'common'},{e:'🌻',n:'Sunflower',r:'common'},
@@ -394,7 +394,12 @@ const EMOJIS = [
   {e:'🌊',n:'Wave',r:'common'},{e:'🔔',n:'Bell',r:'common'},{e:'🎵',n:'Music Note',r:'common'},
   {e:'🌙',n:'Moon',r:'common'},{e:'☀️',n:'Sun',r:'common'},{e:'🍂',n:'Fallen Leaf',r:'common'},
   {e:'🥐',n:'Croissant',r:'common'},{e:'🫐',n:'Blueberries',r:'common'},
-  // Uncommon (25)
+  {e:'🍭',n:'Lollipop',r:'common'},{e:'🍬',n:'Candy',r:'common'},{e:'🍫',n:'Chocolate',r:'common'},
+  {e:'🧸',n:'Teddy Bear',r:'common'},{e:'⭐',n:'Star',r:'common'},{e:'🌸',n:'Blossom',r:'common'},
+  {e:'🌷',n:'Tulip',r:'common'},{e:'🍰',n:'Cake Slice',r:'common'},{e:'🎂',n:'Birthday Cake',r:'common'},
+  {e:'🚂',n:'Train',r:'common'},{e:'✈️',n:'Airplane',r:'common'},{e:'🎨',n:'Palette',r:'common'},
+  {e:'🧩',n:'Puzzle Piece',r:'common'},{e:'🎀',n:'Ribbon',r:'common'},{e:'🌺',n:'Hibiscus',r:'common'},
+  // Uncommon (32) — cute animals kids recognise
   {e:'🐶',n:'Dog',r:'uncommon'},{e:'🐱',n:'Cat',r:'uncommon'},{e:'🐭',n:'Mouse',r:'uncommon'},
   {e:'🐰',n:'Rabbit',r:'uncommon'},{e:'🦊',n:'Fox',r:'uncommon'},{e:'🐻',n:'Bear',r:'uncommon'},
   {e:'🐼',n:'Panda',r:'uncommon'},{e:'🐨',n:'Koala',r:'uncommon'},{e:'🐯',n:'Tiger',r:'uncommon'},
@@ -403,8 +408,10 @@ const EMOJIS = [
   {e:'🐔',n:'Chicken',r:'uncommon'},{e:'🐢',n:'Turtle',r:'uncommon'},{e:'🦔',n:'Hedgehog',r:'uncommon'},
   {e:'🐿️',n:'Chipmunk',r:'uncommon'},{e:'🦝',n:'Raccoon',r:'uncommon'},{e:'🐇',n:'White Rabbit',r:'uncommon'},
   {e:'🦜',n:'Parrot',r:'uncommon'},{e:'🐝',n:'Bee',r:'uncommon'},{e:'🦋',n:'Butterfly',r:'uncommon'},
-  {e:'🐛',n:'Caterpillar',r:'uncommon'},
-  // Rare (20)
+  {e:'🐛',n:'Caterpillar',r:'uncommon'},{e:'🐣',n:'Hatching Chick',r:'uncommon'},
+  {e:'🐥',n:'Baby Chick',r:'uncommon'},{e:'🦦',n:'Otter',r:'uncommon'},{e:'🦥',n:'Sloth',r:'uncommon'},
+  {e:'🦚',n:'Peacock',r:'uncommon'},{e:'🐾',n:'Paw Prints',r:'uncommon'},{e:'🐻‍❄️',n:'Polar Bear',r:'uncommon'},
+  // Rare (28) — exotic animals + fantasy lite
   {e:'🦄',n:'Unicorn',r:'rare'},{e:'🐙',n:'Octopus',r:'rare'},
   {e:'🦑',n:'Squid',r:'rare'},{e:'🦀',n:'Crab',r:'rare'},{e:'🐬',n:'Dolphin',r:'rare'},
   {e:'🦈',n:'Shark',r:'rare'},{e:'🐊',n:'Crocodile',r:'rare'},{e:'🦁',n:'Lion',r:'rare'},
@@ -412,22 +419,29 @@ const EMOJIS = [
   {e:'🦏',n:'Rhino',r:'rare'},{e:'🦛',n:'Hippo',r:'rare'},{e:'🐆',n:'Leopard',r:'rare'},
   {e:'🦬',n:'Bison',r:'rare'},{e:'🦘',n:'Kangaroo',r:'rare'},{e:'🐋',n:'Whale',r:'rare'},
   {e:'🦭',n:'Seal',r:'rare'},{e:'🐠',n:'Tropical Fish',r:'rare'},{e:'🦩',n:'Flamingo',r:'rare'},
-  // Epic (14)
+  {e:'🦅',n:'Eagle',r:'rare'},{e:'🦢',n:'Swan',r:'rare'},{e:'🐡',n:'Blowfish',r:'rare'},
+  {e:'🦎',n:'Lizard',r:'rare'},{e:'🐍',n:'Snake',r:'rare'},{e:'🦤',n:'Dodo',r:'rare'},
+  {e:'🪸',n:'Coral',r:'rare'},{e:'🐚',n:'Shell',r:'rare'},
+  // Epic (18) — mythical creatures + cool characters kids love
   {e:'🐉',n:'Dragon',r:'epic'},{e:'🦕',n:'Sauropod',r:'epic'},{e:'🦖',n:'T-Rex',r:'epic'},
   {e:'🧙',n:'Wizard',r:'epic'},{e:'🧜',n:'Merperson',r:'epic'},{e:'🧝',n:'Elf',r:'epic'},
   {e:'🦸',n:'Superhero',r:'epic'},{e:'🧞',n:'Genie',r:'epic'},{e:'🧟',n:'Zombie',r:'epic'},
-  {e:'🧛',n:'Vampire',r:'epic'},{e:'🧌',n:'Troll',r:'epic'},{e:'👾',n:'Alien Monster',r:'epic'},
-  {e:'🤖',n:'Robot',r:'epic'},{e:'👻',n:'Ghost',r:'epic'},
-  // Legendary (8)
+  {e:'🧛',n:'Vampire',r:'epic'},{e:'🧌',n:'Troll',r:'epic'},{e:'👾',n:'Space Invader',r:'epic'},
+  {e:'🤖',n:'Robot',r:'epic'},{e:'👻',n:'Ghost',r:'epic'},{e:'🧚',n:'Fairy',r:'epic'},
+  {e:'👽',n:'Alien',r:'epic'},{e:'🦹',n:'Supervillain',r:'epic'},{e:'🛸',n:'UFO',r:'epic'},
+  // Legendary (12) — treasures and wonders
   {e:'💎',n:'Diamond',r:'legendary'},{e:'👑',n:'Crown',r:'legendary'},{e:'🏆',n:'Trophy',r:'legendary'},
   {e:'🔮',n:'Crystal Ball',r:'legendary'},{e:'🌈',n:'Rainbow',r:'legendary'},
   {e:'🗝️',n:'Old Key',r:'legendary'},{e:'🧿',n:'Evil Eye',r:'legendary'},{e:'🪬',n:'Hamsa',r:'legendary'},
-  // Mythic (5)
+  {e:'🌟',n:'Glowing Star',r:'legendary'},{e:'🔥',n:'Fire',r:'legendary'},
+  {e:'🌀',n:'Cyclone',r:'legendary'},{e:'💫',n:'Dizzy Star',r:'legendary'},
+  // Mythic (8) — the rarest of the rare
   {e:'🌌',n:'Milky Way',r:'mythic'},{e:'🪄',n:'Magic Wand',r:'mythic'},{e:'⚡',n:'Lightning',r:'mythic'},
   {e:'🌠',n:'Shooting Star',r:'mythic'},{e:'🔱',n:'Trident',r:'mythic'},
+  {e:'🌋',n:'Volcano',r:'mythic'},{e:'🧬',n:'DNA',r:'mythic'},{e:'🎆',n:'Fireworks',r:'mythic'},
 ];
 
-const TOTAL = EMOJIS.length; // 107
+const TOTAL = EMOJIS.length; // 148
 const MAX_ACTIVE = 12;
 const SUMMON_COSTS = { basic:10, uncommon:50, rare:150, epic:500, legendary:2000 };
 const SUMMON_POOLS = {
@@ -447,6 +461,8 @@ const SUMMON_WEIGHTS = {
 
 let coins = 0;
 let collection = {}; // { emoji_name: count }
+let streak = 0;
+let streakTimer = null;
 let newlyFound = new Set();
 let activeEmojis = [];
 let filterRarity = 'all';
@@ -518,17 +534,25 @@ function collect(emoji, rKey, el, timeout) {
   collection[emoji.n] = (collection[emoji.n] || 0) + 1;
   if (isNew) newlyFound.add(emoji.n);
 
-  const earned = RARITIES[rKey].coins;
+  // Streak
+  streak++;
+  clearTimeout(streakTimer);
+  streakTimer = setTimeout(() => { streak = 0; updateHUD(); }, 3000);
+  const mult = Math.min(streak, 10);
+  const earned = Math.ceil(RARITIES[rKey].coins * (1 + (mult - 1) * 0.2));
   coins += earned;
 
   // Coin popup
   const rect = el.getBoundingClientRect();
   const pop = document.createElement('div');
   pop.className = 'coin-pop';
-  pop.style.cssText = `left:${rect.left + rect.width/2}px;top:${rect.top}px;color:${RARITIES[rKey].color};`;
-  pop.textContent = '+' + earned + '🪙' + (isNew ? ' NEW!' : '');
+  pop.style.cssText = `left:${rect.left + rect.width/2}px;top:${rect.top}px;color:${RARITIES[rKey].color};transform-origin:center;`;
+  let label = '+' + earned + '🪙';
+  if (isNew) label += ' ✨NEW!';
+  else if (streak >= 5) label += ' 🔥×' + mult;
+  pop.textContent = label;
   document.body.appendChild(pop);
-  setTimeout(() => pop.remove(), 850);
+  setTimeout(() => pop.remove(), 950);
 
   updateHUD();
   if (collOpen) renderCollection();
@@ -567,7 +591,8 @@ function updateHUD() {
   coinCountEl.textContent = coins.toLocaleString();
   const found = Object.keys(collection).length;
   progressEl.textContent = found + ' / ' + TOTAL;
-  // Update summon button states
+  const sd = document.getElementById('streakDisplay');
+  if (sd) sd.textContent = streak >= 2 ? '🔥 ×' + Math.min(streak, 10) + ' combo!' : '';
   document.querySelectorAll('.summon-btn').forEach((btn, i) => {
     const cost = Object.values(SUMMON_COSTS)[i];
     btn.classList.toggle('disabled', coins < cost);
