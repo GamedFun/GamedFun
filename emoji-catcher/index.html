@@ -1080,16 +1080,9 @@ function endBattle(won) {
     saveGame();
   } else {
     const { playerEmoji } = battleState;
-    const kept = Math.random() < 0.75;
-    let lossMsg = 'Better luck next time!\nTrain harder and try again.';
-    if (!kept && collection[playerEmoji.n] > 0) {
-      collection[playerEmoji.n]--;
-      if (collection[playerEmoji.n] === 0) delete collection[playerEmoji.n];
-      lossMsg = `${playerEmoji.e} ${playerEmoji.n} was lost in battle! 💔\nTrain harder and try again.`;
-    }
     document.getElementById('result-icon').textContent = '💀';
     document.getElementById('result-title').textContent = 'Defeated!';
-    document.getElementById('result-desc').textContent = lossMsg;
+    document.getElementById('result-desc').textContent = 'Better luck next time!\nTrain harder and try again.';
     saveGame();
   }
 }
