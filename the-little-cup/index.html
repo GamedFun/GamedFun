@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Little Cup</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #121014;
+      --panel: #1f1b22;
+      --panel-2: #2d2630;
+      --text: #fff7ed;
+      --muted: #b8a99a;
+      --cream: #fff1d6;
+      --coffee: #8b4a2b;
+      --mint: #34d399;
+      --bad: #fb7185;
+      --gold: #fbbf24;
+      --border: rgba(255,255,255,.13);
+    }
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 16% 16%, rgba(251,191,36,.18), transparent 22rem),
+        radial-gradient(circle at 86% 10%, rgba(52,211,153,.16), transparent 22rem),
+        linear-gradient(180deg, #181219 0%, var(--bg) 100%);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.2rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .brand, .home-link { text-decoration: none; font-weight: 900; }
+    .brand { color: var(--gold); }
+    .home-link {
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: .45rem .7rem;
+      font-size: .82rem;
+    }
+    main {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+      padding: 1rem;
+      display: grid;
+      gap: 1rem;
+    }
+    .hud {
+      display: grid;
+      grid-template-columns: 1fr auto auto auto;
+      gap: .75rem;
+      align-items: stretch;
+    }
+    .title, .stat, .panel {
+      background: rgba(31,27,34,.92);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 18px 44px rgba(0,0,0,.24);
+    }
+    .title { padding: .9rem 1rem; }
+    h1 { font-size: clamp(1.9rem, 6vw, 3.2rem); line-height: .95; letter-spacing: 0; }
+    .sub { color: var(--muted); margin-top: .35rem; font-weight: 750; }
+    .stat { padding: .8rem .95rem; min-width: 112px; }
+    .label {
+      color: var(--muted);
+      font-size: .64rem;
+      font-weight: 1000;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .value { color: var(--cream); font-size: 1.45rem; font-weight: 1000; }
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(280px, .85fr) minmax(320px, 1.15fr);
+      gap: 1rem;
+    }
+    .customers, .station { padding: 1rem; display: grid; gap: .8rem; align-content: start; }
+    #customerList { display: grid; gap: .7rem; }
+    .customer {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      cursor: pointer;
+      font: inherit;
+      padding: .8rem;
+      text-align: left;
+      display: grid;
+      gap: .55rem;
+    }
+    .customer.active { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(251,191,36,.14); }
+    .cust-top { display: flex; justify-content: space-between; gap: .65rem; align-items: center; }
+    .cust-name { font-weight: 1000; }
+    .order { color: var(--cream); font-weight: 850; }
+    .bar { height: 8px; border-radius: 999px; background: rgba(255,255,255,.1); overflow: hidden; }
+    .bar-fill { height: 100%; width: 100%; background: linear-gradient(90deg, var(--mint), var(--gold), var(--bad)); transition: width .12s linear; }
+    .station-main {
+      min-height: 350px;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: 1rem;
+      text-align: center;
+    }
+    .ticket {
+      width: min(520px, 100%);
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1rem;
+      display: grid;
+      gap: .7rem;
+    }
+    .food { font-size: 4rem; line-height: 1; }
+    .mini-title { font-size: 1.25rem; font-weight: 1000; }
+    .mini-help { color: var(--muted); font-weight: 750; }
+    .simon {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(88px, 1fr));
+      gap: .6rem;
+      width: min(320px, 100%);
+    }
+    .simon-btn, .tap-target, .ingredient, button.command {
+      border: 0;
+      border-radius: 12px;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 1000;
+    }
+    .simon-btn { height: 86px; color: #111827; font-size: 1.5rem; opacity: .82; }
+    .simon-btn.on { opacity: 1; transform: scale(1.04); box-shadow: 0 0 22px currentColor; }
+    .red { background: #fb7185; }
+    .blue { background: #60a5fa; }
+    .green { background: #34d399; }
+    .yellow { background: #fbbf24; }
+    .tap-area {
+      width: min(420px, 100%);
+      height: 220px;
+      background: #15131a;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      position: relative;
+      overflow: hidden;
+    }
+    .tap-target {
+      position: absolute;
+      width: 74px;
+      height: 74px;
+      border-radius: 999px;
+      background: var(--gold);
+      color: #422006;
+      box-shadow: 0 0 18px rgba(251,191,36,.65);
+    }
+    .ingredients {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: .55rem;
+    }
+    .ingredient {
+      background: var(--cream);
+      color: #3b2414;
+      padding: .75rem .85rem;
+      min-width: 96px;
+    }
+    .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .6rem; }
+    button.command {
+      background: var(--gold);
+      color: #422006;
+      padding: .8rem 1rem;
+    }
+    button.secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    button:disabled { opacity: .48; cursor: not-allowed; }
+    .message { min-height: 1.4rem; color: var(--cream); font-weight: 850; }
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.66);
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+      z-index: 20;
+    }
+    .modal {
+      width: min(430px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.2rem;
+      text-align: center;
+      box-shadow: 0 24px 70px rgba(0,0,0,.42);
+    }
+    .modal p { color: var(--muted); font-weight: 750; margin: .75rem 0 1rem; line-height: 1.45; }
+    .hidden { display: none; }
+    @media (max-width: 780px) {
+      .hud, .grid { grid-template-columns: 1fr; }
+      .stat { min-width: 0; }
+      .food { font-size: 3.2rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="brand" href="https://gamed.fun/">gamed.fun</a>
+    <a class="home-link" href="https://gamed.fun/">All games</a>
+  </header>
+
+  <main>
+    <section class="hud">
+      <div class="title">
+        <h1>The Little Cup</h1>
+        <p class="sub">Cook with mini-games, serve fast, and keep the cafe alive.</p>
+      </div>
+      <div class="stat"><div class="label">Served</div><div class="value" id="servedVal">0</div></div>
+      <div class="stat"><div class="label">Tips</div><div class="value">$<span id="tipsVal">0</span></div></div>
+      <div class="stat"><div class="label">Best</div><div class="value" id="bestVal">0</div></div>
+    </section>
+
+    <section class="grid">
+      <div class="customers panel">
+        <div class="label">Customers</div>
+        <div id="customerList"></div>
+      </div>
+
+      <div class="station panel">
+        <div class="label">Kitchen</div>
+        <div class="station-main">
+          <div class="ticket">
+            <div class="food" id="foodIcon">☕</div>
+            <div class="mini-title" id="miniTitle">Waiting for customers</div>
+            <div class="mini-help" id="miniHelp">Start the shift to open the cafe.</div>
+          </div>
+          <div id="miniGame"></div>
+          <div class="message" id="message"></div>
+          <div class="actions">
+            <button class="command" id="startBtn" type="button">Start shift</button>
+            <button class="command secondary" id="serveBtn" type="button" disabled>Serve</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <h1>The Little Cup</h1>
+      <p>Customers arrive with orders. Finish the cooking mini-game, then serve before their patience runs out. If anyone runs out of time, you lose.</p>
+      <button class="command" id="modalStartBtn" type="button">Open Cafe</button>
+    </div>
+  </div>
+
+  <script>
+    const orders = [
+      { name: 'Latte', icon: '☕', game: 'simon', tip: 5 },
+      { name: 'Pancakes', icon: '🥞', game: 'taps', tip: 7 },
+      { name: 'Sandwich', icon: '🥪', game: 'ingredients', tip: 8 },
+      { name: 'Donut Box', icon: '🍩', game: 'simon', tip: 6 },
+      { name: 'Salad', icon: '🥗', game: 'ingredients', tip: 7 },
+      { name: 'Soup', icon: '🍜', game: 'taps', tip: 9 }
+    ];
+    const names = ['Mia', 'Jay', 'Ava', 'Leo', 'Zoe', 'Max', 'Nora', 'Kai', 'Ivy', 'Ezra'];
+    const colors = ['red', 'blue', 'green', 'yellow'];
+    const ingredientPool = ['Bread', 'Cheese', 'Lettuce', 'Tomato', 'Egg', 'Sauce', 'Chicken', 'Avocado'];
+
+    const customerList = document.getElementById('customerList');
+    const foodIcon = document.getElementById('foodIcon');
+    const miniTitle = document.getElementById('miniTitle');
+    const miniHelp = document.getElementById('miniHelp');
+    const miniGame = document.getElementById('miniGame');
+    const message = document.getElementById('message');
+    const startBtn = document.getElementById('startBtn');
+    const modalStartBtn = document.getElementById('modalStartBtn');
+    const serveBtn = document.getElementById('serveBtn');
+    const overlay = document.getElementById('overlay');
+    const servedVal = document.getElementById('servedVal');
+    const tipsVal = document.getElementById('tipsVal');
+    const bestVal = document.getElementById('bestVal');
+
+    let customers = [];
+    let activeId = null;
+    let running = false;
+    let cooked = false;
+    let served = 0;
+    let tips = 0;
+    let lastTick = 0;
+    let spawnTimer = 0;
+    let best = Number(localStorage.getItem('little_cup_best') || 0);
+    let miniState = {};
+    bestVal.textContent = best;
+
+    function startShift() {
+      customers = [];
+      activeId = null;
+      running = true;
+      cooked = false;
+      served = 0;
+      tips = 0;
+      spawnTimer = 0;
+      lastTick = performance.now();
+      overlay.classList.add('hidden');
+      startBtn.textContent = 'Restart shift';
+      addCustomer();
+      render();
+      requestAnimationFrame(loop);
+    }
+
+    function addCustomer() {
+      const order = orders[Math.floor(Math.random() * orders.length)];
+      const patience = Math.max(12, 24 - served * 0.45);
+      customers.push({ id: `${Date.now()}-${Math.random()}`, name: names[Math.floor(Math.random() * names.length)], order, patience, maxPatience: patience });
+      if (!activeId) selectCustomer(customers[0].id);
+    }
+
+    function selectCustomer(id) {
+      activeId = id;
+      cooked = false;
+      serveBtn.disabled = true;
+      buildMiniGame();
+      render();
+    }
+
+    function activeCustomer() {
+      return customers.find(customer => customer.id === activeId) || null;
+    }
+
+    function buildMiniGame() {
+      const customer = activeCustomer();
+      miniGame.innerHTML = '';
+      if (!customer) {
+        foodIcon.textContent = '☕';
+        miniTitle.textContent = 'No active order';
+        miniHelp.textContent = 'Wait for the next customer.';
+        return;
+      }
+      foodIcon.textContent = customer.order.icon;
+      miniTitle.textContent = `Cook ${customer.order.name}`;
+      message.textContent = '';
+      if (customer.order.game === 'simon') buildSimon();
+      if (customer.order.game === 'taps') buildTaps();
+      if (customer.order.game === 'ingredients') buildIngredients();
+    }
+
+    function buildSimon() {
+      miniHelp.textContent = 'Repeat the color pattern.';
+      const length = Math.min(6, 3 + Math.floor(served / 4));
+      miniState = { sequence: Array.from({ length }, () => colors[Math.floor(Math.random() * colors.length)]), index: 0, showing: true };
+      const wrap = document.createElement('div');
+      wrap.className = 'simon';
+      colors.forEach(color => {
+        const btn = document.createElement('button');
+        btn.className = `simon-btn ${color}`;
+        btn.type = 'button';
+        btn.textContent = color[0].toUpperCase();
+        btn.disabled = true;
+        btn.addEventListener('click', () => pressSimon(color));
+        wrap.appendChild(btn);
+      });
+      miniGame.appendChild(wrap);
+      showPattern();
+    }
+
+    function showPattern() {
+      const buttons = [...miniGame.querySelectorAll('.simon-btn')];
+      let delay = 280;
+      miniState.sequence.forEach(color => {
+        setTimeout(() => {
+          if (!running || cooked) return;
+          const btn = buttons.find(item => item.classList.contains(color));
+          btn.classList.add('on');
+          setTimeout(() => btn.classList.remove('on'), 330);
+        }, delay);
+        delay += 520;
+      });
+      setTimeout(() => {
+        if (!running || cooked) return;
+        miniState.showing = false;
+        buttons.forEach(btn => btn.disabled = false);
+        message.textContent = 'Your turn.';
+      }, delay);
+    }
+
+    function pressSimon(color) {
+      if (miniState.showing || cooked) return;
+      if (color !== miniState.sequence[miniState.index]) {
+        message.textContent = 'Wrong color. Pattern restarted.';
+        buildSimon();
+        return;
+      }
+      miniState.index++;
+      if (miniState.index >= miniState.sequence.length) finishCooking();
+    }
+
+    function buildTaps() {
+      const needed = Math.min(8, 4 + Math.floor(served / 3));
+      miniState = { hits: 0, needed };
+      miniHelp.textContent = `Tap the hot pan ${needed} times.`;
+      const area = document.createElement('div');
+      area.className = 'tap-area';
+      miniGame.appendChild(area);
+      moveTarget();
+    }
+
+    function moveTarget() {
+      const area = miniGame.querySelector('.tap-area');
+      area.innerHTML = '';
+      const btn = document.createElement('button');
+      btn.className = 'tap-target';
+      btn.type = 'button';
+      btn.textContent = miniState.needed - miniState.hits;
+      btn.style.left = `${Math.random() * Math.max(20, area.clientWidth - 84)}px`;
+      btn.style.top = `${Math.random() * Math.max(20, area.clientHeight - 84)}px`;
+      btn.addEventListener('click', () => {
+        miniState.hits++;
+        if (miniState.hits >= miniState.needed) finishCooking();
+        else moveTarget();
+      });
+      area.appendChild(btn);
+    }
+
+    function buildIngredients() {
+      const shuffled = [...ingredientPool].sort(() => Math.random() - .5);
+      miniState = { recipe: shuffled.slice(0, 4), index: 0 };
+      miniHelp.textContent = 'Pick the ingredients in order.';
+      message.textContent = `Need: ${miniState.recipe.join(' -> ')}`;
+      const wrap = document.createElement('div');
+      wrap.className = 'ingredients';
+      shuffled.slice(0, 6).forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'ingredient';
+        btn.type = 'button';
+        btn.textContent = item;
+        btn.addEventListener('click', () => pickIngredient(item));
+        wrap.appendChild(btn);
+      });
+      miniGame.appendChild(wrap);
+    }
+
+    function pickIngredient(item) {
+      if (item !== miniState.recipe[miniState.index]) {
+        miniState.index = 0;
+        message.textContent = `Wrong ingredient. Need: ${miniState.recipe.join(' -> ')}`;
+        return;
+      }
+      miniState.index++;
+      if (miniState.index >= miniState.recipe.length) finishCooking();
+      else message.textContent = `Good. Next: ${miniState.recipe[miniState.index]}`;
+    }
+
+    function finishCooking() {
+      cooked = true;
+      serveBtn.disabled = false;
+      miniGame.innerHTML = '';
+      miniHelp.textContent = 'Order is cooked. Serve it before time runs out.';
+      message.textContent = 'Ready to serve.';
+    }
+
+    function serveOrder() {
+      const customer = activeCustomer();
+      if (!customer || !cooked) return;
+      const bonus = Math.ceil(customer.patience / 3);
+      served++;
+      tips += customer.order.tip + bonus;
+      customers = customers.filter(item => item.id !== customer.id);
+      activeId = customers[0]?.id || null;
+      cooked = false;
+      serveBtn.disabled = true;
+      if (activeId) buildMiniGame();
+      else {
+        miniGame.innerHTML = '';
+        foodIcon.textContent = '✅';
+        miniTitle.textContent = 'Served';
+        miniHelp.textContent = 'Waiting for the next customer.';
+      }
+      message.textContent = `Served ${customer.order.name}. +$${customer.order.tip + bonus}`;
+      render();
+    }
+
+    function loop(now) {
+      if (!running) return;
+      const dt = Math.min(.05, (now - lastTick) / 1000);
+      lastTick = now;
+      spawnTimer -= dt;
+      if (spawnTimer <= 0 && customers.length < 4) {
+        addCustomer();
+        spawnTimer = Math.max(3.1, 6.2 - served * .18);
+      }
+      customers.forEach(customer => customer.patience -= dt);
+      if (customers.some(customer => customer.patience <= 0)) return lose();
+      render();
+      requestAnimationFrame(loop);
+    }
+
+    function render() {
+      servedVal.textContent = served;
+      tipsVal.textContent = tips;
+      bestVal.textContent = best;
+      customerList.innerHTML = '';
+      if (!customers.length) {
+        customerList.innerHTML = '<div class="customer"><div class="mini-help">No customers right now.</div></div>';
+        return;
+      }
+      customers.forEach(customer => {
+        const el = document.createElement('button');
+        el.className = `customer${customer.id === activeId ? ' active' : ''}`;
+        el.type = 'button';
+        el.innerHTML = `
+          <div class="cust-top"><span class="cust-name">${customer.name}</span><span>${customer.order.icon}</span></div>
+          <div class="order">${customer.order.name}</div>
+          <div class="bar"><div class="bar-fill" style="width:${Math.max(0, customer.patience / customer.maxPatience * 100)}%"></div></div>`;
+        el.addEventListener('click', () => selectCustomer(customer.id));
+        customerList.appendChild(el);
+      });
+    }
+
+    function lose() {
+      running = false;
+      best = Math.max(best, served);
+      localStorage.setItem('little_cup_best', String(best));
+      overlay.querySelector('h1').textContent = 'Shift Failed';
+      overlay.querySelector('p').textContent = `You served ${served} customers and made $${tips}. Best shift: ${best} served.`;
+      modalStartBtn.textContent = 'Try Again';
+      overlay.classList.remove('hidden');
+      render();
+    }
+
+    startBtn.addEventListener('click', startShift);
+    modalStartBtn.addEventListener('click', startShift);
+    serveBtn.addEventListener('click', serveOrder);
+  </script>
+</body>
+</html>
