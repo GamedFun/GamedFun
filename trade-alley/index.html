@@ -574,15 +574,14 @@
       if (!offer || !give || offer.askedAdd) return;
       offer.askedAdd = true;
       const tier = currentTier();
-      const acceptChance = offer.take.value < give.value ? .72 : .42;
-      if (Math.random() < acceptChance) {
-        offer.addOn = freshItem(randomItem(tier), offerMultiplier(tier) * .35);
-        logEl.textContent = `${offer.npc.name} agreed to add ${offer.addOn.name}.`;
+      if (Math.random() < .75) {
+        const addOn = freshItem(randomItem(tier), offerMultiplier(tier) * .35);
+        inventory.splice(selectedIndex, 1, offer.take);
+        inventory.push(addOn);
+        finishDeal(`${offer.npc.name} said yes and added ${addOn.name}. Trade completed.`);
       } else {
-        logEl.textContent = `${offer.npc.name} declined to add anything.`;
+        finishDeal(`${offer.npc.name} said no to adding anything. A new trader walked in.`);
       }
-      render();
-      saveGame();
     });
 
     cancelBtn.addEventListener('click', () => {
