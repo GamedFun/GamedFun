@@ -409,6 +409,11 @@
   .result-btn:hover { background: #332d45; }
   .result-btn.primary { background: rgba(248,113,113,.15); border-color: rgba(248,113,113,.4); color: #f87171; }
   .result-btn.primary:hover { background: rgba(248,113,113,.25); }
+  @media (max-width: 480px) {
+    #hud { flex-wrap: wrap; gap: .35rem; padding: .35rem .7rem; }
+    .summon-btn { padding: .35rem .55rem; font-size: .75rem; }
+    .brand span { display: none; }
+  }
   [data-theme="light"] { --bg: #f0f0f5; --panel: #ffffff; --text: #111827; --muted: #6b7280; --border: rgba(0,0,0,.12); }
   [data-theme="light"] body { background: #f0f0f5; }
   [data-theme="light"] header { background: rgba(245,245,250,.95); }

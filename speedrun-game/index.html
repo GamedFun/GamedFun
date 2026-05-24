@@ -91,6 +91,12 @@
       transition: background .12s;
     }
     .restart-btn:hover { background: #1c2030; }
+    @media (max-width: 500px) {
+      h1 { font-size: 1.3rem; }
+      .tagline { font-size: .78rem; }
+      .hud-row { gap: 1.2rem; }
+      main { padding: 1rem .75rem 1.5rem; }
+    }
     [data-theme="light"] { --bg: #f5f5f5; --panel: #ffffff; --text: #111827; --muted: #6b7280; --border: rgba(0,0,0,.1); }
     [data-theme="light"] body { background: #f5f5f5; }
     [data-theme="light"] header { background: rgba(245,245,250,.95); }

@@ -179,6 +179,11 @@
       .coin { width: 26px; height: 26px; }
       .stat { min-width: 92px; }
     }
+    @media (max-width: 400px) {
+      .stat { min-width: 76px; padding: .4rem .55rem; }
+      .value { font-size: 1rem; }
+      header { padding: 0 .75rem; }
+    }
     [data-theme="light"] { --bg: #f0f0f8; --panel: rgba(255,255,255,.9); --text: #111827; --muted: #6b7280; --border: rgba(0,0,0,.1); }
     [data-theme="light"] body { background: radial-gradient(circle at 18% 18%,rgba(255,79,216,.06),transparent 24rem),radial-gradient(circle at 86% 12%,rgba(57,245,255,.06),transparent 24rem),#f0f0f8; }
     [data-theme="light"] header { background: rgba(240,240,248,.92); }

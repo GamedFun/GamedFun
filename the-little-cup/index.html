@@ -245,6 +245,10 @@
     @keyframes toastOut { to   { opacity: 0; transform: translateX(-50%) translateY(12px); } }
 
 
+    @media (max-width: 600px) {
+      .header-stats { display: none; }
+      header { padding: .5rem .75rem; }
+    }
     @media (max-width: 820px) {
       .layout { grid-template-columns: 1fr; height: auto; }
       .upg-panel, .bld-panel { border: none; border-bottom: 1px solid var(--border); max-height: 260px; }
