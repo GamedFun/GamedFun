@@ -38,11 +38,15 @@
       border-bottom: 1px solid var(--border);
     }
     .brand {
+      align-items: center;
       color: var(--text);
+      display: inline-flex;
       font-size: 1.1rem;
       font-weight: 900;
+      gap: .42rem;
       text-decoration: none;
     }
+    .brand-mark { width: 1.25rem; height: 1.25rem; flex: 0 0 auto; }
     .home-link {
       color: var(--muted);
       border: 1px solid var(--border);
@@ -228,6 +232,20 @@
       border: 1px solid var(--border);
       color: var(--muted);
     }
+    .uno-btn {
+      background: linear-gradient(135deg, var(--red), var(--yellow));
+      color: #fff;
+      min-width: 82px;
+      text-shadow: 0 1px 4px rgba(0,0,0,.35);
+    }
+    .uno-btn.active {
+      animation: unoPulse .6s ease-in-out infinite alternate;
+      box-shadow: 0 0 0 3px rgba(250,204,21,.18), 0 12px 28px rgba(239,68,68,.28);
+    }
+    @keyframes unoPulse {
+      from { transform: scale(1); filter: brightness(1); }
+      to { transform: scale(1.07); filter: brightness(1.14); }
+    }
     button:disabled {
       cursor: not-allowed;
       opacity: .5;
@@ -274,7 +292,10 @@
 </head>
 <body>
   <header>
-    <a class="brand" href="https://gamed.fun/">gamed.fun</a>
+    <a class="brand" href="https://gamed.fun/" aria-label="gamed.fun">
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.5 11.5h4M10.5 9.5v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="9.5" r="1.4" fill="currentColor"/><circle cx="15" cy="15.5" r="1.4" fill="currentColor"/></svg>
+      <span>gamed.fun</span>
+    </a>
     <a class="home-link" href="https://gamed.fun/">All games</a>
   </header>
 
@@ -305,6 +326,7 @@
           <button class="color-btn blue" data-pick="blue" type="button">Blue</button>
         </div>
         <div class="controls">
+          <button class="uno-btn" id="unoBtn" type="button" disabled>UNO</button>
           <button class="secondary" id="stackingBtn" type="button" aria-pressed="false">Stacking: Off</button>
           <button class="secondary" id="newGameBtn" type="button">New game</button>
         </div>
@@ -332,6 +354,7 @@
     const playerCountEl = document.getElementById('playerCount');
     const npcCountEl = document.getElementById('npcCount');
     const drawBtn = document.getElementById('drawBtn');
+    const unoBtn = document.getElementById('unoBtn');
     const stackingBtn = document.getElementById('stackingBtn');
     const newGameBtn = document.getElementById('newGameBtn');
     const colorPicker = document.getElementById('colorPicker');
@@ -347,6 +370,9 @@
     let gameOver = false;
     let pendingWild = null;
     let pendingDraw = null;
+    let unoPending = false;
+    let unoTimer = null;
+    let audioCtx = null;
     let stackingEnabled = localStorage.getItem('uno_stacking') === 'on';
 
     function buildDeck() {
@@ -387,6 +413,7 @@
       gameOver = false;
       pendingWild = null;
       pendingDraw = null;
+      clearUnoCall();
       for (let i = 0; i < 7; i++) {
         player.push(deck.pop());
         npc.push(deck.pop());
@@ -454,6 +481,7 @@
       colorPicker.classList.remove('on');
       if (checkWinner(owner)) return;
       applyCardEffect(played, owner);
+      if (owner === 'player' && player.length === 1) startUnoCall();
       render();
       if (turn === 'npc') setTimeout(npcTurn, 650);
     }
@@ -470,6 +498,7 @@
           messageEl.textContent = `${target === 'player' ? 'You' : 'NPC'} must stack ${played.value} or draw ${pendingDraw.amount}.`;
         } else {
           for (let i = 0; i < amount; i++) drawCard(other);
+          if (owner === 'npc') clearUnoCall();
           turn = owner;
           messageEl.textContent = `${owner === 'player' ? 'NPC' : 'You'} drew ${amount}. ${owner === 'player' ? 'Your' : 'NPC'} turn again.`;
         }
@@ -500,6 +529,7 @@
     function win(text) {
       gameOver = true;
       turn = 'over';
+      clearUnoCall();
       messageEl.textContent = text;
       colorPicker.classList.remove('on');
       render();
@@ -574,6 +604,8 @@
       deckCountEl.textContent = `${deck.length} cards left in deck`;
       drawBtn.disabled = turn !== 'player' || gameOver;
       drawBtn.textContent = pendingDraw && turn === 'player' ? `DRAW ${pendingDraw.amount}` : 'DRAW';
+      unoBtn.disabled = !unoPending || gameOver;
+      unoBtn.classList.toggle('active', unoPending && !gameOver);
       stackingBtn.textContent = `Stacking: ${stackingEnabled ? 'On' : 'Off'}`;
       stackingBtn.setAttribute('aria-pressed', String(stackingEnabled));
       stackingBtn.disabled = Boolean(pendingDraw) || turn === 'choosing';
@@ -588,6 +620,7 @@
         return;
       }
       drawCard(player);
+      clearUnoCall();
       const drawn = player[player.length - 1];
       if (drawn && canPlay(drawn)) {
         messageEl.textContent = 'You drew a playable card.';
@@ -604,6 +637,7 @@
       const other = target === 'player' ? 'npc' : 'player';
       const amount = pendingDraw.amount;
       for (let i = 0; i < amount; i++) drawCard(hand);
+      if (target === 'player') clearUnoCall();
       pendingDraw = null;
       turn = other;
       messageEl.textContent = `${target === 'player' ? 'You drew' : 'NPC drew'} ${amount}. ${other === 'player' ? 'Your' : 'NPC'} turn.`;
@@ -620,6 +654,66 @@
       finishPlayedCard(played, 'player');
     });
 
+    function startUnoCall() {
+      clearUnoCall();
+      unoPending = true;
+      messageEl.textContent += ' Call UNO!';
+      playUnoAlert();
+      unoTimer = setTimeout(() => {
+        if (!unoPending || gameOver || player.length !== 1) return;
+        for (let i = 0; i < 4; i++) drawCard(player);
+        clearUnoCall();
+        messageEl.textContent = 'You forgot to call UNO. Draw 4.';
+        render();
+      }, 3000);
+    }
+
+    function clearUnoCall() {
+      unoPending = false;
+      clearTimeout(unoTimer);
+      unoTimer = null;
+    }
+
+    function ensureAudio() {
+      try {
+        audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        return audioCtx;
+      } catch {
+        return null;
+      }
+    }
+
+    function playTone(freq, start, duration, type = 'triangle', gain = 0.14) {
+      try {
+        const ctx = ensureAudio();
+        if (!ctx) return;
+        const osc = audioCtx.createOscillator();
+        const vol = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + start);
+        vol.gain.setValueAtTime(gain, audioCtx.currentTime + start);
+        vol.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + start + duration);
+        osc.connect(vol);
+        vol.connect(audioCtx.destination);
+        osc.start(audioCtx.currentTime + start);
+        osc.stop(audioCtx.currentTime + start + duration);
+      } catch {}
+    }
+
+    function playUnoAlert() {
+      playTone(660, 0, 0.12);
+      playTone(880, 0.13, 0.14);
+      playTone(1046, 0.28, 0.18);
+    }
+
+    unoBtn.addEventListener('click', () => {
+      if (!unoPending || gameOver) return;
+      clearUnoCall();
+      messageEl.textContent = 'UNO called in time.';
+      render();
+    });
+
     stackingBtn.addEventListener('click', () => {
       stackingEnabled = !stackingEnabled;
       localStorage.setItem('uno_stacking', stackingEnabled ? 'on' : 'off');
@@ -628,6 +722,8 @@
     });
 
     newGameBtn.addEventListener('click', startGame);
+    window.addEventListener('pointerdown', ensureAudio, { once: true });
+    window.addEventListener('keydown', ensureAudio, { once: true });
     startGame();
   </script>
 </body>

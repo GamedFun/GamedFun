@@ -38,7 +38,8 @@
       z-index: 5;
     }
     .brand, .home-link { text-decoration: none; font-weight: 900; }
-    .brand { color: var(--pink); }
+    .brand { align-items: center; color: var(--pink); display: inline-flex; gap: .42rem; }
+    .brand-mark { width: 1.25rem; height: 1.25rem; flex: 0 0 auto; }
     .home-link {
       color: var(--muted);
       border: 1px solid var(--border);
@@ -103,7 +104,7 @@
     .cat {
       position: absolute;
       width: 92px;
-      height: 62px;
+      height: auto;
       left: 12%;
       top: 44%;
       transform: translateY(-50%);
@@ -172,7 +173,7 @@
     .hidden { display: none; }
     @media (max-width: 640px) {
       main { padding: .55rem; }
-      .cat { width: 76px; height: 52px; }
+      .cat { width: 76px; }
       .obstacle { width: 44px; }
       .coin { width: 26px; height: 26px; }
       .stat { min-width: 92px; }
@@ -181,7 +182,10 @@
 </head>
 <body>
   <header>
-    <a class="brand" href="https://gamed.fun/">gamed.fun</a>
+    <a class="brand" href="https://gamed.fun/" aria-label="gamed.fun">
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.5 11.5h4M10.5 9.5v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="9.5" r="1.4" fill="currentColor"/><circle cx="15" cy="15.5" r="1.4" fill="currentColor"/></svg>
+      <span>gamed.fun</span>
+    </a>
     <a class="home-link" href="https://gamed.fun/">All games</a>
   </header>
 
@@ -240,6 +244,13 @@
     let orbs = [];
     let lastGap = null;
     let best = Number(localStorage.getItem('neon_cat_best') || 0);
+    const GRAVITY = 1120;
+    const BOOST_FORCE = -450;
+    const BASE_MOVE_SPEED = 205;
+    const SCORE_RATE = 58;
+    const SPEED_RAMP_DISTANCE = 3400;
+    const MIN_SPAWN_DELAY = 1.18;
+    const START_SPAWN_DELAY = 1.75;
     bestEl.textContent = Math.floor(best);
 
     function start() {
@@ -265,16 +276,17 @@
         start();
         return;
       }
-      velocity = -520;
+      velocity = BOOST_FORCE;
     }
 
     function spawnObstacle() {
-      const gap = Math.max(132, game.clientHeight * 0.28 - score * 0.01);
-      const topHeight = 40 + Math.random() * Math.max(40, game.clientHeight - gap - 110);
+      const gap = Math.max(174, game.clientHeight * 0.36 - score * 0.006);
+      const edgePadding = Math.max(58, game.clientHeight * 0.1);
+      const topHeight = edgePadding + Math.random() * Math.max(40, game.clientHeight - gap - edgePadding * 2);
       const bottomTop = topHeight + gap;
       createObstacle(0, topHeight);
       createObstacle(bottomTop, game.clientHeight - bottomTop);
-      lastGap = { top: topHeight + 26, bottom: bottomTop - 26 };
+      lastGap = { top: topHeight + 34, bottom: bottomTop - 34 };
       if (Math.random() < 0.82) spawnOrb(lastGap);
     }
 
@@ -306,14 +318,14 @@
       if (!running) return;
       const dt = Math.min(0.032, (now - lastTime) / 1000);
       lastTime = now;
-      speed = 1 + score / 1600;
-      velocity += 1450 * dt;
+      speed = 1 + score / SPEED_RAMP_DISTANCE;
+      velocity += GRAVITY * dt;
       y += velocity * dt;
-      score += 70 * speed * dt;
+      score += SCORE_RATE * speed * dt;
       spawnTimer -= dt;
       if (spawnTimer <= 0) {
         spawnObstacle();
-        spawnTimer = Math.max(.9, 1.35 - score / 2400);
+        spawnTimer = Math.max(MIN_SPAWN_DELAY, START_SPAWN_DELAY - score / 5200);
       }
       updateObjects(dt);
       render();
@@ -322,7 +334,7 @@
     }
 
     function updateObjects(dt) {
-      const move = 260 * speed * dt;
+      const move = BASE_MOVE_SPEED * speed * dt;
       obstacles.forEach(item => {
         item.x -= move;
         item.el.style.transform = `translateX(${item.x}px)`;
@@ -359,9 +371,9 @@
     function catBox() {
       return {
         left: game.clientWidth * 0.12 + 10,
-        top: y - cat.clientHeight * 0.34,
-        width: cat.clientWidth * 0.72,
-        height: cat.clientHeight * 0.68
+        top: y - cat.clientHeight * 0.28,
+        width: cat.clientWidth * 0.58,
+        height: cat.clientHeight * 0.56
       };
     }
 

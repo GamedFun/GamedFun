@@ -109,14 +109,18 @@ header {
   gap: 1rem;
 }
 .home-brand {
+  align-items: center;
   color: var(--text-dim);
   border: 1px solid var(--border);
   border-radius: 8px;
+  display: inline-flex;
   font-size: 0.82rem;
   font-weight: 700;
+  gap: 0.36rem;
   padding: 0.42rem 0.62rem;
   text-decoration: none;
 }
+.brand-mark { width: 1.1rem; height: 1.1rem; flex: 0 0 auto; }
 .home-brand:hover { color: var(--accent); border-color: var(--accent); }
 .logo:hover { filter: brightness(1.15); }
 .logo:focus-visible {
