@@ -100,7 +100,7 @@
     .cust-name { font-weight: 1000; }
     .order { color: var(--cream); font-weight: 850; }
     .bar { height: 8px; border-radius: 999px; background: rgba(255,255,255,.1); overflow: hidden; }
-    .bar-fill { height: 100%; width: 100%; background: linear-gradient(90deg, var(--mint), var(--gold), var(--bad)); transition: width .12s linear; }
+    .bar-fill { height: 100%; width: 100%; background: linear-gradient(90deg, var(--mint), var(--gold)); }
     .station-main {
       min-height: 350px;
       display: grid;
@@ -281,7 +281,7 @@
         <div class="station-main">
           <div class="ticket">
             <div class="food" id="foodIcon">☕</div>
-            <div class="mini-title" id="miniTitle">Waiting for customers</div>
+            <div class="mini-title" id="miniTitle">Ready for customers</div>
             <div class="mini-help" id="miniHelp">Start the shift to open the cafe.</div>
           </div>
           <div id="miniGame"></div>
@@ -303,26 +303,28 @@
   <div class="overlay" id="overlay">
     <div class="modal">
       <h1>The Little Cup</h1>
-      <p>Serve quick cafe tasks to earn cash. Buy upgrades to make each shift stronger and grow the cafe.</p>
+      <p>Start with bread, serve customers, and unlock better foods as your cafe grows.</p>
       <button class="command" id="modalStartBtn" type="button">Open Cafe</button>
     </div>
   </div>
 
   <script>
     const orders = [
-      { name: 'Latte', icon: '☕', task: 'combine', tip: 5 },
-      { name: 'Soup', icon: '🍜', task: 'sillySoup', tip: 9 },
-      { name: 'Sandwich', icon: '🥪', task: 'order', tip: 8 },
-      { name: 'Donut Box', icon: '🍩', task: 'pattern', tip: 6 },
-      { name: 'Salad', icon: '🥗', task: 'odd', tip: 7 },
-      { name: 'Tea', icon: '🍵', task: 'sort', tip: 5 },
-      { name: 'Cookies', icon: '🍪', task: 'decorate', tip: 7 },
-      { name: 'Smoothie', icon: '🥤', task: 'mix', tip: 8 },
-      { name: 'Bagel', icon: '🥯', task: 'spread', tip: 6 },
-      { name: 'Lunch Tray', icon: '🍱', task: 'logic', tip: 10 }
+      { name: 'Bread', icon: '🍞', task: 'bread', tip: 2, unlock: 0 },
+      { name: 'Toast', icon: '🍞', task: 'toast', tip: 4, unlock: 1 },
+      { name: 'Cookies', icon: '🍪', task: 'decorate', tip: 6, unlock: 2 },
+      { name: 'Tea', icon: '🍵', task: 'sort', tip: 7, unlock: 3 },
+      { name: 'Bagel', icon: '🥯', task: 'spread', tip: 9, unlock: 4 },
+      { name: 'Latte', icon: '☕', task: 'combine', tip: 11, unlock: 5 },
+      { name: 'Sandwich', icon: '🥪', task: 'order', tip: 13, unlock: 6 },
+      { name: 'Soup', icon: '🍜', task: 'sillySoup', tip: 15, unlock: 7 },
+      { name: 'Smoothie', icon: '🥤', task: 'mix', tip: 17, unlock: 8 },
+      { name: 'Lunch Tray', icon: '🍱', task: 'logic', tip: 20, unlock: 9 }
     ];
     const names = ['Mia', 'Jay', 'Ava', 'Leo', 'Zoe', 'Max', 'Nora', 'Kai', 'Ivy', 'Ezra'];
     const taskBuilders = {
+      bread: buildBreadTask,
+      toast: buildToastTask,
       combine: buildCombinePuzzle,
       sillySoup: buildSillySoupPuzzle,
       order: buildOrderPuzzle,
@@ -336,9 +338,9 @@
     };
     const SAVE_KEY = 'little_cup_tycoon_save';
     const upgradeDefs = [
-      { id: 'prices', name: 'Better Menu', desc: 'Earn more cash from every order.', base: 35, scale: 1.75 },
-      { id: 'patience', name: 'Cozy Tables', desc: 'Customers wait longer before leaving.', base: 45, scale: 1.8 },
-      { id: 'seats', name: 'Extra Seats', desc: 'Hold more waiting customers at once.', base: 70, scale: 2.15 }
+      { id: 'menu', name: 'New Food', desc: 'Unlocks the next food customers can order.', base: 18, scale: 1.65, max: 9 },
+      { id: 'prices', name: 'Better Prices', desc: 'Earn more cash from every order.', base: 35, scale: 1.75 },
+      { id: 'seats', name: 'Extra Seats', desc: 'Shows more customers at once.', base: 70, scale: 2.15 }
     ];
 
     const customerList = document.getElementById('customerList');
@@ -363,11 +365,9 @@
     let running = false;
     let served = 0;
     let tips = 0;
-    let lastTick = 0;
-    let spawnTimer = 0;
     let cash = 0;
     let best = 0;
-    let upgrades = { prices: 0, patience: 0, seats: 0 };
+    let upgrades = { menu: 0, prices: 0, seats: 0 };
     let miniState = {};
 
     function loadTycoon() {
@@ -398,8 +398,12 @@
       return 4 + upgrades.seats;
     }
 
-    function orderValue(order, patience) {
-      return order.tip + Math.ceil(patience / 3) + upgrades.prices * 3;
+    function availableOrders() {
+      return orders.filter(order => order.unlock <= upgrades.menu);
+    }
+
+    function orderValue(order) {
+      return order.tip + upgrades.prices * 3;
     }
 
     function renderUpgrades() {
@@ -407,6 +411,7 @@
       upgradeDefs.forEach(def => {
         const cost = upgradeCost(def);
         const level = upgrades[def.id];
+        const maxed = typeof def.max === 'number' && level >= def.max;
         const wrap = document.createElement('div');
         wrap.className = 'upgrade';
         wrap.innerHTML = `
@@ -415,9 +420,9 @@
               <div class="upgrade-name">${def.name}</div>
               <div class="upgrade-desc">${def.desc}</div>
             </div>
-            <div class="label">Lv ${level}</div>
+            <div class="label">${maxed ? 'Max' : `Lv ${level}`}</div>
           </div>
-          <button class="upgrade-buy" type="button"${cash < cost ? ' disabled' : ''}>Buy $${cost}</button>`;
+          <button class="upgrade-buy" type="button"${cash < cost || maxed ? ' disabled' : ''}>${maxed ? 'Maxed' : `Buy $${cost}`}</button>`;
         wrap.querySelector('button').addEventListener('click', () => buyUpgrade(def));
         upgradeList.appendChild(wrap);
       });
@@ -425,11 +430,13 @@
 
     function buyUpgrade(def) {
       const cost = upgradeCost(def);
+      if (typeof def.max === 'number' && upgrades[def.id] >= def.max) return;
       if (cash < cost) return;
       cash -= cost;
       upgrades[def.id]++;
       message.textContent = `${def.name} upgraded to level ${upgrades[def.id]}.`;
       saveTycoon();
+      refillCustomers();
       render();
     }
 
@@ -440,24 +447,25 @@
       running = true;
       served = 0;
       tips = 0;
-      spawnTimer = 0;
-      lastTick = performance.now();
       overlay.querySelector('h1').textContent = 'The Little Cup';
-      overlay.querySelector('p').textContent = 'Serve quick cafe tasks to earn cash. Buy upgrades to make each shift stronger and grow the cafe.';
+      overlay.querySelector('p').textContent = 'Start with bread, serve customers, and unlock better foods as your cafe grows.';
       modalStartBtn.textContent = 'Open Cafe';
       overlay.classList.add('hidden');
       startBtn.textContent = 'Restart shift';
-      addCustomer();
+      refillCustomers();
       saveTycoon();
       render();
-      requestAnimationFrame(loop);
     }
 
     function addCustomer() {
-      const order = orders[Math.floor(Math.random() * orders.length)];
-      const patience = Math.max(12, 24 + upgrades.patience * 4 - served * 0.35);
-      customers.push({ id: `${Date.now()}-${Math.random()}`, name: names[Math.floor(Math.random() * names.length)], order, patience, maxPatience: patience, cooked: false });
+      const menu = availableOrders();
+      const order = menu[Math.floor(Math.random() * menu.length)];
+      customers.push({ id: `${Date.now()}-${Math.random()}`, name: names[Math.floor(Math.random() * names.length)], order, cooked: false });
       if (!activeId) selectCustomer(customers[0].id);
+    }
+
+    function refillCustomers() {
+      while (customers.length < maxCustomers()) addCustomer();
     }
 
     function selectCustomer(id) {
@@ -479,9 +487,9 @@
       const customer = activeCustomer();
       miniGame.innerHTML = '';
       if (!customer) {
-        foodIcon.textContent = '☕';
+        foodIcon.textContent = '🍞';
         miniTitle.textContent = 'No active order';
-        miniHelp.textContent = 'Wait for the next customer.';
+        miniHelp.textContent = 'Customers appear right away.';
         serveBtn.disabled = true;
         return;
       }
@@ -497,6 +505,14 @@
       miniTitle.textContent = `Cook ${customer.order.name}`;
       message.textContent = '';
       taskBuilders[customer.order.task]();
+    }
+
+    function buildBreadTask() {
+      buildTapGame('Tap to bake fresh bread.', 'Bake bread', 4);
+    }
+
+    function buildToastTask() {
+      buildHoldGame('Hold to toast it golden.', 'Toast bread');
     }
 
     function buildTapGame(help, buttonText, needed) {
@@ -639,11 +655,12 @@
     function serveCustomer(id) {
       const customer = customers.find(item => item.id === id);
       if (!customer?.cooked) return;
-      const earned = orderValue(customer.order, customer.patience);
+      const earned = orderValue(customer.order);
       served++;
       tips += earned;
       cash += earned;
       customers = customers.filter(item => item.id !== customer.id);
+      refillCustomers();
       activeId = customers.find(item => !item.cooked)?.id || customers[0]?.id || null;
       serveBtn.disabled = true;
       if (activeId) buildMiniGame();
@@ -651,26 +668,11 @@
         miniGame.innerHTML = '';
         foodIcon.textContent = '✅';
         miniTitle.textContent = 'Served';
-        miniHelp.textContent = 'Waiting for the next customer.';
+        miniHelp.textContent = 'Customers appear right away.';
       }
       saveTycoon();
       message.textContent = `Served ${customer.order.name}. +$${earned}`;
       render();
-    }
-
-    function loop(now) {
-      if (!running) return;
-      const dt = Math.min(.05, (now - lastTick) / 1000);
-      lastTick = now;
-      spawnTimer -= dt;
-      if (spawnTimer <= 0 && customers.length < maxCustomers()) {
-        addCustomer();
-        spawnTimer = Math.max(2.8, 6.2 - served * .15 - upgrades.seats * .12);
-      }
-      customers.forEach(customer => customer.patience -= dt);
-      if (customers.some(customer => customer.patience <= 0)) return lose();
-      render();
-      requestAnimationFrame(loop);
     }
 
     function render() {
@@ -692,21 +694,10 @@
         el.innerHTML = `
           <div class="cust-top"><span class="cust-name">${customer.name}</span><span>${customer.order.icon}</span></div>
           <div class="order">${customer.cooked ? 'Ready: ' : ''}${customer.order.name}</div>
-          <div class="bar"><div class="bar-fill" style="width:${Math.max(0, customer.patience / customer.maxPatience * 100)}%"></div></div>`;
+          <div class="bar"><div class="bar-fill"></div></div>`;
         el.addEventListener('click', () => selectCustomer(customer.id));
         customerList.appendChild(el);
       });
-    }
-
-    function lose() {
-      running = false;
-      best = Math.max(best, served);
-      saveTycoon();
-      overlay.querySelector('h1').textContent = 'Shift Failed';
-      overlay.querySelector('p').textContent = `You served ${served} customers and made $${tips}. Cafe cash: $${cash}. Best shift: ${best} served.`;
-      modalStartBtn.textContent = 'Try Again';
-      overlay.classList.remove('hidden');
-      render();
     }
 
     startBtn.addEventListener('click', startShift);
