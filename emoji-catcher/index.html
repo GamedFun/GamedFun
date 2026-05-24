@@ -43,7 +43,8 @@
     backdrop-filter: blur(8px);
     z-index: 20;
   }
-  .brand { text-decoration: none; font-weight: 900; color: var(--gold); font-size: .95rem; }
+  .brand { align-items: center; color: var(--gold); display: inline-flex; font-size: .95rem; gap: .42rem; text-decoration: none; font-weight: 900; }
+  .brand-mark { width: 1.2rem; height: 1.2rem; flex: 0 0 auto; }
   .home-link { text-decoration: none; color: var(--muted); font-size: .82rem; }
 
   /* HUD */
@@ -321,12 +322,101 @@
     border-radius: 4px;
     text-transform: uppercase;
   }
+
+  /* BATTLE OVERLAY */
+  #battle-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(10,8,16,.97);
+    display: flex;
+    flex-direction: column;
+    transform: translateY(100%);
+    transition: transform .3s ease;
+  }
+  #battle-overlay.open { transform: translateY(0); }
+  #battle-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: .8rem 1rem;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  #battle-header h2 { font-size: 1.1rem; font-weight: 900; }
+  #close-battle { background: none; border: none; color: var(--muted); font-size: 1.4rem; cursor: pointer; padding: 0 .3rem; }
+
+  #battle-pick-screen { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  #battle-pick-hint { text-align: center; color: var(--muted); font-size: .85rem; padding: .5rem .8rem; flex-shrink: 0; }
+  #battle-fighter-grid {
+    flex: 1; overflow-y: auto; padding: .8rem;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: .5rem; align-content: start;
+  }
+  .battle-pick-cell {
+    aspect-ratio: 1; border-radius: 10px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 1px;
+    background: #231f30; border: 1px solid var(--border);
+    font-size: 1.7rem; cursor: pointer; transition: transform .1s;
+  }
+  .battle-pick-cell:hover { transform: scale(1.08); }
+  .battle-pick-cell .bp-name { font-size: .52rem; text-align: center; line-height: 1.2; }
+  .battle-pick-cell .bp-stats { font-size: .5rem; color: var(--muted); }
+
+  #battle-fight-screen {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    padding: .7rem 1rem; gap: .5rem; overflow-y: auto;
+  }
+  .battle-card {
+    width: 100%; max-width: 320px; background: #231f30; border: 2px solid var(--border);
+    border-radius: 14px; padding: .7rem 1rem; display: flex;
+    flex-direction: column; align-items: center; gap: .35rem;
+  }
+  .battle-card .bc-emoji { font-size: 2.8rem; line-height: 1; }
+  .battle-card .bc-name { font-size: .85rem; font-weight: 700; }
+  .hp-bar-wrap { width: 100%; height: 10px; background: #2a2438; border-radius: 99px; overflow: hidden; }
+  .hp-bar { height: 100%; border-radius: 99px; transition: width .35s; background: #34d399; }
+  .hp-bar.low { background: #fbbf24; }
+  .hp-bar.critical { background: #f87171; }
+  .bc-hp-text { font-size: .72rem; color: var(--muted); }
+  .vs-label { font-size: 1.1rem; font-weight: 900; color: var(--muted); flex-shrink: 0; }
+  #battle-log {
+    width: 100%; max-width: 320px; background: #1a1625; border: 1px solid var(--border);
+    border-radius: 10px; padding: .45rem .75rem; font-size: .76rem; color: var(--muted);
+    min-height: 54px; max-height: 70px; overflow-y: auto; flex-shrink: 0;
+  }
+  #battle-actions { display: flex; gap: .45rem; width: 100%; max-width: 320px; flex-shrink: 0; }
+  .battle-act-btn {
+    flex: 1; padding: .5rem .2rem; border-radius: 10px; border: 1px solid var(--border);
+    background: #2a2438; color: var(--text); font-size: .8rem; font-weight: 700; cursor: pointer;
+    transition: background .12s, transform .08s;
+  }
+  .battle-act-btn:hover:not(:disabled) { background: #332d45; transform: scale(1.04); }
+  .battle-act-btn:disabled { opacity: .4; cursor: default; }
+
+  #battle-result-screen {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 1rem; padding: 1.5rem;
+  }
+  #result-icon { font-size: 3.5rem; }
+  #result-title { font-size: 1.5rem; font-weight: 900; }
+  #result-desc { font-size: .88rem; color: var(--muted); text-align: center; white-space: pre-line; }
+  .result-btn {
+    padding: .6rem 1.4rem; border-radius: 10px; border: 1px solid var(--border);
+    background: #2a2438; color: var(--text); font-size: .88rem; font-weight: 700; cursor: pointer;
+    transition: background .12s;
+  }
+  .result-btn:hover { background: #332d45; }
+  .result-btn.primary { background: rgba(248,113,113,.15); border-color: rgba(248,113,113,.4); color: #f87171; }
+  .result-btn.primary:hover { background: rgba(248,113,113,.25); }
 </style>
 </head>
 <body>
 
 <header>
-  <a class="brand" href="/">🎮 gamed.fun</a>
+  <a class="brand" href="/" aria-label="gamed.fun">
+    <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.5 11.5h4M10.5 9.5v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="9.5" r="1.4" fill="currentColor"/><circle cx="15" cy="15.5" r="1.4" fill="currentColor"/></svg>
+    <span>gamed.fun</span>
+  </a>
   <a class="home-link" href="/">← Home</a>
 </header>
 
@@ -362,7 +452,51 @@
       <span class="cost">2000 🪙</span>
     </button>
   </div>
-  <button id="collection-toggle" onclick="openCollection()">📖 View Collection ▲</button>
+  <div style="display:flex;gap:.4rem;padding:.4rem .7rem;border-top:1px solid var(--border);">
+    <button id="collection-toggle" onclick="openCollection()" style="flex:1;border:none;background:none;color:var(--muted);font-size:.82rem;cursor:pointer;padding:.2rem;text-align:left;">📖 Collection ▲</button>
+    <button id="battle-toggle" onclick="openBattle()" style="flex:1;border:1px solid rgba(248,113,113,.4);border-radius:8px;background:rgba(248,113,113,.1);color:#f87171;font-size:.82rem;font-weight:700;cursor:pointer;padding:.3rem .6rem;">⚔️ Battle</button>
+  </div>
+</div>
+
+<div id="battle-overlay">
+  <div id="battle-header">
+    <h2>⚔️ Battle</h2>
+    <button id="close-battle" onclick="closeBattle()">✕</button>
+  </div>
+  <div id="battle-pick-screen">
+    <div id="battle-pick-hint">Choose your fighter!</div>
+    <div id="battle-fighter-grid"></div>
+  </div>
+  <div id="battle-fight-screen" style="display:none">
+    <div class="battle-card" id="npc-card">
+      <div class="bc-emoji" id="npc-emoji"></div>
+      <div class="bc-name" id="npc-name"></div>
+      <div class="hp-bar-wrap"><div class="hp-bar" id="npc-hp-bar" style="width:100%"></div></div>
+      <div class="bc-hp-text" id="npc-hp-text"></div>
+    </div>
+    <div class="vs-label">— VS —</div>
+    <div class="battle-card" id="player-card">
+      <div class="bc-emoji" id="player-emoji"></div>
+      <div class="bc-name" id="player-name"></div>
+      <div class="hp-bar-wrap"><div class="hp-bar" id="player-hp-bar" style="width:100%"></div></div>
+      <div class="bc-hp-text" id="player-hp-text"></div>
+    </div>
+    <div id="battle-log"></div>
+    <div id="battle-actions">
+      <button class="battle-act-btn" onclick="doAction('attack')">⚔️ Attack</button>
+      <button class="battle-act-btn" onclick="doAction('power')">💥 Power</button>
+      <button class="battle-act-btn" onclick="doAction('guard')">🛡️ Guard</button>
+    </div>
+  </div>
+  <div id="battle-result-screen" style="display:none">
+    <div id="result-icon"></div>
+    <div id="result-title"></div>
+    <div id="result-desc"></div>
+    <div style="display:flex;gap:.6rem;flex-wrap:wrap;justify-content:center">
+      <button class="result-btn primary" onclick="fightAgain()">⚔️ Fight Again</button>
+      <button class="result-btn" onclick="closeBattle()">Close</button>
+    </div>
+  </div>
 </div>
 
 <div id="collection-overlay">
@@ -384,12 +518,12 @@
 
 <script>
 const RARITIES = {
-  common:    { name:'Common',    color:'var(--c-common)',    weight:63.75, coins:1,   lifetime:10000 },
-  uncommon:  { name:'Uncommon',  color:'var(--c-uncommon)',  weight:20, coins:3,   lifetime:7000  },
-  rare:      { name:'Rare',      color:'var(--c-rare)',      weight:10, coins:10,  lifetime:5000  },
-  epic:      { name:'Epic',      color:'var(--c-epic)',      weight:5,  coins:30,  lifetime:4000  },
-  legendary: { name:'Legendary', color:'var(--c-legendary)', weight:1,  coins:80,  lifetime:3000  },
-  mythic:    { name:'Mythic',    color:'var(--c-mythic)',    weight:0.25,coins:300, lifetime:2000  },
+  common:    { name:'Common',    color:'var(--c-common)',    weight:70,   coins:1,   lifetime:10000, hp:40,  atk:8   },
+  uncommon:  { name:'Uncommon',  color:'var(--c-uncommon)',  weight:17,   coins:3,   lifetime:7000,  hp:75,  atk:16  },
+  rare:      { name:'Rare',      color:'var(--c-rare)',      weight:8,    coins:10,  lifetime:5000,  hp:130, atk:32  },
+  epic:      { name:'Epic',      color:'var(--c-epic)',      weight:3,    coins:30,  lifetime:4000,  hp:200, atk:60  },
+  legendary: { name:'Legendary', color:'var(--c-legendary)', weight:1.5,  coins:80,  lifetime:3000,  hp:320, atk:110 },
+  mythic:    { name:'Mythic',    color:'var(--c-mythic)',    weight:0.5,  coins:300, lifetime:2000,  hp:600, atk:220 },
 };
 
 const EMOJIS = [
@@ -683,6 +817,7 @@ function newGame() {
   filterRarity = 'all';
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.r === 'all'));
   closeCollection();
+  if (battleOpen) closeBattle();
   updateHUD();
   renderCollection();
   startGame();
@@ -690,6 +825,200 @@ function newGame() {
 
 startGame();
 updateHUD();
+
+// ── BATTLE ─────────────────────────────────────────────────
+const NPCS = [
+  { name:'Wimpy Worm',      e:'🐛', r:'common'    },
+  { name:'Grumpy Frog',     e:'🐸', r:'common'    },
+  { name:'Sneaky Fox',      e:'🦊', r:'uncommon'  },
+  { name:'Wild Wolf',       e:'🐺', r:'uncommon'  },
+  { name:'Clumsy Bear',     e:'🐻', r:'uncommon'  },
+  { name:'Fierce Shark',    e:'🦈', r:'rare'      },
+  { name:'Stone Croc',      e:'🐊', r:'rare'      },
+  { name:'Iron Elephant',   e:'🐘', r:'rare'      },
+  { name:'Roaring Dragon',  e:'🐉', r:'epic'      },
+  { name:'Ancient T-Rex',   e:'🦖', r:'epic'      },
+  { name:'Space Overlord',  e:'👾', r:'epic'      },
+  { name:'Shadow Vampire',  e:'🧛', r:'epic'      },
+  { name:'Burning Phoenix', e:'🔥', r:'legendary' },
+  { name:'Diamond Golem',   e:'💎', r:'legendary' },
+  { name:'Storm King',      e:'🌀', r:'legendary' },
+  { name:'Cosmic Horror',   e:'🌌', r:'mythic'    },
+  { name:'Thunder God',     e:'⚡', r:'mythic'    },
+  { name:'Void Wizard',     e:'🪄', r:'mythic'    },
+];
+
+let battleState = null;
+let battleOpen = false;
+
+function openBattle() {
+  battleOpen = true;
+  document.getElementById('battle-overlay').classList.add('open');
+  showPickScreen();
+}
+
+function closeBattle() {
+  battleOpen = false;
+  battleState = null;
+  document.getElementById('battle-overlay').classList.remove('open');
+}
+
+function showPickScreen() {
+  document.getElementById('battle-pick-screen').style.display = 'flex';
+  document.getElementById('battle-fight-screen').style.display = 'none';
+  document.getElementById('battle-result-screen').style.display = 'none';
+  renderFighterPick();
+}
+
+function renderFighterPick() {
+  const grid = document.getElementById('battle-fighter-grid');
+  grid.innerHTML = '';
+  const owned = EMOJIS.filter(em => (collection[em.n] || 0) > 0);
+  if (owned.length === 0) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:2rem .5rem">Catch some emojis first!</div>';
+    return;
+  }
+  for (const em of owned) {
+    const r = RARITIES[em.r];
+    const cell = document.createElement('div');
+    cell.className = 'battle-pick-cell';
+    cell.style.borderColor = r.color;
+    cell.innerHTML = `<span>${em.e}</span><span class="bp-name" style="color:${r.color}">${em.n}</span><span class="bp-stats">❤️${r.hp} ⚔️${r.atk}</span>`;
+    cell.addEventListener('click', () => startBattle(em));
+    grid.appendChild(cell);
+  }
+}
+
+function startBattle(emojiDef) {
+  const pr = RARITIES[emojiDef.r];
+  const npc = NPCS[Math.floor(Math.random() * NPCS.length)];
+  const nr = RARITIES[npc.r];
+  battleState = {
+    playerEmoji: emojiDef,
+    playerHP: pr.hp, playerMaxHP: pr.hp, playerAtk: pr.atk,
+    npc, npcHP: nr.hp, npcMaxHP: nr.hp, npcAtk: nr.atk,
+    guarding: false, acting: false,
+  };
+  document.getElementById('battle-pick-screen').style.display = 'none';
+  document.getElementById('battle-fight-screen').style.display = 'flex';
+  document.getElementById('battle-result-screen').style.display = 'none';
+  document.getElementById('battle-log').innerHTML = '';
+  renderBattle();
+  logBattle(`⚔️ ${emojiDef.n} vs ${npc.name}! Fight!`);
+}
+
+function renderBattle() {
+  const { playerEmoji, playerHP, playerMaxHP, npc, npcHP, npcMaxHP } = battleState;
+  document.getElementById('player-emoji').textContent = playerEmoji.e;
+  document.getElementById('player-name').textContent = playerEmoji.n;
+  document.getElementById('player-hp-text').textContent = `${playerHP} / ${playerMaxHP}`;
+  const pPct = Math.max(0, playerHP / playerMaxHP * 100);
+  const pBar = document.getElementById('player-hp-bar');
+  pBar.style.width = pPct + '%';
+  pBar.className = 'hp-bar' + (pPct < 25 ? ' critical' : pPct < 50 ? ' low' : '');
+  document.getElementById('player-card').style.borderColor = RARITIES[playerEmoji.r].color;
+
+  document.getElementById('npc-emoji').textContent = npc.e;
+  document.getElementById('npc-name').textContent = npc.name;
+  document.getElementById('npc-hp-text').textContent = `${npcHP} / ${npcMaxHP}`;
+  const nPct = Math.max(0, npcHP / npcMaxHP * 100);
+  const nBar = document.getElementById('npc-hp-bar');
+  nBar.style.width = nPct + '%';
+  nBar.className = 'hp-bar' + (nPct < 25 ? ' critical' : nPct < 50 ? ' low' : '');
+  document.getElementById('npc-card').style.borderColor = RARITIES[npc.r].color;
+}
+
+function logBattle(msg) {
+  const log = document.getElementById('battle-log');
+  const line = document.createElement('div');
+  line.textContent = msg;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+
+function setBattleDisabled(v) {
+  document.querySelectorAll('.battle-act-btn').forEach(b => b.disabled = v);
+}
+
+function doAction(type) {
+  if (!battleState || battleState.acting) return;
+  battleState.acting = true;
+  setBattleDisabled(true);
+  const { playerEmoji, playerAtk, npc, npcAtk } = battleState;
+  let playerDmg = 0;
+
+  if (type === 'attack') {
+    playerDmg = Math.round(playerAtk * (0.85 + Math.random() * 0.3));
+    logBattle(`${playerEmoji.e} attacks for ${playerDmg}!`);
+  } else if (type === 'power') {
+    if (Math.random() < 0.28) {
+      logBattle(`${playerEmoji.e} Power Strike... missed! 😬`);
+    } else {
+      playerDmg = Math.round(playerAtk * (1.6 + Math.random() * 0.6));
+      logBattle(`${playerEmoji.e} Power Strike for ${playerDmg}! 💥`);
+    }
+  } else {
+    playerDmg = Math.round(playerAtk * 0.35);
+    battleState.guarding = true;
+    logBattle(`${playerEmoji.e} guards, deals ${playerDmg}. 🛡️`);
+  }
+
+  battleState.npcHP = Math.max(0, battleState.npcHP - playerDmg);
+  renderBattle();
+
+  if (battleState.npcHP <= 0) {
+    setTimeout(() => endBattle(true), 500);
+    return;
+  }
+
+  setTimeout(() => {
+    const g = battleState.guarding;
+    battleState.guarding = false;
+    const nd = Math.round(npcAtk * (0.85 + Math.random() * 0.3) * (g ? 0.45 : 1));
+    logBattle(`${npc.e} hits back for ${nd}${g ? ' (blocked! 🛡️)' : ''}!`);
+    battleState.playerHP = Math.max(0, battleState.playerHP - nd);
+    renderBattle();
+    if (battleState.playerHP <= 0) {
+      setTimeout(() => endBattle(false), 500);
+    } else {
+      battleState.acting = false;
+      setBattleDisabled(false);
+    }
+  }, 650);
+}
+
+function endBattle(won) {
+  document.getElementById('battle-pick-screen').style.display = 'none';
+  document.getElementById('battle-fight-screen').style.display = 'none';
+  document.getElementById('battle-result-screen').style.display = 'flex';
+  const { npc } = battleState;
+  const nr = RARITIES[npc.r];
+  if (won) {
+    const reward = nr.coins * 3;
+    coins += reward;
+    let extra = '';
+    const found = EMOJIS.find(em => em.e === npc.e);
+    if (found && Math.random() < 0.6) {
+      const wasNew = !collection[found.n];
+      collection[found.n] = (collection[found.n] || 0) + 1;
+      if (wasNew) newlyFound.add(found.n);
+      extra = `\nCaptured ${npc.e} ${found.n}!`;
+    }
+    document.getElementById('result-icon').textContent = '🏆';
+    document.getElementById('result-title').textContent = 'Victory!';
+    document.getElementById('result-desc').textContent = `+${reward} 🪙 coins earned!${extra}`;
+    updateHUD();
+  } else {
+    document.getElementById('result-icon').textContent = '💀';
+    document.getElementById('result-title').textContent = 'Defeated!';
+    document.getElementById('result-desc').textContent = 'Better luck next time!\nTrain harder and try again.';
+  }
+}
+
+function fightAgain() {
+  battleState = null;
+  showPickScreen();
+}
 </script>
 </body>
 </html>
