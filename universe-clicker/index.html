@@ -178,7 +178,7 @@
   <div id="top">
     <div>
       <div id="era-name">Big Bang</div>
-      <div id="era-num">Main Era 1 · Endless</div>
+      <div id="era-num">Era 1 of 7</div>
     </div>
     <div id="energy-col">
       <div id="energy-val">0 ⚡</div>
@@ -487,9 +487,9 @@ function renderEra() {
   const e = era();
   document.documentElement.style.setProperty('--era', e.color);
   eraNameEl.textContent = e.name;
-  eraNumEl.textContent  = G.eraIdx < BASE_ERA_COUNT ? `Main Era ${G.eraIdx + 1} · Endless` : `Endless Era ${G.eraIdx - BASE_ERA_COUNT + 1}`;
+  eraNumEl.textContent  = `Era ${Math.min(G.eraIdx + 1, BASE_ERA_COUNT)} of ${BASE_ERA_COUNT}`;
   clickIcon.textContent = e.icon;
-  clickLbl.textContent  = G.eraIdx >= BASE_ERA_COUNT ? 'Break Reality' : G.eraIdx === 6 ? 'Harvest Entropy' : 'Click!';
+  clickLbl.textContent  = G.eraIdx === 6 ? 'Harvest Entropy' : 'Click!';
   renderShop();
   renderFunShop();
 }
@@ -837,8 +837,8 @@ function showMilestone() {
   msTitleEl.textContent = e.msTitle;
   msTitleEl.style.color = e.color;
   msDescEl.textContent  = e.msDesc;
-  ensureEra(G.eraIdx + 1);
-  msBtnEl.textContent = `Continue to ${ERAS[G.eraIdx+1].name} →`;
+  const nextEra = G.eraIdx + 1;
+  msBtnEl.textContent = nextEra >= BASE_ERA_COUNT - 1 ? '🌌 Enter Era 7' : `Continue to ${ERAS[nextEra].name} →`;
   msBtnEl.disabled    = true;
   let t = 3;
   msTimerEl.textContent = `Continue in ${t}s…`;
@@ -854,7 +854,13 @@ function closeMilestone() {
   clearInterval(msCountdown);
   msOverlay.classList.remove('on');
   stopParticles();
-  G.eraIdx++; ensureEra(G.eraIdx); G.progress = 0; G.awaitingMs = false;
+  G.eraIdx++; G.progress = 0; G.awaitingMs = false;
+  if (G.eraIdx >= BASE_ERA_COUNT - 1) {
+    G.gameOver = true;
+    save();
+    setTimeout(() => gameOverEl.classList.add('on'), 600);
+    return;
+  }
   save(); renderEra(); updateHUD();
 }
 msBtnEl.addEventListener('click', closeMilestone);
@@ -928,9 +934,41 @@ setInterval(save, 15_000);
 // ══════════════════════════════════════════════
 //  SAVE / LOAD
 // ══════════════════════════════════════════════
-function save() {}
-function load() {}
-window.addEventListener('beforeunload', () => localStorage.removeItem('uc_v1'));
+function normalizeState(state) {
+  const base = freshState();
+  const merged = {
+    ...base,
+    ...state,
+    fx: { ...base.fx, ...(state.fx || {}) },
+    counts: Array.isArray(state.counts) ? state.counts : base.counts,
+    visible: Array.isArray(state.visible) ? state.visible : base.visible,
+    funCounts: Array.isArray(state.funCounts) ? state.funCounts : base.funCounts,
+  };
+  ensureEra(merged.eraIdx || 0);
+  while (merged.counts.length < ERAS.length) merged.counts.push(ERAS[merged.counts.length].upgrades.map(() => 0));
+  while (merged.visible.length < ERAS.length) merged.visible.push([0, 1, 2]);
+  while (merged.funCounts.length < FUN_UPGRADES.length) merged.funCounts.push(0);
+  merged.eraIdx = Math.max(0, merged.eraIdx || 0);
+  merged.progress = Math.max(0, merged.progress || 0);
+  merged.energy = Math.max(0, merged.energy || 0);
+  merged.gameOver = Boolean(merged.gameOver);
+  if (merged.eraIdx >= BASE_ERA_COUNT - 1) merged.gameOver = true;
+  return merged;
+}
+
+function save() {
+  try { localStorage.setItem('uc_v1', JSON.stringify(G)); } catch {}
+}
+
+function load() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('uc_v1') || 'null');
+    if (saved) G = normalizeState(saved);
+  } catch {
+    G = freshState();
+  }
+}
+window.addEventListener('beforeunload', save);
 
 // ══════════════════════════════════════════════
 //  INIT
