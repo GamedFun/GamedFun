@@ -404,6 +404,45 @@
       background-clip: text;
     }
 
+    .trade-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .trade-mark {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #fbbf24 0%, #38bdf8 100%);
+      color: #111827;
+      display: grid;
+      place-items: center;
+      font-size: 1.55rem;
+      box-shadow: 0 12px 24px -14px rgba(251, 191, 36, 0.8);
+      flex: 0 0 auto;
+      transition: transform 0.18s ease;
+    }
+
+    .card:hover .trade-mark {
+      transform: scale(1.08) rotate(6deg);
+    }
+
+    .trade-word {
+      font-size: 1.18rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.04;
+    }
+
+    .trade-word span {
+      background: linear-gradient(135deg, #d97706 0%, #0891b2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
     .card-title {
       font-size: 1.05rem;
       font-weight: 700;
@@ -512,6 +551,7 @@
       <a class="quick-action" href="/universe-clicker/">Play Universe Destroyer</a>
       <a class="quick-action" href="/word-scramble/">Play Word Scramble</a>
       <a class="quick-action" href="/uno/">Play UNO Duel</a>
+      <a class="quick-action" href="/trade-alley/">Play Trade Alley</a>
     </div>
   </header>
 
@@ -567,6 +607,17 @@
         </div>
         <div class="card-desc">Play against an NPC with one balanced deck and no rigged hands.</div>
         <div class="card-cta">Play UNO Duel</div>
+        <span class="card-arrow">↗</span>
+      </a>
+
+      <!-- Trade Alley -->
+      <a class="card card--pink" href="/trade-alley/">
+        <div class="trade-logo" aria-label="Trade Alley">
+          <div class="trade-mark" aria-hidden="true">⇄</div>
+          <div class="trade-word"><span>Trade Alley</span> <span class="badge">new</span></div>
+        </div>
+        <div class="card-desc">Accept deals, cancel offers, or risk a 50/50 steal from random NPC traders.</div>
+        <div class="card-cta">Play Trade Alley</div>
         <span class="card-arrow">↗</span>
       </a>
 
