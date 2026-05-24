@@ -1037,8 +1037,13 @@ function doAction(type) {
   setTimeout(() => {
     const g = battleState.guarding;
     battleState.guarding = false;
-    const nd = Math.round(npcAtk * (0.85 + Math.random() * 0.3) * (g ? 0.45 : 1));
-    logBattle(`${npc.e} hits back for ${nd}${g ? ' (blocked! 🛡️)' : ''}!`);
+    const fullBlock = g && Math.random() < 0.8;
+    const nd = fullBlock ? 0 : Math.round(npcAtk * (0.85 + Math.random() * 0.3));
+    if (fullBlock) {
+      logBattle(`${npc.e} attacks — fully blocked! 🛡️`);
+    } else {
+      logBattle(`${npc.e} hits back for ${nd}${g ? ' (guard broke! 💥)' : ''}!`);
+    }
     battleState.playerHP = Math.max(0, battleState.playerHP - nd);
     renderBattle();
     if (battleState.playerHP <= 0) {
