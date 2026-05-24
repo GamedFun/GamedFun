@@ -237,11 +237,10 @@
       min-width: 0;
       width: 100%;
     }
-    .color-btn.red { background: var(--red); }
-    .color-btn.green { background: var(--green); }
-    .color-btn.blue { background: var(--blue); }
-    .color-btn.yellow { background: var(--yellow); }
-    .color-btn.yellow { color: #422006; }
+    .color-picker .color-btn[data-pick="red"] { background: var(--red); color: #fff; }
+    .color-picker .color-btn[data-pick="green"] { background: var(--green); color: #fff; }
+    .color-picker .color-btn[data-pick="blue"] { background: var(--blue); color: #fff; }
+    .color-picker .color-btn[data-pick="yellow"] { background: var(--yellow); color: #422006; }
     .active-color {
       display: inline-flex;
       align-items: center;
