@@ -227,15 +227,20 @@
     }
     .color-picker {
       display: none;
-      flex-wrap: wrap;
-      justify-content: center;
+      grid-template-columns: repeat(4, minmax(76px, 1fr));
       gap: .45rem;
+      width: min(420px, 100%);
     }
-    .color-picker.on { display: flex; }
+    .color-picker.on { display: grid; }
     .color-btn {
-      min-width: 76px;
       color: #fff;
+      min-width: 0;
+      width: 100%;
     }
+    .color-btn.red { background: var(--red); }
+    .color-btn.green { background: var(--green); }
+    .color-btn.blue { background: var(--blue); }
+    .color-btn.yellow { background: var(--yellow); }
     .color-btn.yellow { color: #422006; }
     .active-color {
       display: inline-flex;
@@ -256,6 +261,7 @@
       .card, .deck { width: 74px; height: 106px; border-radius: 12px; }
       .card { font-size: 1.5rem; }
       .hand { min-height: 126px; }
+      .color-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
   </style>
 </head>
