@@ -288,27 +288,43 @@
   </main>
 
   <script>
-    const items = [
-      { name: 'Rusty Coin', icon: '🪙', value: 8 },
-      { name: 'Lucky Sock', icon: '🧦', value: 11 },
-      { name: 'Blue Gem', icon: '💎', value: 26 },
-      { name: 'Tiny Crown', icon: '👑', value: 42 },
-      { name: 'Old Map', icon: '🗺️', value: 18 },
-      { name: 'Potion', icon: '🧪', value: 22 },
-      { name: 'Golden Key', icon: '🔑', value: 34 },
-      { name: 'Moon Rock', icon: '🌕', value: 48 },
-      { name: 'Dragon Scale', icon: '🐉', value: 65 },
-      { name: 'Star Jar', icon: '✨', value: 76 },
-      { name: 'Time Watch', icon: '⌚', value: 90 },
-      { name: 'Void Crystal', icon: '🔮', value: 120 }
+    const itemIcons = ['🪙', '💎', '👑', '🗺️', '🧪', '🔑', '🌕', '✨', '⌚', '🔮', '📀', '🎲', '🧲', '🪩', '📦', '🛡️', '⚙️', '🧭', '💿', '🏺'];
+    const itemAdjectives = [
+      'Rusty', 'Lucky', 'Blue', 'Tiny', 'Old', 'Golden', 'Moonlit', 'Glowing', 'Silent', 'Crystal',
+      'Silver', 'Hidden', 'Neon', 'Ancient', 'Broken', 'Polished', 'Secret', 'Frozen', 'Solar', 'Velvet',
+      'Electric', 'Prism', 'Midnight', 'Copper', 'Emerald'
     ];
-    const npcs = [
-      { name: 'Mira the Merchant', icon: '🧳', line: 'I only make fair-ish deals.' },
-      { name: 'Bucket Bob', icon: '🪣', line: 'No refunds. Probably.' },
-      { name: 'Captain Cash', icon: '🧢', line: 'This trade could be huge.' },
-      { name: 'Glitch Vendor', icon: '📟', line: 'The numbers look normal to me.' },
-      { name: 'Gem Kid', icon: '🛹', line: 'I found this behind the arcade.' }
+    const itemNouns = [
+      'Coin', 'Gem', 'Crown', 'Map', 'Potion', 'Key', 'Rock', 'Jar', 'Watch', 'Crystal',
+      'Disc', 'Die', 'Magnet', 'Mirror', 'Box', 'Shield', 'Gear', 'Compass', 'Token', 'Vase'
     ];
+    const traderFirstNames = [
+      'Mira', 'Bob', 'Cash', 'Juno', 'Nova', 'Pixel', 'Rex', 'Zara', 'Kip', 'Luna',
+      'Max', 'Ivy', 'Theo', 'Nico', 'Sage', 'Vera', 'Otto', 'Milo', 'Remy', 'Tess',
+      'Axel', 'Mina', 'Rafi', 'Nell', 'Cora', 'Finn', 'Lex', 'Skye', 'Arlo', 'June',
+      'Pax', 'Wren', 'Bea', 'Kai', 'Noor', 'Ezra', 'Faye', 'Hugo', 'Rina', 'Sol'
+    ];
+    const traderTitles = [
+      'the Merchant', 'the Broker', 'the Swapper', 'the Collector', 'the Bargainer',
+      'the Appraiser', 'the Courier', 'the Dealer', 'the Haggler', 'the Finder',
+      'the Valuer', 'the Seller', 'the Buyer', 'the Trader', 'the Peddler',
+      'the Keeper', 'the Negotiator', 'the Vendor', 'the Auctioneer', 'the Scout',
+      'the Reseller', 'the Importer', 'the Exporter', 'the Middleman', 'the Stockpiler'
+    ];
+    const traderLines = [
+      'I only make fair-ish deals.',
+      'No refunds. Probably.',
+      'This trade could be huge.',
+      'The numbers look normal to me.',
+      'I found this behind the arcade.',
+      'Take the deal or test your luck.',
+      'A clean trade keeps everyone calm.',
+      'I know what this is worth.',
+      'This offer will not wait forever.',
+      'Risk makes the market interesting.'
+    ];
+    const items = buildItems();
+    const npcs = buildTraders();
 
     const inventoryEl = document.getElementById('inventory');
     const netWorthEl = document.getElementById('netWorth');
@@ -327,11 +343,42 @@
     const stealBtn = document.getElementById('stealBtn');
     const newRunBtn = document.getElementById('newRunBtn');
     const logEl = document.getElementById('log');
+    const SAVE_KEY = 'trade_alley_save';
 
     let inventory = [];
     let selectedIndex = 0;
     let offer = null;
     let deals = 0;
+
+    function buildItems() {
+      const generated = [];
+      itemAdjectives.forEach((adjective, adjectiveIndex) => {
+        itemNouns.forEach((noun, nounIndex) => {
+          const index = generated.length;
+          generated.push({
+            name: `${adjective} ${noun}`,
+            icon: itemIcons[index % itemIcons.length],
+            value: 6 + adjectiveIndex * 9 + nounIndex * 5 + (index % 7)
+          });
+        });
+      });
+      return generated;
+    }
+
+    function buildTraders() {
+      const generated = [];
+      traderFirstNames.forEach((first, firstIndex) => {
+        traderTitles.forEach((title, titleIndex) => {
+          const index = generated.length;
+          generated.push({
+            name: `${first} ${title}`,
+            icon: ['🧳', '🪣', '🧢', '📟', '🛹', '💼', '🎩', '🧾', '📻', '🛒'][index % 10],
+            line: traderLines[(firstIndex + titleIndex) % traderLines.length]
+          });
+        });
+      });
+      return generated;
+    }
 
     function freshItem(base = randomItem()) {
       return { ...base, id: `${base.name}-${Date.now()}-${Math.random()}` };
@@ -354,6 +401,7 @@
       deals = 0;
       logEl.textContent = 'A trader is waiting.';
       nextOffer();
+      saveGame();
     }
 
     function nextOffer() {
@@ -361,6 +409,7 @@
         offer = null;
         render();
         logEl.textContent = 'You have nothing left. Start a new run.';
+        saveGame();
         return;
       }
       selectedIndex = Math.min(selectedIndex, inventory.length - 1);
@@ -374,6 +423,7 @@
       }
       offer = { npc, take };
       render();
+      saveGame();
     }
 
     function netWorth() {
@@ -433,6 +483,7 @@
           selectedIndex = index;
           nextOffer();
           logEl.textContent = `Offering ${item.name}.`;
+          saveGame();
         });
         inventoryEl.appendChild(row);
       });
@@ -442,6 +493,35 @@
       deals++;
       logEl.textContent = text;
       nextOffer();
+    }
+
+    function saveGame() {
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify({
+          inventory,
+          selectedIndex,
+          offer,
+          deals,
+          log: logEl.textContent
+        }));
+      } catch {}
+    }
+
+    function loadGame() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+        if (!saved || !Array.isArray(saved.inventory)) return false;
+        inventory = saved.inventory;
+        selectedIndex = Math.min(saved.selectedIndex || 0, Math.max(inventory.length - 1, 0));
+        offer = saved.offer || null;
+        deals = saved.deals || 0;
+        logEl.textContent = saved.log || 'Welcome back.';
+        if (inventory.length && !offer) nextOffer();
+        else render();
+        return true;
+      } catch {
+        return false;
+      }
     }
 
     acceptBtn.addEventListener('click', () => {
@@ -469,7 +549,7 @@
     });
 
     newRunBtn.addEventListener('click', startRun);
-    startRun();
+    if (!loadGame()) startRun();
   </script>
 </body>
 </html>
