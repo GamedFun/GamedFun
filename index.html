@@ -443,72 +443,6 @@
       background-clip: text;
     }
 
-    .neon-cat-mark {
-      width: 52px;
-      height: 52px;
-      border-radius: 14px;
-      background: #0f172a;
-      border: 2px solid #39f5ff;
-      box-shadow: 0 12px 24px -14px rgba(57, 245, 255, 0.85);
-      position: relative;
-      overflow: hidden;
-      margin-bottom: 18px;
-      transition: transform 0.18s ease;
-    }
-
-    .neon-cat-mark::before {
-      content: '';
-      position: absolute;
-      width: 34px;
-      height: 18px;
-      left: 13px;
-      top: 18px;
-      border-radius: 9px;
-      background: #ff4fd8;
-      box-shadow: 0 0 12px rgba(255,79,216,0.8);
-    }
-
-    .neon-cat-mark::after {
-      content: '';
-      position: absolute;
-      width: 24px;
-      height: 10px;
-      left: -6px;
-      top: 22px;
-      background: linear-gradient(90deg, rgba(57,245,255,.1), #39f5ff);
-      border-radius: 999px;
-      box-shadow: 0 0 10px rgba(57,245,255,.7);
-    }
-
-    .neon-cat-face {
-      position: absolute;
-      width: 16px;
-      height: 14px;
-      right: 8px;
-      top: 12px;
-      border-radius: 8px 8px 7px 7px;
-      background: #39f5ff;
-      box-shadow: 0 0 10px rgba(57,245,255,.8);
-    }
-
-    .neon-cat-face::before,
-    .neon-cat-face::after {
-      content: '';
-      position: absolute;
-      top: -5px;
-      width: 8px;
-      height: 8px;
-      background: #39f5ff;
-      transform: rotate(45deg);
-    }
-
-    .neon-cat-face::before { left: 1px; }
-    .neon-cat-face::after { right: 1px; }
-
-    .card:hover .neon-cat-mark {
-      transform: scale(1.08) rotate(-5deg);
-    }
-
     .card-title {
       font-size: 1.05rem;
       font-weight: 700;
@@ -618,7 +552,7 @@
       <a class="quick-action" href="/word-scramble/">Play Word Scramble</a>
       <a class="quick-action" href="/uno/">Play UNO Duel</a>
       <a class="quick-action" href="/trade-alley/">Play Trade Alley</a>
-      <a class="quick-action" href="/neon-cat/">Play Neon Cat Dash</a>
+      <a class="quick-action" href="/archive/">Archive</a>
     </div>
   </header>
 
@@ -685,15 +619,6 @@
         </div>
         <div class="card-desc">Accept deals, cancel offers, or risk a 50/50 steal from random NPC traders.</div>
         <div class="card-cta">Play Trade Alley</div>
-        <span class="card-arrow">↗</span>
-      </a>
-
-      <!-- Neon Cat Dash -->
-      <a class="card card--blue" href="/neon-cat/">
-        <div class="neon-cat-mark" aria-hidden="true"><span class="neon-cat-face"></span></div>
-        <div class="card-title">Neon Cat Dash <span class="badge">new</span></div>
-        <div class="card-desc">Fly through neon space as a glowing cat and dodge obstacles for distance.</div>
-        <div class="card-cta">Play Neon Cat Dash</div>
         <span class="card-arrow">↗</span>
       </a>
 
