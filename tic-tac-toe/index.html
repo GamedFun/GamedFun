@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tic Tac Toe – gamed.fun</title>
+<style>
+  :root {
+    --bg: #1a1625;
+    --panel: #231f30;
+    --text: #fff7ed;
+    --muted: #b8a99a;
+    --gold: #fbbf24;
+    --border: rgba(255,255,255,.13);
+    --x-color: #818cf8;
+    --o-color: #f87171;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 25% 25%, rgba(129,140,248,.1), transparent 28rem),
+      radial-gradient(circle at 75% 75%, rgba(248,113,113,.08), transparent 28rem),
+      linear-gradient(180deg, #181219 0%, var(--bg) 100%);
+    color: var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: .6rem 1.2rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(18,16,20,.9);
+    backdrop-filter: blur(8px);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .brand { text-decoration: none; font-weight: 900; color: var(--gold); }
+  .home-link { text-decoration: none; color: var(--muted); font-size: .85rem; }
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem;
+    gap: 1.4rem;
+  }
+  h1 { font-size: 1.8rem; font-weight: 900; }
+
+  /* Difficulty picker */
+  .diff-group {
+    display: flex;
+    gap: .5rem;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px;
+  }
+  .diff-btn {
+    padding: .4rem 1rem;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--muted);
+    font-size: .88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .diff-btn.active {
+    background: var(--panel);
+    color: var(--text);
+    box-shadow: 0 0 0 1px var(--border);
+  }
+  .diff-btn[data-diff="easy"].active   { color: #34d399; box-shadow: 0 0 0 1px #34d39944; }
+  .diff-btn[data-diff="medium"].active { color: var(--gold); box-shadow: 0 0 0 1px #fbbf2444; }
+  .diff-btn[data-diff="hard"].active   { color: #f87171; box-shadow: 0 0 0 1px #f8717144; }
+
+  /* Score bar */
+  .scores {
+    display: flex;
+    gap: 1.5rem;
+    font-size: .88rem;
+    color: var(--muted);
+  }
+  .score-item { text-align: center; }
+  .score-item strong { display: block; font-size: 1.4rem; font-weight: 900; color: var(--text); }
+  .score-item.you strong  { color: var(--x-color); }
+  .score-item.bot strong  { color: var(--o-color); }
+
+  /* Status */
+  #status {
+    font-size: 1rem;
+    font-weight: 700;
+    min-height: 1.4rem;
+    color: var(--muted);
+    text-align: center;
+  }
+  #status.your-turn { color: var(--x-color); }
+  #status.bot-turn  { color: var(--o-color); }
+  #status.win       { color: #34d399; font-size: 1.15rem; }
+  #status.lose      { color: var(--o-color); font-size: 1.15rem; }
+  #status.draw      { color: var(--gold); font-size: 1.15rem; }
+
+  /* Board */
+  #board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 8px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  .cell {
+    width: 100px;
+    height: 100px;
+    border-radius: 10px;
+    background: #2a2438;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.8rem;
+    font-weight: 900;
+    cursor: pointer;
+    transition: background .12s, transform .08s;
+    user-select: none;
+    color: transparent;
+  }
+  .cell:hover:not(.taken):not(.locked) {
+    background: #332d45;
+    transform: scale(1.04);
+  }
+  .cell.x { color: var(--x-color); cursor: default; }
+  .cell.o { color: var(--o-color); cursor: default; }
+  .cell.win-cell {
+    background: #1e1a30;
+    box-shadow: 0 0 0 2px currentColor, 0 0 14px 2px rgba(52,211,153,.2);
+  }
+  .cell.x.win-cell { box-shadow: 0 0 0 2px var(--x-color), 0 0 14px 4px rgba(129,140,248,.3); }
+  .cell.o.win-cell { box-shadow: 0 0 0 2px var(--o-color), 0 0 14px 4px rgba(248,113,113,.3); }
+  .cell.taken { cursor: default; }
+  .cell.locked { cursor: default; }
+
+  @media (max-width: 380px) {
+    .cell { width: 86px; height: 86px; font-size: 2.3rem; }
+  }
+
+  button.restart {
+    padding: .55rem 1.4rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--panel);
+    color: var(--text);
+    font-size: .9rem;
+    cursor: pointer;
+    transition: background .12s;
+  }
+  button.restart:hover { background: #2e2840; }
+</style>
+</head>
+<body>
+<header>
+  <a class="brand" href="/">🎮 gamed.fun</a>
+  <a class="home-link" href="/">← Home</a>
+</header>
+<main>
+  <h1>Tic Tac Toe</h1>
+
+  <div class="diff-group">
+    <button class="diff-btn active" data-diff="easy">Easy</button>
+    <button class="diff-btn" data-diff="medium">Medium</button>
+    <button class="diff-btn" data-diff="hard">Hard</button>
+  </div>
+
+  <div class="scores">
+    <div class="score-item you">
+      <strong id="scoreYou">0</strong>
+      You (X)
+    </div>
+    <div class="score-item">
+      <strong id="scoreDraw">0</strong>
+      Draws
+    </div>
+    <div class="score-item bot">
+      <strong id="scoreBot">0</strong>
+      Bot (O)
+    </div>
+  </div>
+
+  <div id="status" class="your-turn">Your turn</div>
+
+  <div id="board">
+    <div class="cell" data-i="0"></div>
+    <div class="cell" data-i="1"></div>
+    <div class="cell" data-i="2"></div>
+    <div class="cell" data-i="3"></div>
+    <div class="cell" data-i="4"></div>
+    <div class="cell" data-i="5"></div>
+    <div class="cell" data-i="6"></div>
+    <div class="cell" data-i="7"></div>
+    <div class="cell" data-i="8"></div>
+  </div>
+
+  <button class="restart" id="restartBtn">↺ New Game</button>
+</main>
+<script>
+const WINS = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+
+let board = Array(9).fill(null);
+let locked = false;
+let difficulty = 'easy';
+let scores = { you: 0, draw: 0, bot: 0 };
+
+function checkWinner(b) {
+  for (const [a, x, c] of WINS)
+    if (b[a] && b[a] === b[x] && b[a] === b[c]) return { winner: b[a], line: [a, x, c] };
+  return null;
+}
+
+function setStatus(text, cls) {
+  const el = document.getElementById('status');
+  el.textContent = text;
+  el.className = cls || '';
+}
+
+function render(winLine = []) {
+  document.querySelectorAll('.cell').forEach(cell => {
+    const i = +cell.dataset.i;
+    const val = board[i];
+    cell.className = 'cell';
+    if (val) { cell.classList.add(val.toLowerCase(), 'taken'); cell.textContent = val; }
+    else { cell.textContent = ''; }
+    if (locked) cell.classList.add('locked');
+    if (winLine.includes(i)) cell.classList.add('win-cell');
+  });
+}
+
+function updateScores() {
+  document.getElementById('scoreYou').textContent = scores.you;
+  document.getElementById('scoreDraw').textContent = scores.draw;
+  document.getElementById('scoreBot').textContent = scores.bot;
+}
+
+// Bot logic
+function getEmpty(b) { return b.map((v, i) => v === null ? i : -1).filter(i => i !== -1); }
+
+function minimax(b, isMax, depth) {
+  const result = checkWinner(b);
+  if (result) return result.winner === 'O' ? 10 - depth : depth - 10;
+  const empty = getEmpty(b);
+  if (!empty.length) return 0;
+  let best = isMax ? -Infinity : Infinity;
+  for (const i of empty) {
+    b[i] = isMax ? 'O' : 'X';
+    const score = minimax(b, !isMax, depth + 1);
+    b[i] = null;
+    best = isMax ? Math.max(best, score) : Math.min(best, score);
+  }
+  return best;
+}
+
+function getBotMove() {
+  const empty = getEmpty(board);
+  if (!empty.length) return -1;
+
+  if (difficulty === 'easy') {
+    return empty[Math.floor(Math.random() * empty.length)];
+  }
+
+  if (difficulty === 'medium') {
+    // Take the win
+    for (const i of empty) {
+      board[i] = 'O';
+      if (checkWinner(board)) { board[i] = null; return i; }
+      board[i] = null;
+    }
+    // Block player
+    for (const i of empty) {
+      board[i] = 'X';
+      if (checkWinner(board)) { board[i] = null; return i; }
+      board[i] = null;
+    }
+    // Random
+    return empty[Math.floor(Math.random() * empty.length)];
+  }
+
+  // Hard: minimax
+  let bestScore = -Infinity, bestMove = empty[0];
+  for (const i of empty) {
+    board[i] = 'O';
+    const score = minimax(board, false, 0);
+    board[i] = null;
+    if (score > bestScore) { bestScore = score; bestMove = i; }
+  }
+  return bestMove;
+}
+
+function botPlay() {
+  const move = getBotMove();
+  if (move === -1) return;
+  board[move] = 'O';
+  const result = checkWinner(board);
+  if (result) {
+    render(result.line);
+    scores.bot++;
+    updateScores();
+    setStatus('Bot wins! 😅', 'lose');
+    locked = true;
+  } else if (getEmpty(board).length === 0) {
+    render();
+    scores.draw++;
+    updateScores();
+    setStatus("It's a draw!", 'draw');
+    locked = true;
+  } else {
+    render();
+    setStatus('Your turn', 'your-turn');
+    locked = false;
+  }
+}
+
+function handleClick(i) {
+  if (locked || board[i]) return;
+  board[i] = 'X';
+  const result = checkWinner(board);
+  if (result) {
+    render(result.line);
+    scores.you++;
+    updateScores();
+    setStatus('You win! 🎉', 'win');
+    locked = true;
+    return;
+  }
+  if (getEmpty(board).length === 0) {
+    render();
+    scores.draw++;
+    updateScores();
+    setStatus("It's a draw!", 'draw');
+    locked = true;
+    return;
+  }
+  locked = true;
+  render();
+  setStatus('Bot is thinking…', 'bot-turn');
+  setTimeout(botPlay, 420);
+}
+
+function newGame() {
+  board = Array(9).fill(null);
+  locked = false;
+  render();
+  setStatus('Your turn', 'your-turn');
+}
+
+document.querySelectorAll('.diff-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    difficulty = btn.dataset.diff;
+    scores = { you: 0, draw: 0, bot: 0 };
+    updateScores();
+    newGame();
+  });
+});
+
+document.getElementById('board').addEventListener('click', e => {
+  const cell = e.target.closest('.cell');
+  if (cell) handleClick(+cell.dataset.i);
+});
+
+document.getElementById('restartBtn').addEventListener('click', newGame);
+
+newGame();
+</script>
+</body>
+</html>
