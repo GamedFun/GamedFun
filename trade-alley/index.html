@@ -148,7 +148,7 @@
     }
     .actions {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: .6rem;
     }
     button {
@@ -165,7 +165,20 @@
     .add { background: var(--blue); color: #082f49; }
     .cancel { background: transparent; border: 1px solid var(--border); color: var(--muted); }
     .steal { background: var(--bad); color: #fff; }
+    .haggle { background: #a855f7; color: #fff; }
     .new { background: var(--gold); color: #422006; }
+    .quality-badge {
+      display: inline-block;
+      padding: .1rem .45rem;
+      border-radius: 6px;
+      font-size: .72rem;
+      font-weight: 900;
+      margin-left: .4rem;
+      letter-spacing: .04em;
+    }
+    .q-good { background: rgba(34,197,94,.2); color: #4ade80; }
+    .q-fair { background: rgba(251,191,36,.15); color: #fbbf24; }
+    .q-bad  { background: rgba(251,113,133,.18); color: #fb7185; }
     .log {
       color: var(--text);
       min-height: 1.4rem;
@@ -269,6 +282,7 @@
         <div class="actions">
           <button class="accept" id="acceptBtn" type="button">Accept</button>
           <button class="add" id="addBtn" type="button">Ask Add</button>
+          <button class="haggle" id="haggleBtn" type="button">Haggle</button>
           <button class="cancel" id="cancelBtn" type="button">Cancel</button>
           <button class="steal" id="stealBtn" type="button">Steal 50/50</button>
         </div>
@@ -351,6 +365,7 @@
     const takeValue = document.getElementById('takeValue');
     const acceptBtn = document.getElementById('acceptBtn');
     const addBtn = document.getElementById('addBtn');
+    const haggleBtn = document.getElementById('haggleBtn');
     const cancelBtn = document.getElementById('cancelBtn');
     const stealBtn = document.getElementById('stealBtn');
     const newRunBtn = document.getElementById('newRunBtn');
@@ -475,6 +490,7 @@
       turnCountEl.textContent = deals;
       acceptBtn.disabled = locked;
       addBtn.disabled = locked || Boolean(offer?.askedAdd);
+      haggleBtn.disabled = locked || Boolean(offer?.haggled);
       cancelBtn.disabled = !offer;
       stealBtn.disabled = locked;
 
@@ -486,7 +502,11 @@
         takeName.textContent = offer.addOn ? `${offer.take.name} + ${offer.addOn.name}` : offer.take.name;
         const totalOffer = offer.take.value + (offer.addOn?.value || 0);
         const addLabel = offer.addOn ? ` · add-on ${formatValue(offer.addOn.value)}` : '';
-        takeValue.textContent = `Value ${formatValue(totalOffer)}${addLabel} · ${offer.tier || currentTier().label} trade`;
+        const giveVal = give ? give.value : 1;
+        const ratio = totalOffer / giveVal;
+        const qualityCls = ratio >= 1.2 ? 'q-good' : ratio >= 0.8 ? 'q-fair' : 'q-bad';
+        const qualityText = ratio >= 1.2 ? 'Good' : ratio >= 0.8 ? 'Fair' : 'Bad';
+        takeValue.innerHTML = `Value ${formatValue(totalOffer)}${addLabel} · ${offer.tier || currentTier().label} trade <span class="quality-badge ${qualityCls}">${qualityText}</span>`;
       } else {
         npcAvatar.textContent = '🧳';
         npcName.textContent = 'No trader';
@@ -532,6 +552,15 @@
       nextOffer();
     }
 
+    function acceptCurrentOffer(message) {
+      const give = selectedItem();
+      if (!offer || !give) return;
+      const acceptedOffer = offer;
+      inventory.splice(selectedIndex, 1, acceptedOffer.take);
+      if (acceptedOffer.addOn) inventory.push(acceptedOffer.addOn);
+      finishDeal(message || `Accepted: traded ${give.name} for ${acceptedOffer.addOn ? `${acceptedOffer.take.name} and ${acceptedOffer.addOn.name}` : acceptedOffer.take.name}.`);
+    }
+
     function saveGame() {
       try {
         localStorage.setItem(SAVE_KEY, JSON.stringify({
@@ -564,9 +593,7 @@
     acceptBtn.addEventListener('click', () => {
       const give = selectedItem();
       if (!offer || !give) return;
-      inventory.splice(selectedIndex, 1, offer.take);
-      if (offer.addOn) inventory.push(offer.addOn);
-      finishDeal(`Accepted: traded ${give.name} for ${offer.addOn ? `${offer.take.name} and ${offer.addOn.name}` : offer.take.name}.`);
+      acceptCurrentOffer();
     });
 
     addBtn.addEventListener('click', () => {
@@ -576,11 +603,27 @@
       const tier = currentTier();
       if (Math.random() < .75) {
         const addOn = freshItem(randomItem(tier), offerMultiplier(tier) * .35);
-        inventory.splice(selectedIndex, 1, offer.take);
-        inventory.push(addOn);
-        finishDeal(`${offer.npc.name} said yes and added ${addOn.name}. Trade completed.`);
+        offer.addOn = addOn;
+        render();
+        logEl.textContent = `${offer.npc.name} said yes and added ${addOn.name}. Do you want to accept the trade?`;
+        saveGame();
       } else {
         finishDeal(`${offer.npc.name} said no to adding anything. A new trader walked in.`);
+      }
+    });
+
+    haggleBtn.addEventListener('click', () => {
+      const give = selectedItem();
+      if (!offer || !give || offer.haggled) return;
+      offer.haggled = true;
+      if (Math.random() < 0.6) {
+        const boost = 1.2 + Math.random() * 0.2;
+        offer.take = freshItem(offer.take, boost);
+        offer.tier = currentTier().label;
+        render();
+        logEl.textContent = `${offer.npc.name} agreed to sweeten the deal.`;
+      } else {
+        finishDeal(`${offer.npc.name} didn't budge and walked away. A new trader arrived.`);
       }
     });
 

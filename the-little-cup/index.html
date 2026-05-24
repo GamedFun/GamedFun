@@ -13,27 +13,29 @@
       --text: #fff7ed;
       --muted: #b8a99a;
       --cream: #fff1d6;
-      --coffee: #8b4a2b;
       --mint: #34d399;
-      --bad: #fb7185;
       --gold: #fbbf24;
       --border: rgba(255,255,255,.13);
     }
     body {
       min-height: 100vh;
       background:
-        radial-gradient(circle at 16% 16%, rgba(251,191,36,.18), transparent 22rem),
-        radial-gradient(circle at 86% 10%, rgba(52,211,153,.16), transparent 22rem),
+        radial-gradient(circle at 15% 15%, rgba(251,191,36,.18), transparent 22rem),
+        radial-gradient(circle at 85% 10%, rgba(52,211,153,.16), transparent 22rem),
         linear-gradient(180deg, #181219 0%, var(--bg) 100%);
       color: var(--text);
       font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow-x: hidden;
     }
+
+    /* HEADER */
     header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem 1.2rem;
+      position: sticky; top: 0; z-index: 10;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: .6rem 1.2rem;
       border-bottom: 1px solid var(--border);
+      background: rgba(18,16,20,.9);
+      backdrop-filter: blur(8px);
     }
     .brand, .home-link { text-decoration: none; font-weight: 900; }
     .brand { color: var(--gold); }
@@ -41,640 +43,729 @@
       color: var(--muted);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: .45rem .7rem;
+      padding: .35rem .65rem;
       font-size: .82rem;
     }
-    main {
-      width: min(1120px, 100%);
-      margin: 0 auto;
-      padding: 1rem;
+    .header-stats { text-align: center; }
+    .header-cash { font-size: 1.25rem; font-weight: 900; color: var(--cream); }
+    .header-cps  { font-size: .7rem; color: var(--muted); font-weight: 750; margin-top: 1px; }
+
+    /* LAYOUT */
+    .layout {
       display: grid;
-      gap: 1rem;
+      grid-template-columns: 210px 1fr 260px;
+      height: calc(100vh - 50px);
     }
-    .hud {
-      display: grid;
-      grid-template-columns: 1fr auto auto auto auto;
-      gap: .75rem;
-      align-items: stretch;
-    }
-    .title, .stat, .panel {
-      background: rgba(31,27,34,.92);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      box-shadow: 0 18px 44px rgba(0,0,0,.24);
-    }
-    .title { padding: .9rem 1rem; }
-    h1 { font-size: clamp(1.9rem, 6vw, 3.2rem); line-height: .95; letter-spacing: 0; }
-    .sub { color: var(--muted); margin-top: .35rem; font-weight: 750; }
-    .stat { padding: .8rem .95rem; min-width: 112px; }
-    .label {
-      color: var(--muted);
-      font-size: .64rem;
-      font-weight: 1000;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-    }
-    .value { color: var(--cream); font-size: 1.45rem; font-weight: 1000; }
-    .grid {
-      display: grid;
-      grid-template-columns: minmax(240px, .75fr) minmax(320px, 1.1fr) minmax(240px, .75fr);
-      gap: 1rem;
-    }
-    .customers, .station, .upgrades { padding: 1rem; display: grid; gap: .8rem; align-content: start; }
-    #customerList { display: grid; gap: .7rem; }
-    #foodStock { display: grid; gap: .55rem; }
-    .customer {
-      background: var(--panel-2);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      color: var(--text);
-      cursor: pointer;
-      font: inherit;
-      padding: .8rem;
-      text-align: left;
-      display: grid;
-      gap: .55rem;
-    }
-    .customer.active { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(251,191,36,.14); }
-    .customer.ready { border-color: var(--mint); box-shadow: 0 0 0 2px rgba(52,211,153,.14); }
-    .stock-item {
-      background: var(--panel-2);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      color: var(--text);
-      cursor: pointer;
-      font: inherit;
-      padding: .65rem .72rem;
-      text-align: left;
+
+    /* UPGRADES PANEL (left) */
+    .upg-panel {
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: .75rem .65rem;
       display: flex;
-      justify-content: space-between;
-      gap: .7rem;
-      align-items: center;
-    }
-    .stock-item.active { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(251,191,36,.14); }
-    .cust-top { display: flex; justify-content: space-between; gap: .65rem; align-items: center; }
-    .cust-name { font-weight: 1000; }
-    .order { color: var(--cream); font-weight: 850; }
-    .bar { height: 8px; border-radius: 999px; background: rgba(255,255,255,.1); overflow: hidden; }
-    .bar-fill { height: 100%; width: 100%; background: linear-gradient(90deg, var(--mint), var(--gold)); }
-    .station-main {
-      min-height: 350px;
-      display: grid;
-      align-content: center;
-      justify-items: center;
-      gap: 1rem;
-      text-align: center;
-    }
-    .ticket {
-      width: min(520px, 100%);
-      background: var(--panel-2);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 1rem;
-      display: grid;
-      gap: .7rem;
-    }
-    .food { font-size: 4rem; line-height: 1; }
-    .mini-title { font-size: 1.25rem; font-weight: 1000; }
-    .mini-help { color: var(--muted); font-weight: 750; }
-    button.command {
-      border: 0;
-      border-radius: 12px;
-      cursor: pointer;
-      font: inherit;
-      font-weight: 1000;
-    }
-    .clicker-game {
-      width: min(420px, 100%);
-      background: #15131a;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 1rem;
-      display: grid;
-      gap: .85rem;
-    }
-    .clicker-progress {
-      height: 16px;
-      border-radius: 999px;
-      background: rgba(255,255,255,.1);
-      overflow: hidden;
-    }
-    .clicker-fill {
-      height: 100%;
-      width: 0%;
-      border-radius: 999px;
-      background: linear-gradient(90deg, var(--mint), var(--gold));
-      transition: width .12s ease;
-    }
-    .big-action {
-      min-height: 92px;
-      border: 0;
-      border-radius: 16px;
-      background: var(--gold);
-      color: #422006;
-      cursor: pointer;
-      font: inherit;
-      font-size: 1.15rem;
-      font-weight: 1000;
-      box-shadow: 0 14px 28px rgba(0,0,0,.22);
-    }
-    .big-action:active { transform: scale(.98); }
-    .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .6rem; }
-    button.command {
-      background: var(--gold);
-      color: #422006;
-      padding: .8rem 1rem;
-    }
-    button.secondary {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--muted);
-    }
-    button:disabled { opacity: .48; cursor: not-allowed; }
-    .message { min-height: 1.4rem; color: var(--cream); font-weight: 850; }
-    .upgrade-list { display: grid; gap: .7rem; }
-    .upgrade {
-      background: var(--panel-2);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: .8rem;
-      display: grid;
+      flex-direction: column;
       gap: .5rem;
     }
-    .upgrade-top {
-      display: flex;
-      justify-content: space-between;
-      gap: .75rem;
-      align-items: center;
+    .upg-panel::-webkit-scrollbar { width: 4px; }
+    .upg-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 2px; }
+
+    .panel-label {
+      color: var(--muted);
+      font-size: .62rem;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      padding-bottom: .35rem;
     }
-    .upgrade-name { color: var(--cream); font-weight: 1000; }
-    .upgrade-desc { color: var(--muted); font-size: .86rem; font-weight: 750; line-height: 1.35; }
-    .upgrade-buy {
-      background: var(--mint);
-      color: #052e2b;
-      border: 0;
-      border-radius: 10px;
-      cursor: pointer;
-      font: inherit;
-      font-weight: 1000;
-      padding: .7rem .85rem;
-    }
-    .upgrade-buy:disabled { opacity: .48; cursor: not-allowed; }
-    .overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.66);
-      display: grid;
-      place-items: center;
-      padding: 1rem;
-      z-index: 20;
-    }
-    .modal {
-      width: min(430px, 100%);
-      background: var(--panel);
+    .upg-card {
+      background: var(--panel-2);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 1.2rem;
-      text-align: center;
-      box-shadow: 0 24px 70px rgba(0,0,0,.42);
+      border-radius: 10px;
+      padding: .6rem .7rem;
+      display: flex;
+      gap: .55rem;
+      align-items: flex-start;
+      cursor: pointer;
+      transition: border-color .15s, box-shadow .15s;
     }
-    .modal p { color: var(--muted); font-weight: 750; margin: .75rem 0 1rem; line-height: 1.45; }
-    .hidden { display: none; }
-    @media (max-width: 780px) {
-      .hud, .grid { grid-template-columns: 1fr; }
-      .stat { min-width: 0; }
-      .food { font-size: 3.2rem; }
+    .upg-card.affordable { border-color: rgba(251,191,36,.55); }
+    .upg-card.affordable:hover { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(251,191,36,.15); }
+    .upg-card.too-costly { opacity: .55; cursor: default; }
+    .upg-icon { font-size: 1.35rem; flex-shrink: 0; line-height: 1; padding-top: .1rem; }
+    .upg-name { font-size: .83rem; font-weight: 900; color: var(--cream); }
+    .upg-desc { font-size: .7rem; color: var(--muted); margin-top: .12rem; line-height: 1.35; }
+    .upg-cost { font-size: .72rem; font-weight: 900; color: var(--gold); margin-top: .25rem; }
+    .upg-none { font-size: .78rem; color: var(--muted); padding: .2rem .1rem; }
+
+    /* CLICK AREA (center) */
+    .click-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.1rem;
+      padding: 1rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .center-stats { text-align: center; }
+    .center-total { font-size: 2.1rem; font-weight: 900; color: var(--cream); }
+    .center-cps   { font-size: .9rem; color: var(--muted); font-weight: 750; margin-top: .15rem; }
+    .center-cpc   { font-size: .75rem; color: var(--muted); margin-top: .1rem; }
+    .cup-btn {
+      font-size: 7rem;
+      line-height: 1;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      border: none; background: none;
+      padding: .5rem;
+      border-radius: 50%;
+      filter: drop-shadow(0 8px 24px rgba(251,191,36,.38));
+      animation: breathe 3s ease-in-out infinite;
+      transition: transform .09s;
+    }
+    @keyframes breathe {
+      0%,100% { filter: drop-shadow(0 8px 24px rgba(251,191,36,.38)); }
+      50%      { filter: drop-shadow(0 10px 36px rgba(251,191,36,.58)); }
+    }
+    .cup-btn:active { transform: scale(.91); animation: none; filter: drop-shadow(0 4px 14px rgba(251,191,36,.3)); }
+
+    /* Frenzy bar */
+    .frenzy-wrap { width: 100%; max-width: 240px; display: none; flex-direction: column; align-items: center; gap: .3rem; }
+    .frenzy-wrap.on { display: flex; }
+    .frenzy-label { font-size: .72rem; color: var(--gold); font-weight: 900; letter-spacing: .05em; }
+    .frenzy-track { width: 100%; height: 8px; background: rgba(255,255,255,.1); border-radius: 999px; overflow: hidden; }
+    .frenzy-fill  { height: 100%; background: linear-gradient(90deg, var(--gold), var(--mint)); border-radius: 999px; transition: width .4s linear; }
+
+    /* Golden coffee */
+    .golden-cup {
+      position: absolute;
+      font-size: 2.6rem;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      border: none; background: none;
+      filter: drop-shadow(0 0 10px #fbbf24) drop-shadow(0 0 22px #fbbf24);
+      animation: goldenPop .38s cubic-bezier(.34,1.56,.64,1), goldenFade 13s linear forwards;
+      z-index: 5;
+    }
+    @keyframes goldenPop  { from { transform: scale(0) rotate(-30deg); } to { transform: scale(1) rotate(0); } }
+    @keyframes goldenFade { 0%,75% { opacity: 1; } 100% { opacity: 0; } }
+
+    /* Ticker */
+    .ticker {
+      width: 100%;
+      background: rgba(31,27,34,.75);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: .45rem .85rem;
+      font-size: .8rem;
+      color: var(--muted);
+      font-weight: 750;
+      text-align: center;
+      min-height: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Float text */
+    .float-txt {
+      position: fixed;
+      font-size: .9rem;
+      font-weight: 900;
+      color: var(--gold);
+      pointer-events: none;
+      z-index: 500;
+      white-space: nowrap;
+      animation: floatUp .8s ease-out forwards;
+    }
+    @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-52px) scale(.85); } }
+
+    /* BUILDINGS PANEL (right) */
+    .bld-panel {
+      border-left: 1px solid var(--border);
+      overflow-y: auto;
+      padding: .6rem;
+      display: flex;
+      flex-direction: column;
+      gap: .45rem;
+    }
+    .bld-panel::-webkit-scrollbar { width: 4px; }
+    .bld-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 2px; }
+
+    .bld-row {
+      display: flex;
+      align-items: center;
+      gap: .65rem;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: .65rem .75rem;
+      cursor: pointer;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .bld-row.affordable { border-color: rgba(52,211,153,.5); }
+    .bld-row.affordable:hover { border-color: var(--mint); box-shadow: 0 0 0 2px rgba(52,211,153,.12); }
+    .bld-row.too-costly { opacity: .55; cursor: default; }
+    .bld-row.hidden-bld { display: none; }
+    .bld-icon { font-size: 1.7rem; flex-shrink: 0; }
+    .bld-info { flex: 1; min-width: 0; }
+    .bld-name { font-size: .88rem; font-weight: 900; }
+    .bld-desc { font-size: .68rem; color: var(--muted); margin-top: .1rem; }
+    .bld-cps  { font-size: .68rem; color: var(--mint); font-weight: 800; margin-top: .12rem; }
+    .bld-right { text-align: right; flex-shrink: 0; }
+    .bld-cost  { font-size: .84rem; font-weight: 900; color: var(--gold); }
+    .bld-owned { font-size: .7rem; color: var(--muted); font-weight: 800; margin-top: .1rem; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--panel);
+      border: 1px solid var(--gold);
+      border-radius: 14px;
+      padding: .85rem 1.4rem;
+      box-shadow: 0 12px 44px rgba(0,0,0,.55), 0 0 0 3px rgba(251,191,36,.1);
+      text-align: center;
+      z-index: 300;
+      max-width: 320px;
+      animation: toastIn .3s ease-out, toastOut .4s ease-in 3.2s forwards;
+    }
+    .toast-title { font-size: 1rem; font-weight: 900; color: var(--gold); }
+    .toast-body  { font-size: .82rem; color: var(--muted); margin-top: .2rem; line-height: 1.4; }
+    @keyframes toastIn  { from { opacity: 0; transform: translateX(-50%) translateY(18px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+    @keyframes toastOut { to   { opacity: 0; transform: translateX(-50%) translateY(12px); } }
+
+
+    @media (max-width: 820px) {
+      .layout { grid-template-columns: 1fr; height: auto; }
+      .upg-panel, .bld-panel { border: none; border-bottom: 1px solid var(--border); max-height: 260px; }
+      .click-area { min-height: 55vw; padding: 1.5rem 1rem; }
+      .cup-btn { font-size: 5.5rem; }
     }
   </style>
 </head>
 <body>
-  <header>
-    <a class="brand" href="https://gamed.fun/">gamed.fun</a>
+<header>
+  <a class="brand" href="https://gamed.fun/">gamed.fun</a>
+  <div class="header-stats">
+    <div class="header-cash">$<span id="hCash">0</span></div>
+    <div class="header-cps"><span id="hCps">0</span>/sec</div>
+  </div>
+  <div style="display:flex;gap:.5rem;align-items:center">
+    <button id="restartBtn" type="button" style="background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);font:inherit;font-size:.82rem;font-weight:900;padding:.35rem .65rem;cursor:pointer;">↺ Restart</button>
     <a class="home-link" href="https://gamed.fun/">All games</a>
-  </header>
+  </div>
+</header>
 
-  <main>
-    <section class="hud">
-      <div class="title">
-        <h1>The Little Cup</h1>
-        <p class="sub">Cook quick cafe tasks, earn cash, and build the cafe into a tycoon.</p>
-      </div>
-      <div class="stat"><div class="label">Cash</div><div class="value">$<span id="cashVal">0</span></div></div>
-      <div class="stat"><div class="label">Sold</div><div class="value" id="servedVal">0</div></div>
-      <div class="stat"><div class="label">Run Cash</div><div class="value">$<span id="tipsVal">0</span></div></div>
-      <div class="stat"><div class="label">Level</div><div class="value" id="levelVal">1</div></div>
-      <div class="stat"><div class="label">Best</div><div class="value" id="bestVal">0</div></div>
-    </section>
-
-    <section class="grid">
-      <div class="customers panel">
-        <div class="label">Customers</div>
-        <div id="customerList"></div>
-        <div class="label">Food Stock</div>
-        <div id="foodStock"></div>
-      </div>
-
-      <div class="station panel">
-        <div class="label">Kitchen</div>
-        <div class="station-main">
-          <div class="ticket">
-            <div class="food" id="foodIcon">☕</div>
-            <div class="mini-title" id="miniTitle">Ready for customers</div>
-            <div class="mini-help" id="miniHelp">Open the cafe to start making food.</div>
-          </div>
-          <div id="miniGame"></div>
-          <div class="message" id="message"></div>
-          <div class="actions">
-            <button class="command" id="startBtn" type="button">Open Cafe</button>
-            <button class="command secondary" id="serveBtn" type="button" disabled>Sell</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="upgrades panel">
-        <div class="label">Cafe Upgrades</div>
-        <div class="upgrade-list" id="upgradeList"></div>
-      </div>
-    </section>
-  </main>
-
-  <div class="overlay" id="overlay">
-    <div class="modal">
-      <h1>The Little Cup</h1>
-      <p>Start with bread, sell food, and unlock better foods as your cafe grows.</p>
-      <button class="command" id="modalStartBtn" type="button">Open Cafe</button>
-    </div>
+<div class="layout">
+  <!-- Left: Upgrades -->
+  <div class="upg-panel" id="upgPanel">
+    <div class="panel-label">Upgrades</div>
   </div>
 
-  <script>
-    const orders = [
-      { id: 'bread', name: 'Bread', icon: '🍞', task: 'bread', tip: 2, unlock: 0 },
-      { id: 'toast', name: 'Toast', icon: '🍞', task: 'toast', tip: 4, unlock: 1 },
-      { id: 'cookies', name: 'Cookies', icon: '🍪', task: 'decorate', tip: 6, unlock: 2 },
-      { id: 'tea', name: 'Tea', icon: '🍵', task: 'sort', tip: 7, unlock: 3 },
-      { id: 'bagel', name: 'Bagel', icon: '🥯', task: 'spread', tip: 9, unlock: 4 },
-      { id: 'latte', name: 'Latte', icon: '☕', task: 'combine', tip: 11, unlock: 5 },
-      { id: 'sandwich', name: 'Sandwich', icon: '🥪', task: 'order', tip: 13, unlock: 6 },
-      { id: 'soup', name: 'Soup', icon: '🍜', task: 'sillySoup', tip: 15, unlock: 7 },
-      { id: 'smoothie', name: 'Smoothie', icon: '🥤', task: 'mix', tip: 17, unlock: 8 },
-      { id: 'tray', name: 'Lunch Tray', icon: '🍱', task: 'logic', tip: 20, unlock: 9 }
-    ];
-    const names = ['Mia', 'Jay', 'Ava', 'Leo', 'Zoe', 'Max', 'Nora', 'Kai', 'Ivy', 'Ezra'];
-    const taskBuilders = {
-      bread: buildBreadTask,
-      toast: buildToastTask,
-      combine: buildCombinePuzzle,
-      sillySoup: buildSillySoupPuzzle,
-      order: buildOrderPuzzle,
-      pattern: buildPatternPuzzle,
-      odd: buildOddPuzzle,
-      sort: buildSortPuzzle,
-      decorate: buildDecoratePuzzle,
-      mix: buildMixPuzzle,
-      spread: buildSpreadPuzzle,
-      logic: buildLogicPuzzle
-    };
-    const SAVE_KEY = 'little_cup_tycoon_save';
-    const upgradeDefs = [
-      { id: 'menu', name: 'New Food', desc: 'Unlocks the next food customers can order.', base: 18, scale: 1.65, max: 9 },
-      { id: 'prices', name: 'Better Prices', desc: 'Earn more cash from every order.', base: 35, scale: 1.75 },
-      { id: 'seats', name: 'Extra Seats', desc: 'Shows more customers at once.', base: 70, scale: 2.15 }
-    ];
+  <!-- Center: Click -->
+  <div class="click-area" id="clickArea">
+    <div class="center-stats">
+      <div class="center-total">$<span id="cTotal">0</span> earned</div>
+      <div class="center-cps">earning $<span id="cCps">0</span> per second</div>
+      <div class="center-cpc">$<span id="cCpc">1</span> per click</div>
+    </div>
+    <button class="cup-btn" id="cupBtn" type="button">☕</button>
+    <div class="frenzy-wrap" id="frenzyWrap">
+      <div class="frenzy-label">☕ FRENZY — 7× production!</div>
+      <div class="frenzy-track"><div class="frenzy-fill" id="frenzyFill"></div></div>
+    </div>
+<div class="ticker" id="ticker">Click the cup to start brewing.</div>
+  </div>
 
-    const customerList = document.getElementById('customerList');
-    const foodStock = document.getElementById('foodStock');
-    const foodIcon = document.getElementById('foodIcon');
-    const miniTitle = document.getElementById('miniTitle');
-    const miniHelp = document.getElementById('miniHelp');
-    const miniGame = document.getElementById('miniGame');
-    const message = document.getElementById('message');
-    const startBtn = document.getElementById('startBtn');
-    const modalStartBtn = document.getElementById('modalStartBtn');
-    const serveBtn = document.getElementById('serveBtn');
-    const overlay = document.getElementById('overlay');
-    const cashVal = document.getElementById('cashVal');
-    const servedVal = document.getElementById('servedVal');
-    const tipsVal = document.getElementById('tipsVal');
-    const levelVal = document.getElementById('levelVal');
-    const bestVal = document.getElementById('bestVal');
-    const upgradeList = document.getElementById('upgradeList');
+  <!-- Right: Buildings -->
+  <div class="bld-panel" id="bldPanel">
+    <div class="panel-label">Things</div>
+  </div>
+</div>
 
-    let customers = [];
-    let activeId = null;
-    let running = false;
-    let served = 0;
-    let tips = 0;
-    let cash = 0;
-    let best = 0;
-    let upgrades = { menu: 0, prices: 0, seats: 0 };
-    let stock = {};
-    let activeFoodId = 'bread';
-    let miniState = {};
+<script>
+'use strict';
 
-    function loadTycoon() {
-      try {
-        const saved = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
-        cash = Number(saved?.cash || 0);
-        best = Number(saved?.best || localStorage.getItem('little_cup_best') || 0);
-        upgrades = { ...upgrades, ...(saved?.upgrades || {}) };
-        stock = saved?.stock || {};
-        activeFoodId = saved?.activeFoodId || 'bread';
-      } catch {}
+// ── DATA ───────────────────────────────────────────────────
+const BUILDINGS = [
+  { id:'sprite',  name:'Coffee Sprite',    icon:'🧚', desc:'A tiny magical being who brews very tiny cups.',          baseCost:15,        baseCps:0.1    },
+  { id:'grandma', name:'Grandma',          icon:'👵', desc:'Been making coffee since before you were born.',          baseCost:100,       baseCps:0.5    },
+  { id:'cat',     name:'Barista Cat',      icon:'😺', desc:'Nobody knows how. The coffee is incredible.',            baseCost:500,       baseCps:4      },
+  { id:'ghost',   name:'Haunted Machine',  icon:'👻', desc:'Brews on its own. Do not ask questions.',                baseCost:2_000,     baseCps:25     },
+  { id:'robot',   name:'Coffee Bot 3000',  icon:'🤖', desc:'Industrially efficient. Slightly terrifying.',           baseCost:10_000,    baseCps:100    },
+  { id:'wizard',  name:'Bean Wizard',      icon:'🧙', desc:'Transmutes water directly into liquid gold.',            baseCost:50_000,    baseCps:400    },
+  { id:'cloud',   name:'Cloud Cafe',       icon:'☁️', desc:'A floating cafe above the city. Nobody asks how.',       baseCost:250_000,   baseCps:2_000  },
+  { id:'volcano', name:'Coffee Volcano',   icon:'🌋', desc:'Erupts hot espresso every few seconds.',                 baseCost:1_250_000, baseCps:10_000 },
+  { id:'portal',  name:'Coffee Dimension', icon:'🌀', desc:'Taps an alternate universe made entirely of coffee.',    baseCost:6_000_000, baseCps:50_000 },
+];
+
+const UPGRADES = [
+  // Click
+  { id:'c1', icon:'👆', name:'Caffeine Rush',     desc:'Double click power.',          cost:100,        cond:s => s.totalEarned >= 15,             eff:{type:'click',mult:2} },
+  { id:'c2', icon:'⚡', name:'Double Shot',        desc:'Double click power again.',    cost:500,        cond:s => s.totalEarned >= 200,            eff:{type:'click',mult:2} },
+  { id:'c3', icon:'🔥', name:'Power Grind',        desc:'Clicks earn 5× more.',         cost:10_000,     cond:s => s.totalEarned >= 5_000,          eff:{type:'click',mult:5} },
+  { id:'c4', icon:'💫', name:'Golden Hands',       desc:'Clicks earn 10× more.',        cost:1_000_000,  cond:s => s.totalEarned >= 500_000,        eff:{type:'click',mult:10} },
+  // Sprite
+  { id:'s1', icon:'✨', name:'Fairy Dust',         desc:'Sprites brew 2× faster.',      cost:100,        cond:s => (s.owned.sprite||0) >= 1,        eff:{type:'bld',id:'sprite',mult:2} },
+  { id:'s2', icon:'🌟', name:'Magic Beans',        desc:'Sprites brew 2× faster.',      cost:500,        cond:s => (s.owned.sprite||0) >= 5,        eff:{type:'bld',id:'sprite',mult:2} },
+  { id:'s3', icon:'💎', name:'Enchanted Cups',     desc:'Sprites brew 4× faster.',      cost:10_000,     cond:s => (s.owned.sprite||0) >= 25,       eff:{type:'bld',id:'sprite',mult:4} },
+  // Grandma
+  { id:'g1', icon:'📖', name:'Secret Recipe',      desc:'Grandmas brew 2× faster.',     cost:1_000,      cond:s => (s.owned.grandma||0) >= 1,       eff:{type:'bld',id:'grandma',mult:2} },
+  { id:'g2', icon:'🥛', name:'Full-Cream Milk',    desc:'Grandmas brew 2× faster.',     cost:5_000,      cond:s => (s.owned.grandma||0) >= 5,       eff:{type:'bld',id:'grandma',mult:2} },
+  { id:'g3', icon:'👓', name:'New Glasses',        desc:'Grandmas brew 4× faster.',     cost:50_000,     cond:s => (s.owned.grandma||0) >= 25,      eff:{type:'bld',id:'grandma',mult:4} },
+  // Cat
+  { id:'ca1', icon:'🐟', name:'Fish Bribe',        desc:'Cat brews 2× faster.',         cost:10_000,     cond:s => (s.owned.cat||0) >= 1,           eff:{type:'bld',id:'cat',mult:2} },
+  { id:'ca2', icon:'🎀', name:'Fancy Collar',      desc:'Cat brews 2× faster.',         cost:50_000,     cond:s => (s.owned.cat||0) >= 5,           eff:{type:'bld',id:'cat',mult:2} },
+  { id:'ca3', icon:'😻', name:'Purring Perfection',desc:'Cat brews 4× faster.',         cost:1_000_000,  cond:s => (s.owned.cat||0) >= 25,          eff:{type:'bld',id:'cat',mult:4} },
+  // Ghost
+  { id:'gh1', icon:'🕯️', name:'Candlelight',      desc:'Ghost brews 2× faster.',       cost:40_000,     cond:s => (s.owned.ghost||0) >= 1,         eff:{type:'bld',id:'ghost',mult:2} },
+  { id:'gh2', icon:'🔮', name:'Crystal Ball',      desc:'Ghost brews 2× faster.',       cost:200_000,    cond:s => (s.owned.ghost||0) >= 5,         eff:{type:'bld',id:'ghost',mult:2} },
+  // Robot
+  { id:'r1', icon:'🔧', name:'Firmware Update',    desc:'Robots brew 2× faster.',       cost:150_000,    cond:s => (s.owned.robot||0) >= 1,         eff:{type:'bld',id:'robot',mult:2} },
+  { id:'r2', icon:'🧠', name:'AI Upgrade',         desc:'Robots brew 2× faster.',       cost:1_000_000,  cond:s => (s.owned.robot||0) >= 5,         eff:{type:'bld',id:'robot',mult:2} },
+  // Wizard
+  { id:'w1', icon:'📜', name:'Ancient Scroll',     desc:'Wizard brews 2× faster.',      cost:1_000_000,  cond:s => (s.owned.wizard||0) >= 1,        eff:{type:'bld',id:'wizard',mult:2} },
+  { id:'w2', icon:'🌙', name:'Moon Ritual',        desc:'Wizard brews 2× faster.',      cost:5_000_000,  cond:s => (s.owned.wizard||0) >= 5,        eff:{type:'bld',id:'wizard',mult:2} },
+  // Cloud
+  { id:'cl1', icon:'⛅', name:'Raincloud Boost',   desc:'Cloud cafe 2× as good.',       cost:5_000_000,  cond:s => (s.owned.cloud||0) >= 1,         eff:{type:'bld',id:'cloud',mult:2} },
+  // Global
+  { id:'gl1', icon:'☕', name:'Coffee Culture',    desc:'Everything 2× as good.',       cost:500_000,    cond:s => s.totalBld >= 50,                eff:{type:'global',mult:2} },
+  { id:'gl2', icon:'🏆', name:'Caffeine Empire',   desc:'Everything 2× as good.',       cost:50_000_000, cond:s => s.totalBld >= 200,               eff:{type:'global',mult:2} },
+];
+
+const THING_ADJ  = ['Tiny','Magical','Haunted','Floating','Ancient','Neon','Invisible','Screaming','Sleepy','Caffeinated','Glowing','Frozen','Electric','Crystal','Golden','Cosmic','Grumpy','Sneaky','Dramatic','Radioactive','Fluffy','Legendary','Suspicious','Chunky','Sparkling','Melted','Crispy','Vibing','Anxious','Blessed'];
+const THING_NOUN = ['Brew Goblin','Steam Demon','Bean Phantom','Latte Specter','Mocha Wraith','Espresso Troll','Cappuccino Imp','Coffee Gremlin','Roast Poltergeist','Drip Spirit','Foam Djinn','Grind Shade','Mug Wyrm','Cup Familiar','Kettle Sprite','Percolator Pixie','Filter Faery','Press Nymph','Dripper Gnome','Steamer Elf','Tamper Troll','Grinder Ghost','Brewer Banshee','Barista Bat','Caffeinator','Brew Kobold','Espresso Imp','Cold Brew Critter','Coffee Kraken','Latte Lich','Bean Basilisk','Roast Rogue','Foam Fiend','Steam Slug','Drip Drake'];
+const THING_ICONS= ['🧚','🧙','👻','🤖','😺','👵','🐉','🦄','🐸','🦊','🐺','🐻','🦁','🐯','🦋','🐙','🦑','🦀','🕷️','🐝','🌟','💫','✨','🔥','❄️','⚡','🌈','🔮','💎','👑','🌙','🌊','🌪️','🎪','🎭','🪄','🏆','🦕','🦖','🐲','🧌','🧟','🧜','🧝','🧞','🦝','🦡','🦦','🐊','🦛','🦏','🐘','🦒','🦓','🦬','🦙','🦘','🦔','🦧','🦣'];
+const THING_DESCS= ['Nobody knows why it works. It just does.','Extremely passionate about espresso.','Found behind the cafe. Decided to stay.','Part coffee machine, part mystery.','Smells like coffee. Might be coffee.','Do not look directly at it.','Just vibes and makes great coffee.','Produces coffee through sheer willpower.','Makes coffee in ways science cannot explain.','Has strong opinions about your order.','Works best when ignored.','Terrifying but effective.','Surprisingly good at its job.','The less you know, the better.','Refuses to explain itself.'];
+const TIER_COSTS = [[8,80],[80,400],[400,1800],[1800,9000],[9000,45000],[45000,225000],[225000,1125000],[1125000,5625000],[5625000,28125000],[28125000,140625000]];
+const TIER_CPS   = [[0.05,0.4],[0.4,3],[3,22],[22,90],[90,370],[370,1850],[1850,9250],[9250,46250],[46250,231250],[231250,1156250]];
+
+function buildGeneratedThings() {
+  const out = []; let i = 0;
+  outer: for (const adj of THING_ADJ) {
+    for (const noun of THING_NOUN) {
+      const t = Math.min(9, Math.floor(i / 99)), p = (i % 99) / 98;
+      out.push({ id:`g${i}`, name:`${adj} ${noun}`, icon:THING_ICONS[i%THING_ICONS.length], desc:THING_DESCS[i%THING_DESCS.length],
+        baseCost: Math.ceil(TIER_COSTS[t][0]+(TIER_COSTS[t][1]-TIER_COSTS[t][0])*p),
+        baseCps:  TIER_CPS[t][0]+(TIER_CPS[t][1]-TIER_CPS[t][0])*p });
+      if (++i >= 991) break outer;
     }
+  }
+  return out;
+}
+const ALL_THINGS = [...BUILDINGS, ...buildGeneratedThings()];
 
-    function saveTycoon() {
-      try {
-        localStorage.setItem(SAVE_KEY, JSON.stringify({ cash, best, upgrades, stock, activeFoodId }));
-        localStorage.setItem('little_cup_best', String(best));
-      } catch {}
+const WORKERS = [
+  { id:'w_baker',    icon:'👨‍🍳', name:'Baker',           desc:'Adds +1/sec flat production.',     baseCost:40,   scale:1.38 },
+  { id:'w_driver',   icon:'🚗',   name:'Delivery Driver', desc:'+8% click power per hire.',        baseCost:100,  scale:1.5  },
+  { id:'w_cashier',  icon:'💵',   name:'Cashier',         desc:'+4% all income per hire.',         baseCost:180,  scale:1.55 },
+  { id:'w_roaster',  icon:'🫘',   name:'Head Roaster',    desc:'+6% building output per hire.',    baseCost:300,  scale:1.6  },
+  { id:'w_manager',  icon:'👔',   name:'Manager',         desc:'Cuts building costs by 4%.',       baseCost:600,  scale:1.7  },
+  { id:'w_marketer', icon:'📱',   name:'Marketer',        desc:'+10% click power per hire.',       baseCost:250,  scale:1.62 },
+];
+
+const MILESTONES = [
+  { n:100,          msg:'First $100! You\'re a real barista now. ☕'          },
+  { n:1_000,        msg:'A thousand dollars! The cafe is buzzing.'              },
+  { n:10_000,       msg:'$10,000! Time to think about expansion.'              },
+  { n:100_000,      msg:'$100K! You\'re running a serious operation.'          },
+  { n:1_000_000,    msg:'One million! ☕🎉 Coffee empire incoming.'            },
+  { n:10_000_000,   msg:'$10 million! The whole city smells like coffee.'      },
+  { n:100_000_000,  msg:'$100 million! You\'ve conquered the coffee market.'  },
+  { n:1_000_000_000,msg:'One billion! You ARE coffee.'                         },
+];
+
+const TICKER = [
+  'Coffee futures are up 12% this quarter.',
+  'Local barista wins latte art competition.',
+  'Scientists confirm coffee is good, actually.',
+  'New trend: cold brew served warm in a hot cup.',
+  'City considers coffee tax. Citizens outraged.',
+  'Record espresso pulled in under 8 seconds.',
+  'Barista union demands extra foam for free.',
+  'Mystery ingredient in specialty blend: more coffee.',
+  'Caffeine consumption reaches all-time high.',
+  'Breaking: local cafe ran out of oat milk.',
+];
+
+const SAVE_KEY = 'little_cup_cc2';
+
+// ── STATE ──────────────────────────────────────────────────
+let G = freshState();
+
+function freshState() {
+  return {
+    cash: 0, totalEarned: 0,
+    owned: {}, bought: [],
+    clickMult: 1, bldMult: {}, globalMult: 1,
+    frenzy: 0, miniFrenzy: 0, mseen: [],
+    workers: {}, upgradeSlots: [], thingSlots: [],
+  };
+}
+
+// ── HELPERS ────────────────────────────────────────────────
+function fmt(n) {
+  if (n < 0.1)  return n.toFixed(2);
+  if (n < 1)    return n.toFixed(1);
+  if (n < 1e3)  return Math.floor(n).toLocaleString();
+  if (n < 1e6)  return (n/1e3).toFixed(1)+'K';
+  if (n < 1e9)  return (n/1e6).toFixed(1)+'M';
+  if (n < 1e12) return (n/1e9).toFixed(1)+'B';
+  if (n < 1e15) return (n/1e12).toFixed(1)+'T';
+  return n.toExponential(2);
+}
+
+function bldCost(b) {
+  return Math.ceil(b.baseCost * Math.pow(1.15, G.owned[b.id] || 0) * workerDiscount());
+}
+
+function bldCps(b) {
+  return b.baseCps * (G.bldMult[b.id] || 1) * G.globalMult * workerBldMult();
+}
+
+function totalCps() {
+  let t = (G.workers.w_baker || 0) * 1;
+  for (const b of ALL_THINGS) t += (G.owned[b.id] || 0) * bldCps(b);
+  t *= workerGlobalMult();
+  if (G.frenzy > 0)     t *= 7;
+  if (G.miniFrenzy > 0) t *= 3;
+  return t;
+}
+
+function clickVal() {
+  return G.clickMult * workerClickMult() + totalCps() * 0.01;
+}
+
+function workerClickMult()  { return Math.pow(1.08, G.workers.w_driver||0) * Math.pow(1.10, G.workers.w_marketer||0); }
+function workerBldMult()    { return Math.pow(1.06, G.workers.w_roaster||0); }
+function workerGlobalMult() { return Math.pow(1.04, G.workers.w_cashier||0); }
+function workerDiscount()   { return Math.pow(0.96, G.workers.w_manager||0); }
+function workerCost(w)      { return Math.ceil(w.baseCost * Math.pow(w.scale, G.workers[w.id] || 0)); }
+
+function totalBld() {
+  return Object.values(G.owned).reduce((s,v) => s+v, 0);
+}
+
+function condState() {
+  return { ...G, totalBld: totalBld() };
+}
+
+// ── DOM REFS ───────────────────────────────────────────────
+const hCash    = document.getElementById('hCash');
+const hCps     = document.getElementById('hCps');
+const cTotal   = document.getElementById('cTotal');
+const cCps     = document.getElementById('cCps');
+const cCpc     = document.getElementById('cCpc');
+const cupBtn   = document.getElementById('cupBtn');
+const clickArea= document.getElementById('clickArea');
+const upgPanel = document.getElementById('upgPanel');
+const bldPanel = document.getElementById('bldPanel');
+const ticker   = document.getElementById('ticker');
+const frenzyWrap = document.getElementById('frenzyWrap');
+const frenzyFill = document.getElementById('frenzyFill');
+
+// ── RENDER ─────────────────────────────────────────────────
+function renderHUD() {
+  const cps = totalCps(), cpc = clickVal();
+  hCash.textContent    = fmt(G.cash);
+  hCps.textContent     = fmt(cps);
+  cTotal.textContent   = fmt(G.totalEarned);
+  cCps.textContent     = fmt(cps);
+  cCpc.textContent     = fmt(cpc);
+  if (G.frenzy > 0) {
+    frenzyWrap.classList.add('on');
+    frenzyFill.style.width = (G.frenzy / 77 * 100) + '%';
+  } else {
+    frenzyWrap.classList.remove('on');
+  }
+}
+
+function fillThingSlots() {
+  const visible = ALL_THINGS.filter((b, i) => i === 0 || (G.owned[b.id]||0) > 0 || G.totalEarned >= b.baseCost * 0.1);
+  G.thingSlots = [];
+  const pool = [...visible];
+  while (G.thingSlots.length < 4 && pool.length > 0) {
+    const idx = Math.floor(Math.random() * pool.length);
+    G.thingSlots.push(pool.splice(idx, 1)[0].id);
+  }
+}
+
+function fillUpgradeSlots() {
+  const cs = condState();
+  const avail = UPGRADES.filter(u => !G.bought.includes(u.id) && u.cond(cs));
+  G.upgradeSlots = G.upgradeSlots.filter(id => avail.some(u => u.id === id));
+  const pool = avail.filter(u => !G.upgradeSlots.includes(u.id));
+  while (G.upgradeSlots.length < 3 && pool.length > 0) {
+    const idx = Math.floor(Math.random() * pool.length);
+    G.upgradeSlots.push(pool.splice(idx, 1)[0].id);
+  }
+}
+
+function renderUpgrades() {
+  upgPanel.innerHTML = '<div class="panel-label">Upgrades</div>';
+  fillUpgradeSlots();
+  if (!G.upgradeSlots.length) {
+    const el = document.createElement('div');
+    el.className = 'upg-none';
+    el.textContent = 'No upgrades available yet.';
+    upgPanel.appendChild(el);
+  }
+  for (const id of G.upgradeSlots) {
+    const u = UPGRADES.find(u => u.id === id);
+    if (!u) continue;
+    const canBuy = G.cash >= u.cost;
+    const card = document.createElement('div');
+    card.className = 'upg-card ' + (canBuy ? 'affordable' : 'too-costly');
+    card.innerHTML = `
+      <div class="upg-icon">${u.icon}</div>
+      <div>
+        <div class="upg-name">${u.name}</div>
+        <div class="upg-desc">${u.desc}</div>
+        <div class="upg-cost">$${fmt(u.cost)}</div>
+      </div>`;
+    if (canBuy) card.addEventListener('click', () => buyUpgrade(u));
+    upgPanel.appendChild(card);
+  }
+  renderWorkers();
+}
+
+function renderWorkers() {
+  const div = document.createElement('div');
+  div.style.cssText = 'border-top:1px solid var(--border);margin-top:.4rem;padding-top:.6rem;display:flex;flex-direction:column;gap:.5rem';
+  div.innerHTML = '<div class="panel-label">Workers</div>';
+  for (const w of WORKERS) {
+    const cost  = workerCost(w);
+    const count = G.workers[w.id] || 0;
+    const canBuy = G.cash >= cost;
+    const card = document.createElement('div');
+    card.className = 'upg-card ' + (canBuy ? 'affordable' : 'too-costly');
+    card.innerHTML = `
+      <div class="upg-icon">${w.icon}</div>
+      <div>
+        <div class="upg-name">${w.name}${count > 0 ? ` <span style="color:var(--mint);font-size:.68rem">×${count}</span>` : ''}</div>
+        <div class="upg-desc">${w.desc}</div>
+        <div class="upg-cost">$${fmt(cost)}</div>
+      </div>`;
+    if (canBuy) card.addEventListener('click', () => buyWorker(w));
+    div.appendChild(card);
+  }
+  upgPanel.appendChild(div);
+}
+
+function buyWorker(w) {
+  const cost = workerCost(w);
+  if (G.cash < cost) return;
+  G.cash -= cost;
+  G.workers[w.id] = (G.workers[w.id] || 0) + 1;
+  fillThingSlots();
+  save(); render();
+}
+
+function renderBuildings() {
+  bldPanel.innerHTML = '<div class="panel-label">Things</div>';
+  if (!G.thingSlots.length) fillThingSlots();
+  for (const id of G.thingSlots) {
+    const b = ALL_THINGS.find(b => b.id === id);
+    if (!b) continue;
+    const owned = G.owned[b.id] || 0;
+    const cost  = bldCost(b);
+    const cps   = bldCps(b);
+    const canBuy = G.cash >= cost;
+    const row = document.createElement('div');
+    row.className = 'bld-row ' + (canBuy ? 'affordable' : 'too-costly');
+    row.innerHTML = `
+      <div class="bld-icon">${b.icon}</div>
+      <div class="bld-info">
+        <div class="bld-name">${b.name}</div>
+        <div class="bld-desc">${b.desc}</div>
+        <div class="bld-cps">${fmt(cps)}/sec · ${owned > 0 ? fmt(owned * cps)+'/sec total' : 'none owned'}</div>
+      </div>
+      <div class="bld-right">
+        <div class="bld-cost">$${fmt(cost)}</div>
+        <div class="bld-owned">${owned} owned</div>
+      </div>`;
+    if (canBuy) row.addEventListener('click', () => buyBuilding(b));
+    bldPanel.appendChild(row);
+  }
+}
+
+function render() {
+  renderHUD();
+  renderUpgrades();
+  renderBuildings();
+}
+
+// ── ACTIONS ────────────────────────────────────────────────
+function onCupClick(e) {
+  const earned = clickVal();
+  G.cash += earned;
+  G.totalEarned += earned;
+  spawnFloat(e.clientX, e.clientY, '+$' + fmt(earned));
+  checkMilestones();
+  render();
+}
+
+function buyBuilding(b) {
+  const cost = bldCost(b);
+  if (G.cash < cost) return;
+  G.cash -= cost;
+  G.owned[b.id] = (G.owned[b.id] || 0) + 1;
+  fillThingSlots();
+  save(); render();
+}
+
+function buyUpgrade(u) {
+  if (G.cash < u.cost) return;
+  G.cash -= u.cost;
+  applyUpgrade(u);
+  G.bought.push(u.id);
+  G.upgradeSlots = G.upgradeSlots.filter(id => id !== u.id);
+  fillUpgradeSlots();
+  fillThingSlots();
+  showToast(u.icon + ' ' + u.name, u.desc);
+  save(); render();
+}
+
+function applyUpgrade(u) {
+  if (u.eff.type === 'click')       G.clickMult *= u.eff.mult;
+  else if (u.eff.type === 'bld')    G.bldMult[u.eff.id] = (G.bldMult[u.eff.id] || 1) * u.eff.mult;
+  else if (u.eff.type === 'global') G.globalMult *= u.eff.mult;
+}
+
+// ── FLOAT TEXT ─────────────────────────────────────────────
+function spawnFloat(x, y, text) {
+  const el = document.createElement('div');
+  el.className = 'float-txt';
+  el.textContent = text;
+  el.style.left = (x - 16) + 'px';
+  el.style.top  = (y - 20) + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 820);
+}
+
+// ── GOLDEN COFFEE ──────────────────────────────────────────
+let goldenEl = null, goldenAutoRemove = null, goldenTimeout = null;
+
+function scheduleGolden() {
+  const delay = 90_000 + Math.random() * 90_000;
+  goldenTimeout = setTimeout(spawnGolden, delay);
+}
+
+function spawnGolden() {
+  if (goldenEl) { goldenEl.remove(); goldenEl = null; }
+  goldenEl = document.createElement('button');
+  goldenEl.className = 'golden-cup';
+  goldenEl.type = 'button';
+  goldenEl.textContent = '✨';
+  goldenEl.style.left = (12 + Math.random() * 70) + '%';
+  goldenEl.style.top  = (18 + Math.random() * 58) + '%';
+  clickArea.appendChild(goldenEl);
+  goldenAutoRemove = setTimeout(() => {
+    goldenEl?.remove(); goldenEl = null;
+    scheduleGolden();
+  }, 13_000);
+  goldenEl.addEventListener('click', () => {
+    clearTimeout(goldenAutoRemove);
+    onGoldenClick();
+    goldenEl?.remove(); goldenEl = null;
+    scheduleGolden();
+  }, { once: true });
+}
+
+function onGoldenClick() {
+  if (Math.random() < 0.5) {
+    G.frenzy = 77;
+    ticker.textContent = '☕ COFFEE FRENZY! 7× production for 77 seconds!';
+    showToast('☕ Coffee Frenzy!', '7× production for 77 seconds!');
+  } else {
+    const bonus = Math.max(10, Math.min(totalCps() * 900, G.totalEarned * 0.15 + 100));
+    G.cash += bonus; G.totalEarned += bonus;
+    ticker.textContent = `🍀 Lucky! Scored $${fmt(bonus)} bonus cash.`;
+    showToast('🍀 Lucky!', `+$${fmt(bonus)} bonus!`);
+    checkMilestones();
+  }
+  render();
+}
+
+// ── MILESTONES ─────────────────────────────────────────────
+function checkMilestones() {
+  for (const m of MILESTONES) {
+    if (!G.mseen.includes(m.n) && G.totalEarned >= m.n) {
+      G.mseen.push(m.n);
+      showToast('Milestone! 🎉', m.msg);
     }
+  }
+}
 
-    function cafeLevel() {
-      return 1 + Object.values(upgrades).reduce((sum, level) => sum + level, 0);
+// ── TOAST ──────────────────────────────────────────────────
+function showToast(title, body) {
+  document.querySelectorAll('.toast').forEach(el => el.remove());
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = `<div class="toast-title">${title}</div><div class="toast-body">${body}</div>`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3700);
+}
+
+// ── TICKER ─────────────────────────────────────────────────
+let tickerIdx = 0;
+function rotateTicker() {
+  ticker.textContent = TICKER[tickerIdx++ % TICKER.length];
+  setTimeout(rotateTicker, 7_000);
+}
+
+// ── GAME LOOP ──────────────────────────────────────────────
+setInterval(() => {
+  const inc = totalCps() * 0.1;
+  if (inc > 0) {
+    G.cash += inc; G.totalEarned += inc;
+    checkMilestones();
+  }
+  if (G.frenzy > 0) G.frenzy = Math.max(0, G.frenzy - 0.1);
+  if (G.miniFrenzy > 0) G.miniFrenzy = Math.max(0, G.miniFrenzy - 0.1);
+  renderHUD();
+}, 100);
+
+setInterval(() => { render(); save(); }, 1_000);
+
+// ── SAVE / LOAD ────────────────────────────────────────────
+function save() {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(G)); } catch {}
+}
+
+function load() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+    if (!raw) return;
+    G = { ...freshState(), ...raw };
+    // Rebuild multipliers from bought list
+    G.clickMult = 1; G.bldMult = {}; G.globalMult = 1;
+    for (const id of (G.bought || [])) {
+      const u = UPGRADES.find(u => u.id === id);
+      if (u) applyUpgrade(u);
     }
+  } catch { G = freshState(); }
+}
 
-    function upgradeCost(def) {
-      return Math.round(def.base * Math.pow(def.scale, upgrades[def.id]));
-    }
 
-    function maxCustomers() {
-      return 4 + upgrades.seats;
-    }
-
-    function availableOrders() {
-      return orders.filter(order => order.unlock <= upgrades.menu);
-    }
-
-    function activeFood() {
-      const menu = availableOrders();
-      if (!menu.some(order => order.id === activeFoodId)) activeFoodId = menu[0].id;
-      return menu.find(order => order.id === activeFoodId) || menu[0];
-    }
-
-    function stockedFood() {
-      return availableOrders().filter(order => (stock[order.id] || 0) > 0);
-    }
-
-    function stockCount() {
-      return stockedFood().reduce((sum, order) => sum + stock[order.id], 0);
-    }
-
-    function orderValue(order) {
-      return order.tip + upgrades.prices * 3;
-    }
-
-    function renderUpgrades() {
-      upgradeList.innerHTML = '';
-      upgradeDefs.forEach(def => {
-        const cost = upgradeCost(def);
-        const level = upgrades[def.id];
-        const maxed = typeof def.max === 'number' && level >= def.max;
-        const wrap = document.createElement('div');
-        wrap.className = 'upgrade';
-        wrap.innerHTML = `
-          <div class="upgrade-top">
-            <div>
-              <div class="upgrade-name">${def.name}</div>
-              <div class="upgrade-desc">${def.desc}</div>
-            </div>
-            <div class="label">${maxed ? 'Max' : `Lv ${level}`}</div>
-          </div>
-          <button class="upgrade-buy" type="button"${cash < cost || maxed ? ' disabled' : ''}>${maxed ? 'Maxed' : `Buy $${cost}`}</button>`;
-        wrap.querySelector('button').addEventListener('click', () => buyUpgrade(def));
-        upgradeList.appendChild(wrap);
-      });
-    }
-
-    function buyUpgrade(def) {
-      const cost = upgradeCost(def);
-      if (typeof def.max === 'number' && upgrades[def.id] >= def.max) return;
-      if (cash < cost) return;
-      cash -= cost;
-      upgrades[def.id]++;
-      message.textContent = `${def.name} upgraded to level ${upgrades[def.id]}.`;
-      saveTycoon();
-      refillCustomers();
-      buildMiniGame();
-      render();
-    }
-
-    function startShift() {
-      if (served > best) best = served;
-      customers = [];
-      activeId = null;
-      running = true;
-      served = 0;
-      tips = 0;
-      overlay.querySelector('h1').textContent = 'The Little Cup';
-      overlay.querySelector('p').textContent = 'Start with bread, sell food, and unlock better foods as your cafe grows.';
-      modalStartBtn.textContent = 'Open Cafe';
-      overlay.classList.add('hidden');
-      startBtn.textContent = 'Reset Run';
-      refillCustomers();
-      buildMiniGame();
-      saveTycoon();
-      render();
-    }
-
-    function addCustomer() {
-      customers.push({ id: `${Date.now()}-${Math.random()}`, name: names[Math.floor(Math.random() * names.length)] });
-      if (!activeId) activeId = customers[0].id;
-    }
-
-    function refillCustomers() {
-      while (customers.length < maxCustomers()) addCustomer();
-    }
-
-    function selectCustomer(id) {
-      activeId = id;
-      if (stockCount() > 0) {
-        serveCustomer(id);
-        return;
-      }
-      message.textContent = 'Make food first.';
-      buildMiniGame();
-      render();
-    }
-
-    function activeCustomer() {
-      return customers.find(customer => customer.id === activeId) || null;
-    }
-
-    function buildMiniGame() {
-      miniGame.innerHTML = '';
-      const food = activeFood();
-      if (!food) {
-        foodIcon.textContent = '🍞';
-        miniTitle.textContent = 'No food selected';
-        miniHelp.textContent = 'Unlock food to start cooking.';
-        serveBtn.disabled = true;
-        return;
-      }
-      foodIcon.textContent = food.icon;
-      miniTitle.textContent = `Make ${food.name}`;
-      miniHelp.textContent = `In stock: ${stock[food.id] || 0}`;
-      serveBtn.disabled = !activeCustomer() || stockCount() <= 0;
-      message.textContent = '';
-      taskBuilders[food.task]();
-    }
-
-    function buildBreadTask() {
-      buildTapGame('Tap once to bake fresh bread.', 'Bake bread', 1);
-    }
-
-    function buildToastTask() {
-      buildTapGame('Tap once to toast it golden.', 'Toast bread', 1);
-    }
-
-    function buildTapGame(help, buttonText, needed) {
-      miniHelp.textContent = help;
-      miniState = { hits: 0, needed };
-      miniGame.innerHTML = `
-        <div class="clicker-game">
-          <div class="clicker-progress"><div class="clicker-fill"></div></div>
-          <button class="big-action" type="button">${buttonText}</button>
-        </div>`;
-      const fill = miniGame.querySelector('.clicker-fill');
-      const btn = miniGame.querySelector('.big-action');
-      btn.addEventListener('click', () => {
-        miniState.hits++;
-        fill.style.width = `${Math.min(100, miniState.hits / miniState.needed * 100)}%`;
-        message.textContent = `${Math.max(0, miniState.needed - miniState.hits)} more`;
-        if (miniState.hits >= miniState.needed) finishCooking();
-      });
-      message.textContent = `${needed} taps`;
-    }
-
-    function buildCombinePuzzle() {
-      buildTapGame('Tap once to foam the latte.', 'Foam the latte', 1);
-    }
-
-    function buildSillySoupPuzzle() {
-      buildTapGame('Tap once to stir the soup.', 'Stir soup', 1);
-    }
-
-    function buildOrderPuzzle() {
-      buildTapGame('Tap once to make the sandwich.', 'Make sandwich', 1);
-    }
-
-    function buildPatternPuzzle() {
-      buildTapGame('Tap once to pack the donut box.', 'Pack donuts', 1);
-    }
-
-    function buildOddPuzzle() {
-      buildTapGame('Tap once to toss the salad.', 'Toss salad', 1);
-    }
-
-    function buildSortPuzzle() {
-      buildTapGame('Tap once to steep the tea.', 'Steep tea', 1);
-    }
-
-    function buildDecoratePuzzle() {
-      buildTapGame('Tap once to sprinkle the cookies.', 'Sprinkle', 1);
-    }
-
-    function buildMixPuzzle() {
-      buildTapGame('Tap once to blend the smoothie.', 'Blend smoothie', 1);
-    }
-
-    function buildSpreadPuzzle() {
-      buildTapGame('Tap once to spread the bagel.', 'Spread', 1);
-    }
-
-    function buildLogicPuzzle() {
-      buildTapGame('Tap once to load the lunch tray.', 'Load tray', 1);
-    }
-
-    function finishCooking() {
-      const food = activeFood();
-      if (food) stock[food.id] = (stock[food.id] || 0) + 1;
-      serveBtn.disabled = !activeCustomer() || stockCount() <= 0;
-      miniGame.innerHTML = '';
-      miniHelp.textContent = food ? `In stock: ${stock[food.id] || 0}` : '';
-      message.textContent = '';
-      saveTycoon();
-      render();
-      buildMiniGame();
-    }
-
-    function serveOrder() {
-      const customer = activeCustomer();
-      if (!customer) return;
-      serveCustomer(customer.id);
-    }
-
-    function serveCustomer(id) {
-      const customer = customers.find(item => item.id === id);
-      if (!customer) return;
-      const food = stockedFood().sort((a, b) => orderValue(b) - orderValue(a))[0];
-      if (!food) {
-        message.textContent = 'Make food first.';
-        return;
-      }
-      const earned = orderValue(food);
-      stock[food.id]--;
-      served++;
-      tips += earned;
-      cash += earned;
-      customers = customers.filter(item => item.id !== customer.id);
-      refillCustomers();
-      activeId = customers[0]?.id || null;
-      serveBtn.disabled = true;
-      if (activeId) buildMiniGame();
-      saveTycoon();
-      message.textContent = '';
-      render();
-    }
-
-    function render() {
-      cashVal.textContent = cash;
-      servedVal.textContent = served;
-      tipsVal.textContent = tips;
-      levelVal.textContent = cafeLevel();
-      bestVal.textContent = best;
-      renderUpgrades();
-      serveBtn.disabled = !activeCustomer() || stockCount() <= 0;
-      renderStock();
-      customerList.innerHTML = '';
-      if (!customers.length) {
-        customerList.innerHTML = '<div class="customer"><div class="mini-help">No customers right now.</div></div>';
-        return;
-      }
-      customers.forEach(customer => {
-        const el = document.createElement('button');
-        el.className = `customer${customer.id === activeId ? ' active' : ''}`;
-        el.type = 'button';
-        el.innerHTML = `
-          <div class="cust-top"><span class="cust-name">${customer.name}</span><span>🛒</span></div>
-          <div class="order">${stockCount() > 0 ? 'Will buy stocked food' : 'Waiting for food'}</div>
-          <div class="bar"><div class="bar-fill"></div></div>`;
-        el.addEventListener('click', () => selectCustomer(customer.id));
-        customerList.appendChild(el);
-      });
-    }
-
-    function renderStock() {
-      foodStock.innerHTML = '';
-      availableOrders().forEach(order => {
-        const btn = document.createElement('button');
-        btn.className = `stock-item${order.id === activeFoodId ? ' active' : ''}`;
-        btn.type = 'button';
-        btn.innerHTML = `<span>${order.icon} ${order.name}</span><strong>${stock[order.id] || 0}</strong>`;
-        btn.addEventListener('click', () => {
-          activeFoodId = order.id;
-          saveTycoon();
-          buildMiniGame();
-          render();
-        });
-        foodStock.appendChild(btn);
-      });
-    }
-
-    startBtn.addEventListener('click', startShift);
-    modalStartBtn.addEventListener('click', startShift);
-    serveBtn.addEventListener('click', serveOrder);
-    loadTycoon();
-    render();
-  </script>
+// ── INIT ───────────────────────────────────────────────────
+cupBtn.addEventListener('click', onCupClick);
+document.getElementById('restartBtn').addEventListener('click', () => {
+  if (!confirm('Reset everything and start over?')) return;
+  localStorage.removeItem(SAVE_KEY);
+  G = freshState();
+  render();
+});
+load();
+render();
+scheduleGolden();
+setTimeout(rotateTicker, 4_000);
+</script>
 </body>
 </html>
