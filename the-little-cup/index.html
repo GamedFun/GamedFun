@@ -163,26 +163,6 @@
       box-shadow: 0 14px 28px rgba(0,0,0,.22);
     }
     .big-action:active { transform: scale(.98); }
-    .catch-area {
-      height: 220px;
-      border-radius: 14px;
-      background: rgba(255,255,255,.06);
-      border: 1px solid rgba(255,255,255,.1);
-      position: relative;
-      overflow: hidden;
-    }
-    .catch-item {
-      position: absolute;
-      min-width: 88px;
-      border: 0;
-      border-radius: 999px;
-      background: var(--cream);
-      color: #3b2414;
-      cursor: pointer;
-      font: inherit;
-      font-weight: 1000;
-      padding: .65rem .75rem;
-    }
     .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .6rem; }
     button.command {
       background: var(--gold);
@@ -503,11 +483,11 @@
     }
 
     function buildBreadTask() {
-      buildTapGame('Tap to bake fresh bread.', 'Bake bread', 4);
+      buildTapGame('Tap once to bake fresh bread.', 'Bake bread', 1);
     }
 
     function buildToastTask() {
-      buildHoldGame('Hold to toast it golden.', 'Toast bread');
+      buildTapGame('Tap once to toast it golden.', 'Toast bread', 1);
     }
 
     function buildTapGame(help, buttonText, needed) {
@@ -529,106 +509,44 @@
       message.textContent = `${needed} taps`;
     }
 
-    function buildHoldGame(help, buttonText) {
-      miniHelp.textContent = help;
-      miniState = { fill: 0, timer: null };
-      miniGame.innerHTML = `
-        <div class="clicker-game">
-          <div class="clicker-progress"><div class="clicker-fill"></div></div>
-          <button class="big-action" type="button">${buttonText}</button>
-        </div>`;
-      const fill = miniGame.querySelector('.clicker-fill');
-      const btn = miniGame.querySelector('.big-action');
-      const stop = () => {
-        clearInterval(miniState.timer);
-        miniState.timer = null;
-      };
-      const start = () => {
-        if (miniState.timer) return;
-        miniState.timer = setInterval(() => {
-          miniState.fill = Math.min(100, miniState.fill + 4);
-          fill.style.width = `${miniState.fill}%`;
-          message.textContent = `${Math.round(miniState.fill)}%`;
-          if (miniState.fill >= 100) {
-            stop();
-            finishCooking();
-          }
-        }, 70);
-      };
-      btn.addEventListener('pointerdown', start);
-      btn.addEventListener('pointerup', stop);
-      btn.addEventListener('pointerleave', stop);
-      message.textContent = 'Hold it down';
-    }
-
-    function buildCatchGame(help, items) {
-      miniHelp.textContent = help;
-      miniState = { left: [...items] };
-      miniGame.innerHTML = `
-        <div class="clicker-game">
-          <div class="catch-area"></div>
-        </div>`;
-      const area = miniGame.querySelector('.catch-area');
-      const placeItems = () => {
-        area.innerHTML = '';
-        miniState.left.forEach(item => {
-          const btn = document.createElement('button');
-          btn.className = 'catch-item';
-          btn.type = 'button';
-          btn.textContent = item;
-          btn.style.left = `${8 + Math.random() * 58}%`;
-          btn.style.top = `${10 + Math.random() * 68}%`;
-          btn.addEventListener('click', () => {
-            miniState.left = miniState.left.filter(value => value !== item);
-            message.textContent = `${miniState.left.length} left`;
-            if (!miniState.left.length) finishCooking();
-            else placeItems();
-          });
-          area.appendChild(btn);
-        });
-      };
-      message.textContent = `${items.length} to grab`;
-      placeItems();
-    }
-
     function buildCombinePuzzle() {
-      buildTapGame('Tap fast to foam the latte.', 'Foam the latte', 7);
+      buildTapGame('Tap once to foam the latte.', 'Foam the latte', 1);
     }
 
     function buildSillySoupPuzzle() {
-      buildHoldGame('Hold to stir the soup until it is ready.', 'Stir soup');
+      buildTapGame('Tap once to stir the soup.', 'Stir soup', 1);
     }
 
     function buildOrderPuzzle() {
-      buildCatchGame('Grab the sandwich toppings.', ['Bread', 'Cheese', 'Lettuce', 'Tomato']);
+      buildTapGame('Tap once to make the sandwich.', 'Make sandwich', 1);
     }
 
     function buildPatternPuzzle() {
-      buildTapGame('Pack the donut box.', 'Add donut', 6);
+      buildTapGame('Tap once to pack the donut box.', 'Pack donuts', 1);
     }
 
     function buildOddPuzzle() {
-      buildCatchGame('Grab fresh salad toppings.', ['Lettuce', 'Tomato', 'Avocado', 'Egg']);
+      buildTapGame('Tap once to toss the salad.', 'Toss salad', 1);
     }
 
     function buildSortPuzzle() {
-      buildHoldGame('Hold to steep the tea.', 'Steep tea');
+      buildTapGame('Tap once to steep the tea.', 'Steep tea', 1);
     }
 
     function buildDecoratePuzzle() {
-      buildTapGame('Tap to cover the cookies in sprinkles.', 'Sprinkle', 8);
+      buildTapGame('Tap once to sprinkle the cookies.', 'Sprinkle', 1);
     }
 
     function buildMixPuzzle() {
-      buildHoldGame('Hold to blend the smoothie.', 'Blend smoothie');
+      buildTapGame('Tap once to blend the smoothie.', 'Blend smoothie', 1);
     }
 
     function buildSpreadPuzzle() {
-      buildTapGame('Tap to spread the bagel.', 'Spread', 7);
+      buildTapGame('Tap once to spread the bagel.', 'Spread', 1);
     }
 
     function buildLogicPuzzle() {
-      buildCatchGame('Load the lunch tray.', ['Drink', 'Snack', 'Fruit', 'Napkin']);
+      buildTapGame('Tap once to load the lunch tray.', 'Load tray', 1);
     }
 
     function finishCooking() {
