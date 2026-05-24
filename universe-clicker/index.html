@@ -305,6 +305,46 @@ const ERAS = [
       {name:'Omega Machine',      icon:'🔮', desc:'+440B/sec', cost:65_000_000_000_000, eps:440_000_000_000},
     ]},
 ];
+const BASE_ERA_COUNT = ERAS.length;
+const ENDLESS_NAMES = ['Quantum Rebirth', 'Multiverse Bloom', 'Reality Forge', 'Omega Loop', 'Infinity Engine', 'Void Garden', 'Time Spiral', 'Cosmic Remix'];
+const ENDLESS_ICONS = ['♾️', '🧬', '🪐', '🌀', '🔥', '🔮', '⚡', '🌌'];
+const ENDLESS_COLORS = ['#00e5ff', '#ff4fd8', '#8cff66', '#b388ff', '#ffb300', '#64ffda', '#ff6e6e', '#82b1ff'];
+const ENDLESS_UPGRADE_NAMES = ['Reality Seed', 'Loop Stabilizer', 'Infinity Lens', 'Paradox Engine', 'Cosmic Loom', 'Eternal Reactor'];
+
+function buildEndlessEra(idx) {
+  const loop = idx - BASE_ERA_COUNT + 1;
+  const last = ERAS[ERAS.length - 1];
+  const theme = (loop - 1) % ENDLESS_NAMES.length;
+  const scale = Math.pow(7.5, loop);
+  const epsBase = last.upgrades[0].eps * Math.pow(5.5, loop);
+  const costBase = last.upgrades[0].cost * Math.pow(7, loop);
+  return {
+    name: `${ENDLESS_NAMES[theme]} ${loop}`,
+    icon: ENDLESS_ICONS[theme],
+    color: ENDLESS_COLORS[theme],
+    msTitle: `Endless Era ${loop}!`,
+    msDesc: 'The universe refuses to stop. A stranger reality unfolds, with bigger numbers and stranger machines.',
+    progressReq: Math.floor(last.progressReq * scale),
+    clickPow: Math.floor(last.clickPow * Math.pow(4.2, loop)),
+    bg: `radial-gradient(ellipse at center, ${ENDLESS_COLORS[theme]}33 0%, #050510 48%, #010104 100%)`,
+    upgrades: ENDLESS_UPGRADE_NAMES.map((name, i) => {
+      const eps = epsBase * Math.pow(6.4, i);
+      return {
+        name: `${name} ${loop}`,
+        icon: ENDLESS_ICONS[(theme + i) % ENDLESS_ICONS.length],
+        desc: `+${fmt(eps)}/sec`,
+        cost: Math.floor(costBase * Math.pow(7.2, i)),
+        eps
+      };
+    })
+  };
+}
+
+function ensureEra(idx) {
+  while (idx >= ERAS.length) ERAS.push(buildEndlessEra(ERAS.length));
+  while (idx >= G.counts.length) G.counts.push(ERAS[G.counts.length].upgrades.map(() => 0));
+  while (idx >= G.visible.length) G.visible.push([0, 1, 2]);
+}
 
 // ══════════════════════════════════════════════
 //  FUN UPGRADES
@@ -381,16 +421,21 @@ function fmt(n) {
   if (n < 1e9)  return (n/1e6).toFixed(1)  + 'M';
   if (n < 1e12) return (n/1e9).toFixed(1)  + 'B';
   if (n < 1e15) return (n/1e12).toFixed(1) + 'T';
-  return (n/1e15).toFixed(1) + 'Qa';
+  if (n < 1e18) return (n/1e15).toFixed(1) + 'Qa';
+  if (n < 1e21) return (n/1e18).toFixed(1) + 'Qi';
+  if (n < 1e24) return (n/1e21).toFixed(1) + 'Sx';
+  if (n < 1e27) return (n/1e24).toFixed(1) + 'Sp';
+  if (n < 1e30) return (n/1e27).toFixed(1) + 'Oc';
+  return n.toExponential(2);
 }
-const era       = () => ERAS[G.eraIdx];
+const era       = () => { ensureEra(G.eraIdx); return ERAS[G.eraIdx]; };
 const getEps    = () => {
   let s = G.funEps;
   era().upgrades.forEach((u, i) => s += u.eps * G.counts[G.eraIdx][i]);
   return G.multActive ? s * 2 : s;
 };
 const clickPow  = () => G.multActive ? era().clickPow * 2 : era().clickPow;
-const upgCost   = (ei, ui) => Math.floor(ERAS[ei].upgrades[ui].cost * 0.75 * Math.pow(1.15, G.counts[ei][ui]));
+const upgCost   = (ei, ui) => { ensureEra(ei); return Math.floor(ERAS[ei].upgrades[ui].cost * 0.75 * Math.pow(1.15, G.counts[ei][ui])); };
 const funCost   = fui => Math.floor(era().upgrades[0].cost * 0.75 * FUN_UPGRADES[fui].costFactor * Math.pow(1.15, G.funCounts[fui]));
 const funEpsNow = fui => era().upgrades[0].eps * FUN_UPGRADES[fui].epsFactor;
 
@@ -442,9 +487,9 @@ function renderEra() {
   const e = era();
   document.documentElement.style.setProperty('--era', e.color);
   eraNameEl.textContent = e.name;
-  eraNumEl.textContent  = `Era ${G.eraIdx + 1} of ${ERAS.length}`;
+  eraNumEl.textContent  = G.eraIdx < BASE_ERA_COUNT ? `Era ${G.eraIdx + 1} of ${BASE_ERA_COUNT}` : `Endless Era ${G.eraIdx - BASE_ERA_COUNT + 1}`;
   clickIcon.textContent = e.icon;
-  clickLbl.textContent  = G.eraIdx === 6 ? 'Harvest Entropy' : 'Click!';
+  clickLbl.textContent  = G.eraIdx >= BASE_ERA_COUNT ? 'Break Reality' : G.eraIdx === 6 ? 'Harvest Entropy' : 'Click!';
   renderShop();
   renderFunShop();
 }
@@ -792,8 +837,8 @@ function showMilestone() {
   msTitleEl.textContent = e.msTitle;
   msTitleEl.style.color = e.color;
   msDescEl.textContent  = e.msDesc;
-  const isLast = G.eraIdx >= ERAS.length - 1;
-  msBtnEl.textContent = isLast ? '🌌 Witness the End' : `Continue to ${ERAS[G.eraIdx+1].name} →`;
+  ensureEra(G.eraIdx + 1);
+  msBtnEl.textContent = `Continue to ${ERAS[G.eraIdx+1].name} →`;
   msBtnEl.disabled    = true;
   let t = 3;
   msTimerEl.textContent = `Continue in ${t}s…`;
@@ -809,13 +854,8 @@ function closeMilestone() {
   clearInterval(msCountdown);
   msOverlay.classList.remove('on');
   stopParticles();
-  if (G.eraIdx >= ERAS.length - 1) {
-    G.gameOver = true; G.awaitingMs = false;
-    save(); setTimeout(() => gameOverEl.classList.add('on'), 600);
-  } else {
-    G.eraIdx++; G.progress = 0; G.awaitingMs = false;
-    save(); renderEra(); updateHUD();
-  }
+  G.eraIdx++; ensureEra(G.eraIdx); G.progress = 0; G.awaitingMs = false;
+  save(); renderEra(); updateHUD();
 }
 msBtnEl.addEventListener('click', closeMilestone);
 
