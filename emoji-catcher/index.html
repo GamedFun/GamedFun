@@ -704,6 +704,7 @@ function collect(emoji, rKey, el, timeout) {
   setTimeout(() => pop.remove(), 950);
 
   updateHUD();
+  saveGame();
   if (collOpen) renderCollection();
 }
 
@@ -813,6 +814,7 @@ function newGame() {
   collection = {};
   streak = 0;
   newlyFound = new Set();
+  localStorage.removeItem(SAVE_KEY);
   activeEmojis = [];
   filterRarity = 'all';
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.r === 'all'));
@@ -823,6 +825,30 @@ function newGame() {
   startGame();
 }
 
+// ── SAVE / LOAD ────────────────────────────────────────────
+const SAVE_KEY = 'emoji_catcher_save';
+
+function saveGame() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      coins,
+      collection,
+      newlyFound: [...newlyFound],
+    }));
+  } catch {}
+}
+
+function loadGame() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+    if (!raw) return;
+    coins = raw.coins || 0;
+    collection = raw.collection || {};
+    newlyFound = new Set(raw.newlyFound || []);
+  } catch {}
+}
+
+loadGame();
 startGame();
 updateHUD();
 
@@ -903,6 +929,7 @@ function startBattle(emojiDef) {
   document.getElementById('battle-fight-screen').style.display = 'flex';
   document.getElementById('battle-result-screen').style.display = 'none';
   document.getElementById('battle-log').innerHTML = '';
+  setBattleDisabled(false);
   renderBattle();
   logBattle(`⚔️ ${emojiDef.n} vs ${npc.name}! Fight!`);
 }
@@ -996,9 +1023,9 @@ function endBattle(won) {
   if (won) {
     const reward = nr.coins * 3;
     coins += reward;
-    let extra = '';
     const found = EMOJIS.find(em => em.e === npc.e);
-    if (found && Math.random() < 0.6) {
+    let extra = '';
+    if (found) {
       const wasNew = !collection[found.n];
       collection[found.n] = (collection[found.n] || 0) + 1;
       if (wasNew) newlyFound.add(found.n);
@@ -1008,10 +1035,20 @@ function endBattle(won) {
     document.getElementById('result-title').textContent = 'Victory!';
     document.getElementById('result-desc').textContent = `+${reward} 🪙 coins earned!${extra}`;
     updateHUD();
+    saveGame();
   } else {
+    const { playerEmoji } = battleState;
+    const kept = Math.random() < 0.75;
+    let lossMsg = 'Better luck next time!\nTrain harder and try again.';
+    if (!kept && collection[playerEmoji.n] > 0) {
+      collection[playerEmoji.n]--;
+      if (collection[playerEmoji.n] === 0) delete collection[playerEmoji.n];
+      lossMsg = `${playerEmoji.e} ${playerEmoji.n} was lost in battle! 💔\nTrain harder and try again.`;
+    }
     document.getElementById('result-icon').textContent = '💀';
     document.getElementById('result-title').textContent = 'Defeated!';
-    document.getElementById('result-desc').textContent = 'Better luck next time!\nTrain harder and try again.';
+    document.getElementById('result-desc').textContent = lossMsg;
+    saveGame();
   }
 }
 
