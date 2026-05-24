@@ -418,6 +418,67 @@
   [data-theme="light"] body { background: #f0f0f5; }
   [data-theme="light"] header { background: rgba(245,245,250,.95); }
   [data-theme="light"] #battle-log { background: #f0f0f5; }
+
+  /* FUSION OVERLAY */
+  #fuse-overlay {
+    position: fixed; inset: 0; z-index: 55;
+    background: rgba(10,8,16,.97);
+    display: flex; flex-direction: column;
+    transform: translateY(100%);
+    transition: transform .3s ease;
+  }
+  #fuse-overlay.open { transform: translateY(0); }
+  #fuse-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: .8rem 1rem; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  #fuse-header h2 { font-size: 1.1rem; font-weight: 900; }
+  #close-fuse { background: none; border: none; color: var(--muted); font-size: 1.4rem; cursor: pointer; padding: 0 .3rem; }
+  #fuse-workspace {
+    display: flex; align-items: center; justify-content: center;
+    gap: .5rem; padding: .7rem 1rem; flex-shrink: 0;
+  }
+  .fuse-slot {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    background: #231f30; border: 2px solid var(--border);
+    border-radius: 14px; padding: .5rem .6rem; cursor: pointer;
+    min-width: 72px; transition: border-color .15s, box-shadow .15s;
+  }
+  .fuse-slot.active { border-color: #60a5fa; box-shadow: 0 0 12px rgba(96,165,250,.3); }
+  .fuse-slot.result { cursor: default; }
+  .fuse-slot-label { font-size: .6rem; color: var(--muted); font-weight: 700; text-transform: uppercase; }
+  .fuse-slot-emoji { font-size: 2rem; line-height: 1; }
+  .fuse-slot-name { font-size: .6rem; color: var(--muted); text-align: center; max-width: 70px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fuse-plus, .fuse-arrow { font-size: 1.3rem; color: var(--muted); flex-shrink: 0; }
+  #fuse-action {
+    display: flex; flex-direction: column; align-items: center; gap: .4rem;
+    padding: .4rem 1rem; flex-shrink: 0; border-bottom: 1px solid var(--border);
+  }
+  #fuse-btn { padding: .5rem 1.8rem; font-size: .9rem; }
+  #fuse-btn:disabled { opacity: .4; cursor: default; pointer-events: none; }
+  #fuse-hint { padding: .3rem .8rem; font-size: .75rem; color: var(--muted); flex-shrink: 0; }
+  #fuse-picker-grid {
+    flex: 1; overflow-y: auto; padding: .8rem;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+    gap: .5rem; align-content: start;
+  }
+  .fuse-pick-cell {
+    aspect-ratio: 1; border-radius: 10px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 2px;
+    background: #231f30; border: 1px solid var(--border);
+    font-size: 1.6rem; cursor: pointer; transition: transform .1s;
+  }
+  .fuse-pick-cell:hover { transform: scale(1.06); }
+  .fuse-pick-cell.selected-1 { border-color: #60a5fa; box-shadow: 0 0 8px rgba(96,165,250,.4); }
+  .fuse-pick-cell.selected-2 { border-color: #c084fc; box-shadow: 0 0 8px rgba(192,132,252,.4); }
+  .fuse-pick-cell .fp-count { font-size: .6rem; color: var(--muted); }
+  @keyframes fuseReveal {
+    0% { transform: scale(0) rotate(-15deg); opacity: 0; }
+    60% { transform: scale(1.3) rotate(5deg); opacity: 1; }
+    100% { transform: scale(1) rotate(0); opacity: 1; }
+  }
+  .combo-display { display: inline-flex; flex-direction: column; align-items: center; line-height: 1; vertical-align: middle; }
+  .combo-display span { font-size: .5em; display: block; line-height: 1.15; }
 </style>
 </head>
 <body>
@@ -466,6 +527,7 @@
   <div style="display:flex;gap:.4rem;padding:.4rem .7rem;border-top:1px solid var(--border);">
     <button id="collection-toggle" onclick="openCollection()" style="flex:1;border:none;background:none;color:var(--muted);font-size:.82rem;cursor:pointer;padding:.2rem;text-align:left;">📖 Collection ▲</button>
     <button id="battle-toggle" onclick="openBattle()" style="flex:1;border:1px solid rgba(248,113,113,.4);border-radius:8px;background:rgba(248,113,113,.1);color:#f87171;font-size:.82rem;font-weight:700;cursor:pointer;padding:.3rem .6rem;">⚔️ Battle</button>
+    <button id="fuse-toggle" onclick="openFuse()" style="flex:1;border:1px solid rgba(96,165,250,.4);border-radius:8px;background:rgba(96,165,250,.1);color:#60a5fa;font-size:.82rem;font-weight:700;cursor:pointer;padding:.3rem .6rem;">⚗️ Fuse</button>
   </div>
 </div>
 
@@ -508,6 +570,38 @@
       <button class="result-btn" onclick="closeBattle()">Close</button>
     </div>
   </div>
+</div>
+
+<div id="fuse-overlay">
+  <div id="fuse-header">
+    <h2>⚗️ Fusion Lab</h2>
+    <button id="close-fuse" onclick="closeFuse()">✕</button>
+  </div>
+  <div id="fuse-workspace">
+    <div id="fuse-slot-1" class="fuse-slot active" onclick="setFuseSlot(1)">
+      <div class="fuse-slot-label">Emoji 1</div>
+      <div class="fuse-slot-emoji" id="fuse-emoji-1">➕</div>
+      <div class="fuse-slot-name" id="fuse-name-1">Pick one</div>
+    </div>
+    <div class="fuse-plus">+</div>
+    <div id="fuse-slot-2" class="fuse-slot" onclick="setFuseSlot(2)">
+      <div class="fuse-slot-label">Emoji 2</div>
+      <div class="fuse-slot-emoji" id="fuse-emoji-2">➕</div>
+      <div class="fuse-slot-name" id="fuse-name-2">Pick one</div>
+    </div>
+    <div class="fuse-arrow">→</div>
+    <div class="fuse-slot result">
+      <div class="fuse-slot-label">Result</div>
+      <div class="fuse-slot-emoji" id="fuse-result-emoji">❓</div>
+      <div class="fuse-slot-name" id="fuse-result-name">???</div>
+    </div>
+  </div>
+  <div id="fuse-action">
+    <div id="fuse-cost-label" style="font-size:.8rem;color:var(--muted)">Select 2 emojis to fuse</div>
+    <button id="fuse-btn" class="result-btn primary" onclick="doFuse()" disabled>⚗️ Fuse!</button>
+  </div>
+  <div id="fuse-hint">Tap a slot above to make it active, then pick from your collection:</div>
+  <div id="fuse-picker-grid"></div>
 </div>
 
 <div id="collection-overlay">
@@ -753,7 +847,7 @@ function flashBtn(type) {
 function updateHUD() {
   coinCountEl.textContent = coins.toLocaleString();
   const found = Object.keys(collection).length;
-  progressEl.textContent = found + ' / ' + TOTAL;
+  progressEl.textContent = found + ' / ' + (TOTAL + customEmojiDefs.length);
   const sd = document.getElementById('streakDisplay');
   if (sd) sd.textContent = streak >= 2 ? '🔥 ×' + Math.min(streak, 10) + ' combo!' : '';
   document.querySelectorAll('.summon-btn').forEach((btn, i) => {
@@ -780,19 +874,21 @@ function setFilter(r) {
 
 function renderCollection() {
   const grid = document.getElementById('coll-grid');
-  const list = filterRarity === 'all' ? EMOJIS : EMOJIS.filter(e => e.r === filterRarity);
+  const baseList = filterRarity === 'all' ? EMOJIS : EMOJIS.filter(e => e.r === filterRarity);
+  const customList = customEmojiDefs.filter(c => (collection[c.n]||0) > 0 && (filterRarity === 'all' || c.r === filterRarity));
+  const list = [...baseList, ...customList];
   grid.innerHTML = '';
   for (const e of list) {
     const count = collection[e.n] || 0;
     const found = count > 0;
     const isNew = newlyFound.has(e.n);
     const cell = document.createElement('div');
-    cell.className = 'coll-cell ' + e.r + (found ? '' : ' undiscovered');
-    cell.title = found ? `${e.n} · ${RARITIES[e.r].name} · ×${count}` : '???';
+    cell.className = 'coll-cell ' + e.r + (found || e.custom ? '' : ' undiscovered');
+    cell.title = found ? `${e.n} · ${RARITIES[e.r].name} · ×${count}${e.custom ? ' · Fused' : ''}` : '???';
     cell.innerHTML = `
       <div class="rarity-dot"></div>
       ${isNew && found ? '<div class="new-badge">new</div>' : ''}
-      <span>${found ? e.e : '❓'}</span>
+      <span>${found ? emojiHTML(e) : '❓'}</span>
       ${found ? `<span class="coll-count">×${count}</span>` : ''}
     `;
     if (found && isNew) cell.addEventListener('click', () => { newlyFound.delete(e.n); renderCollection(); }, { once: true });
@@ -827,12 +923,14 @@ function newGame() {
   collection = {};
   streak = 0;
   newlyFound = new Set();
+  customEmojiDefs = [];
   localStorage.removeItem(SAVE_KEY);
   activeEmojis = [];
   filterRarity = 'all';
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.r === 'all'));
   closeCollection();
   if (battleOpen) closeBattle();
+  if (fuseOpen) closeFuse();
   updateHUD();
   renderCollection();
   startGame();
@@ -844,9 +942,9 @@ const SAVE_KEY = 'emoji_catcher_save';
 function saveGame() {
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
-      coins,
-      collection,
+      coins, collection,
       newlyFound: [...newlyFound],
+      customEmojiDefs,
     }));
   } catch {}
 }
@@ -858,6 +956,7 @@ function loadGame() {
     coins = raw.coins || 0;
     collection = raw.collection || {};
     newlyFound = new Set(raw.newlyFound || []);
+    customEmojiDefs = (raw.customEmojiDefs || []).map(c => ({...c, custom: true}));
   } catch {}
 }
 
@@ -949,7 +1048,7 @@ function showPickScreen() {
 function renderFighterPick() {
   const grid = document.getElementById('battle-fighter-grid');
   grid.innerHTML = '';
-  const owned = EMOJIS.filter(em => (collection[em.n] || 0) > 0);
+  const owned = [...EMOJIS, ...customEmojiDefs].filter(em => (collection[em.n] || 0) > 0);
   if (owned.length === 0) {
     grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:2rem .5rem">Catch some emojis first!</div>';
     return;
@@ -959,7 +1058,7 @@ function renderFighterPick() {
     const cell = document.createElement('div');
     cell.className = 'battle-pick-cell';
     cell.style.borderColor = r.color;
-    cell.innerHTML = `<span>${em.e}</span><span class="bp-name" style="color:${r.color}">${em.n}</span><span class="bp-stats">❤️${em.hp} ⚔️${em.atk}</span>`;
+    cell.innerHTML = `<span>${emojiHTML(em)}</span><span class="bp-name" style="color:${r.color}">${em.n}</span><span class="bp-stats">❤️${em.hp} ⚔️${em.atk}</span>`;
     cell.addEventListener('click', () => startBattle(em));
     grid.appendChild(cell);
   }
@@ -984,7 +1083,7 @@ function startBattle(emojiDef) {
 
 function renderBattle() {
   const { playerEmoji, playerHP, playerMaxHP, npc, npcHP, npcMaxHP } = battleState;
-  document.getElementById('player-emoji').textContent = playerEmoji.e;
+  document.getElementById('player-emoji').innerHTML = emojiHTML(playerEmoji);
   document.getElementById('player-name').textContent = playerEmoji.n;
   document.getElementById('player-hp-text').textContent = `${playerHP} / ${playerMaxHP}`;
   const pPct = Math.max(0, playerHP / playerMaxHP * 100);
@@ -1104,6 +1203,174 @@ function fightAgain() {
 }
 document.getElementById('themeBtn').textContent=document.documentElement.dataset.theme==='dark'?'☀️':'🌙';
 function toggleTheme(){const n=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=n;localStorage.setItem('gf-theme',n);document.getElementById('themeBtn').textContent=n==='dark'?'☀️':'🌙';}
+
+// ── FUSION ─────────────────────────────────────────────────
+const RARITY_ORDER = ['common','uncommon','rare','epic','legendary','mythic'];
+const FUSE_COSTS = { common:15, uncommon:40, rare:120, epic:350, legendary:1000, mythic:3000 };
+
+let customEmojiDefs = [];
+let fuseOpen = false;
+let fuseSlotActive = 1;
+let fuseEmoji1 = null;
+let fuseEmoji2 = null;
+
+function emojiHTML(emoji) {
+  if (emoji?.custom) return `<span class="combo-display"><span>${emoji.parts[0]}</span><span>${emoji.parts[1]}</span></span>`;
+  return emoji?.e || '';
+}
+
+function comboKey(e1, e2) {
+  return [e1.n, e2.n].sort().join('|');
+}
+
+function makeCustomEmoji(e1, e2) {
+  const key = comboKey(e1, e2);
+  const existing = customEmojiDefs.find(c => c.key === key);
+  if (existing) return existing;
+
+  const sorted = [e1, e2].sort((a,b) => a.n.localeCompare(b.n));
+  const maxRi = Math.max(RARITY_ORDER.indexOf(e1.r), RARITY_ORDER.indexOf(e2.r));
+  const targetRi = Math.random() < 0.25 ? Math.min(maxRi + 1, RARITY_ORDER.length - 1) : maxRi;
+  const targetR = RARITY_ORDER[targetRi];
+  const w1 = sorted[0].n.split(' ')[0];
+  const w2 = sorted[1].n.split(' ')[0];
+  const rng = STAT_RANGES[targetR];
+  const hp  = Math.round(rng.hpMin  + (rng.hpMax  - rng.hpMin)  * (0.7 + Math.random() * 0.3));
+  const atk = Math.round(rng.atkMin + (rng.atkMax - rng.atkMin) * (0.7 + Math.random() * 0.3));
+  const def = { parts: [sorted[0].e, sorted[1].e], n: `${w1}-${w2}`, r: targetR, custom: true, key, hp, atk };
+  customEmojiDefs.push(def);
+  return def;
+}
+
+function fuseCost() {
+  if (!fuseEmoji1 || !fuseEmoji2) return 0;
+  return (FUSE_COSTS[fuseEmoji1.r] || 15) + (FUSE_COSTS[fuseEmoji2.r] || 15);
+}
+
+function openFuse() {
+  fuseOpen = true;
+  fuseEmoji1 = null; fuseEmoji2 = null; fuseSlotActive = 1;
+  document.getElementById('fuse-overlay').classList.add('open');
+  renderFuseOverlay();
+}
+function closeFuse() {
+  fuseOpen = false;
+  document.getElementById('fuse-overlay').classList.remove('open');
+}
+function setFuseSlot(n) { fuseSlotActive = n; renderFuseOverlay(); }
+
+function renderFuseOverlay() {
+  document.getElementById('fuse-slot-1').classList.toggle('active', fuseSlotActive === 1);
+  document.getElementById('fuse-slot-2').classList.toggle('active', fuseSlotActive === 2);
+
+  if (fuseEmoji1) { document.getElementById('fuse-emoji-1').innerHTML = emojiHTML(fuseEmoji1); document.getElementById('fuse-name-1').textContent = fuseEmoji1.n; }
+  else            { document.getElementById('fuse-emoji-1').textContent = '➕'; document.getElementById('fuse-name-1').textContent = 'Pick one'; }
+  if (fuseEmoji2) { document.getElementById('fuse-emoji-2').innerHTML = emojiHTML(fuseEmoji2); document.getElementById('fuse-name-2').textContent = fuseEmoji2.n; }
+  else            { document.getElementById('fuse-emoji-2').textContent = '➕'; document.getElementById('fuse-name-2').textContent = 'Pick one'; }
+
+  const resEl = document.getElementById('fuse-result-emoji');
+  const resName = document.getElementById('fuse-result-name');
+  if (fuseEmoji1 && fuseEmoji2) {
+    const sorted = [fuseEmoji1, fuseEmoji2].sort((a,b) => a.n.localeCompare(b.n));
+    resEl.innerHTML = `<span class="combo-display"><span>${sorted[0].e || (sorted[0].parts||[])[0]||''}</span><span>${sorted[1].e || (sorted[1].parts||[])[0]||''}</span></span>`;
+    const existing = customEmojiDefs.find(c => c.key === comboKey(fuseEmoji1, fuseEmoji2));
+    resName.textContent = existing ? existing.n : '??? (new!)';
+  } else {
+    resEl.textContent = '❓'; resName.textContent = '???';
+  }
+
+  const btn = document.getElementById('fuse-btn');
+  const costLabel = document.getElementById('fuse-cost-label');
+  const sameEmoji = fuseEmoji1 && fuseEmoji2 && fuseEmoji1.n === fuseEmoji2.n;
+  const hasEnough = !sameEmoji || (collection[fuseEmoji1?.n] || 0) >= 2;
+  const cost = fuseCost();
+  btn.disabled = !(fuseEmoji1 && fuseEmoji2 && hasEnough && coins >= cost);
+
+  if (fuseEmoji1 && fuseEmoji2) {
+    if (sameEmoji && !hasEnough) {
+      costLabel.textContent = `Need 2× ${fuseEmoji1.n} to fuse with itself!`;
+      costLabel.style.color = '#f87171';
+    } else if (coins < cost) {
+      costLabel.textContent = `Cost: ${cost} 🪙 — not enough coins!`;
+      costLabel.style.color = '#f87171';
+    } else {
+      const isKnown = !!customEmojiDefs.find(c => c.key === comboKey(fuseEmoji1, fuseEmoji2));
+      costLabel.textContent = `Cost: ${cost} 🪙${isKnown ? ' · Already fused before!' : ' · New custom emoji!'}`;
+      costLabel.style.color = isKnown ? '#60a5fa' : '#34d399';
+    }
+  } else {
+    costLabel.textContent = 'Select 2 emojis to fuse';
+    costLabel.style.color = 'var(--muted)';
+  }
+  renderFusePickerGrid();
+}
+
+function renderFusePickerGrid() {
+  const grid = document.getElementById('fuse-picker-grid');
+  grid.innerHTML = '';
+  const ownedBase = EMOJIS.filter(em => (collection[em.n] || 0) > 0);
+  const ownedCustom = customEmojiDefs.filter(c => (collection[c.n] || 0) > 0);
+  const owned = [...ownedBase, ...ownedCustom];
+  if (!owned.length) { grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:2rem .5rem">Catch some emojis first!</div>'; return; }
+  for (const em of owned) {
+    const cell = document.createElement('div');
+    cell.className = 'fuse-pick-cell';
+    cell.style.borderColor = RARITIES[em.r].color + '66';
+    if (fuseEmoji1?.n === em.n) cell.classList.add('selected-1');
+    if (fuseEmoji2?.n === em.n) cell.classList.add('selected-2');
+    cell.innerHTML = `<span>${emojiHTML(em)}</span><span class="fp-count">×${collection[em.n]}</span>`;
+    cell.addEventListener('click', () => pickFuseEmoji(em));
+    grid.appendChild(cell);
+  }
+}
+
+function pickFuseEmoji(em) {
+  if (fuseSlotActive === 1) { fuseEmoji1 = em; if (!fuseEmoji2) fuseSlotActive = 2; }
+  else                      { fuseEmoji2 = em; if (!fuseEmoji1) fuseSlotActive = 1; }
+  renderFuseOverlay();
+}
+
+function doFuse() {
+  if (!fuseEmoji1 || !fuseEmoji2) return;
+  const sameEmoji = fuseEmoji1.n === fuseEmoji2.n;
+  if (sameEmoji && (collection[fuseEmoji1.n] || 0) < 2) return;
+  const cost = fuseCost();
+  if (coins < cost) return;
+
+  const result = makeCustomEmoji(fuseEmoji1, fuseEmoji2);
+
+  coins -= cost;
+  if (sameEmoji) {
+    collection[fuseEmoji1.n] = (collection[fuseEmoji1.n] || 0) - 2;
+  } else {
+    collection[fuseEmoji1.n] = (collection[fuseEmoji1.n] || 0) - 1;
+    collection[fuseEmoji2.n] = (collection[fuseEmoji2.n] || 0) - 1;
+  }
+  if ((collection[fuseEmoji1.n] || 0) <= 0) delete collection[fuseEmoji1.n];
+  if (!sameEmoji && (collection[fuseEmoji2.n] || 0) <= 0) delete collection[fuseEmoji2.n];
+
+  const wasNew = !collection[result.n];
+  collection[result.n] = (collection[result.n] || 0) + 1;
+  if (wasNew) newlyFound.add(result.n);
+  updateHUD();
+  saveGame();
+
+  const resEl = document.getElementById('fuse-result-emoji');
+  resEl.style.animation = 'none';
+  resEl.innerHTML = emojiHTML(result);
+  document.getElementById('fuse-result-name').textContent = result.n + (wasNew ? ' ✨' : '');
+  requestAnimationFrame(() => { resEl.style.animation = 'fuseReveal .5s ease-out forwards'; });
+
+  const rColor = RARITIES[result.r].color;
+  const pop = document.createElement('div');
+  pop.style.cssText = `position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);z-index:200;font-size:3.5rem;text-align:center;pointer-events:none;animation:floatUp 1.4s ease-out forwards;`;
+  pop.innerHTML = `<div>${emojiHTML(result)}</div><div style="font-size:.9rem;font-weight:900;color:${rColor};margin-top:.3rem">${result.n}${wasNew?' ✨ NEW!':''}</div><div style="font-size:.75rem;color:${rColor}">${RARITIES[result.r].name}</div>`;
+  document.body.appendChild(pop);
+  setTimeout(() => pop.remove(), 1500);
+
+  fuseEmoji1 = null; fuseEmoji2 = null; fuseSlotActive = 1;
+  setTimeout(() => renderFuseOverlay(), 600);
+}
 </script>
 </body>
 </html>
