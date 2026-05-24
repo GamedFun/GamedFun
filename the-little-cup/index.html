@@ -126,7 +126,7 @@
       gap: .6rem;
       width: min(320px, 100%);
     }
-    .simon-btn, .tap-target, .ingredient, button.command {
+    .simon-btn, .puzzle-choice, .ingredient, button.command {
       border: 0;
       border-radius: 12px;
       cursor: pointer;
@@ -139,23 +139,53 @@
     .blue { background: #60a5fa; }
     .green { background: #34d399; }
     .yellow { background: #fbbf24; }
-    .tap-area {
+    .puzzle-game {
       width: min(420px, 100%);
-      height: 220px;
       background: #15131a;
       border: 1px solid var(--border);
       border-radius: 14px;
-      position: relative;
-      overflow: hidden;
+      padding: 1rem;
+      display: grid;
+      gap: .8rem;
     }
-    .tap-target {
-      position: absolute;
-      width: 74px;
-      height: 74px;
-      border-radius: 999px;
+    .puzzle-board {
+      display: grid;
+      gap: .6rem;
+      padding: .85rem;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 12px;
+      background: rgba(255,255,255,.05);
+    }
+    .puzzle-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .55rem;
+      flex-wrap: wrap;
+      color: var(--cream);
+      font-size: 1.15rem;
+      font-weight: 1000;
+    }
+    .puzzle-token {
+      min-width: 54px;
+      padding: .65rem .75rem;
+      border-radius: 10px;
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.1);
+    }
+    .puzzle-choices {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(110px, 1fr));
+      gap: .6rem;
+    }
+    .puzzle-choice {
       background: var(--gold);
       color: #422006;
-      box-shadow: 0 0 18px rgba(251,191,36,.65);
+      padding: .8rem 1rem;
+    }
+    .puzzle-choice.selected {
+      background: var(--mint);
+      color: #052e2b;
     }
     .ingredients {
       display: flex;
@@ -261,12 +291,11 @@
 
   <script>
     const orders = [
-      { name: 'Latte', icon: '☕', game: 'simon', tip: 5 },
-      { name: 'Pancakes', icon: '🥞', game: 'taps', tip: 7 },
+      { name: 'Latte', icon: '☕', game: 'lattePuzzle', tip: 5 },
       { name: 'Sandwich', icon: '🥪', game: 'ingredients', tip: 8 },
       { name: 'Donut Box', icon: '🍩', game: 'simon', tip: 6 },
       { name: 'Salad', icon: '🥗', game: 'ingredients', tip: 7 },
-      { name: 'Soup', icon: '🍜', game: 'taps', tip: 9 }
+      { name: 'Soup', icon: '🍜', game: 'soupPuzzle', tip: 9 }
     ];
     const names = ['Mia', 'Jay', 'Ava', 'Leo', 'Zoe', 'Max', 'Nora', 'Kai', 'Ivy', 'Ezra'];
     const colors = ['red', 'blue', 'green', 'yellow'];
@@ -346,8 +375,13 @@
       miniTitle.textContent = `Cook ${customer.order.name}`;
       message.textContent = '';
       if (customer.order.game === 'simon') buildSimon();
-      if (customer.order.game === 'taps') buildTaps();
+      if (customer.order.game === 'lattePuzzle') buildLattePuzzle();
+      if (customer.order.game === 'soupPuzzle') buildSoupPuzzle();
       if (customer.order.game === 'ingredients') buildIngredients();
+    }
+
+    function shuffle(items) {
+      return [...items].sort(() => Math.random() - .5);
     }
 
     function buildSimon() {
@@ -400,37 +434,87 @@
       if (miniState.index >= miniState.sequence.length) finishCooking();
     }
 
-    function buildTaps() {
-      const needed = Math.min(8, 4 + Math.floor(served / 3));
-      miniState = { hits: 0, needed };
-      miniHelp.textContent = `Tap the hot pan ${needed} times.`;
-      const area = document.createElement('div');
-      area.className = 'tap-area';
-      miniGame.appendChild(area);
-      moveTarget();
+    function buildLattePuzzle() {
+      const puzzles = [
+        { left: 'Steam', right: 'Milk', answer: 'Foam', wrong: ['Syrup', 'Ice', 'Cream'] },
+        { left: 'Beans', right: 'Water', answer: 'Espresso', wrong: ['Tea', 'Cocoa', 'Honey'] },
+        { left: 'Espresso', right: 'Foam', answer: 'Latte', wrong: ['Mocha', 'Soda', 'Juice'] },
+        { left: 'Cup', right: 'Lid', answer: 'To Go', wrong: ['Plate', 'Bowl', 'Fork'] }
+      ];
+      const puzzle = puzzles[Math.floor(Math.random() * puzzles.length)];
+      miniState = { answer: puzzle.answer };
+      miniHelp.textContent = 'Solve the recipe pair.';
+      miniGame.innerHTML = `
+        <div class="puzzle-game">
+          <div class="puzzle-board">
+            <div class="puzzle-row">
+              <span class="puzzle-token">${puzzle.left}</span>
+              <span>+</span>
+              <span class="puzzle-token">${puzzle.right}</span>
+              <span>=</span>
+              <span class="puzzle-token">?</span>
+            </div>
+          </div>
+          <div class="puzzle-choices"></div>
+        </div>`;
+      const choices = miniGame.querySelector('.puzzle-choices');
+      shuffle([puzzle.answer, ...puzzle.wrong]).forEach(choice => {
+        const btn = document.createElement('button');
+        btn.className = 'puzzle-choice';
+        btn.type = 'button';
+        btn.textContent = choice;
+        btn.addEventListener('click', () => {
+          if (choice === miniState.answer) finishCooking();
+          else message.textContent = 'That recipe does not match. Try again.';
+        });
+        choices.appendChild(btn);
+      });
     }
 
-    function moveTarget() {
-      const area = miniGame.querySelector('.tap-area');
-      area.innerHTML = '';
-      const btn = document.createElement('button');
-      btn.className = 'tap-target';
-      btn.type = 'button';
-      btn.textContent = miniState.needed - miniState.hits;
-      btn.style.left = `${Math.random() * Math.max(20, area.clientWidth - 84)}px`;
-      btn.style.top = `${Math.random() * Math.max(20, area.clientHeight - 84)}px`;
-      btn.addEventListener('click', () => {
-        miniState.hits++;
-        if (miniState.hits >= miniState.needed) finishCooking();
-        else moveTarget();
+    function buildSoupPuzzle() {
+      const targets = [
+        { total: 9, items: [['Carrot', 2], ['Noodles', 4], ['Broth', 5], ['Pepper', 1], ['Corn', 3], ['Cream', 6]] },
+        { total: 11, items: [['Beans', 4], ['Rice', 3], ['Tomato', 5], ['Herbs', 2], ['Onion', 6], ['Salt', 1]] },
+        { total: 13, items: [['Mushroom', 5], ['Stock', 6], ['Potato', 7], ['Peas', 2], ['Garlic', 1], ['Chicken', 8]] }
+      ];
+      const puzzle = targets[Math.floor(Math.random() * targets.length)];
+      miniState = { target: puzzle.total, selected: [] };
+      miniHelp.textContent = 'Pick ingredients that add up to the soup number.';
+      miniGame.innerHTML = `
+        <div class="puzzle-game">
+          <div class="puzzle-board">
+            <div class="puzzle-row">Target: <span class="puzzle-token">${puzzle.total}</span></div>
+            <div class="puzzle-row" id="soupTotal">Selected: 0</div>
+          </div>
+          <div class="puzzle-choices"></div>
+        </div>`;
+      const totalText = miniGame.querySelector('#soupTotal');
+      const choices = miniGame.querySelector('.puzzle-choices');
+      shuffle(puzzle.items).forEach(([name, value]) => {
+        const btn = document.createElement('button');
+        btn.className = 'puzzle-choice';
+        btn.type = 'button';
+        btn.textContent = `${name} ${value}`;
+        btn.addEventListener('click', () => {
+          btn.classList.toggle('selected');
+          if (btn.classList.contains('selected')) miniState.selected.push(value);
+          else miniState.selected = miniState.selected.filter(item => item !== value);
+          const total = miniState.selected.reduce((sum, item) => sum + item, 0);
+          totalText.textContent = `Selected: ${total}`;
+          if (total === miniState.target) finishCooking();
+          if (total > miniState.target) {
+            message.textContent = 'Too much in the pot. Puzzle reset.';
+            buildSoupPuzzle();
+          }
+        });
+        choices.appendChild(btn);
       });
-      area.appendChild(btn);
     }
 
     function buildIngredients() {
-      const shuffled = [...ingredientPool].sort(() => Math.random() - .5);
+      const shuffled = shuffle(ingredientPool);
       miniState = { recipe: shuffled.slice(0, 4), index: 0 };
-      miniHelp.textContent = 'Pick the ingredients in order.';
+      miniHelp.textContent = 'Solve the hidden recipe order.';
       message.textContent = `Need: ${miniState.recipe.join(' -> ')}`;
       const wrap = document.createElement('div');
       wrap.className = 'ingredients';
