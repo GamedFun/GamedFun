@@ -178,7 +178,7 @@
   <div id="top">
     <div>
       <div id="era-name">Big Bang</div>
-      <div id="era-num">Era 1 of 7</div>
+      <div id="era-num">Main Era 1 · Endless</div>
     </div>
     <div id="energy-col">
       <div id="energy-val">0 ⚡</div>
@@ -487,7 +487,7 @@ function renderEra() {
   const e = era();
   document.documentElement.style.setProperty('--era', e.color);
   eraNameEl.textContent = e.name;
-  eraNumEl.textContent  = G.eraIdx < BASE_ERA_COUNT ? `Era ${G.eraIdx + 1} of ${BASE_ERA_COUNT}` : `Endless Era ${G.eraIdx - BASE_ERA_COUNT + 1}`;
+  eraNumEl.textContent  = G.eraIdx < BASE_ERA_COUNT ? `Main Era ${G.eraIdx + 1} · Endless` : `Endless Era ${G.eraIdx - BASE_ERA_COUNT + 1}`;
   clickIcon.textContent = e.icon;
   clickLbl.textContent  = G.eraIdx >= BASE_ERA_COUNT ? 'Break Reality' : G.eraIdx === 6 ? 'Harvest Entropy' : 'Click!';
   renderShop();
