@@ -199,256 +199,67 @@
       transform: translate(2px, -2px);
     }
 
-    /* ── ICON BADGE ── */
-    .card-icon {
-      font-size: 1.6rem;
-      line-height: 1;
-      user-select: none;
-      width: 52px;
-      height: 52px;
-      border-radius: 14px;
-      background: var(--card-color-light, #f3f4f6);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 18px;
-      transition: transform 0.18s ease;
-    }
-
-    .card:hover .card-icon {
-      transform: scale(1.08) rotate(-4deg);
-    }
-
-    .typeflow-logo {
+    .game-logo {
       display: flex;
       align-items: center;
       gap: 12px;
       margin-bottom: 14px;
     }
 
-    .typeflow-mark {
+    .game-mark {
       width: 52px;
       height: 52px;
       border-radius: 14px;
-      background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+      background: var(--logo-gradient);
       color: #fff;
       display: grid;
       place-items: center;
-      box-shadow: 0 12px 24px -14px rgba(37, 99, 235, 0.7);
-      flex: 0 0 auto;
-      transition: transform 0.18s ease;
-    }
-
-    .card:hover .typeflow-mark {
-      transform: scale(1.08) rotate(-4deg);
-    }
-
-    .typeflow-mark svg {
-      width: 30px;
-      height: 30px;
-      display: block;
-    }
-
-    .typeflow-word {
-      font-size: 1.22rem;
-      font-weight: 800;
-      letter-spacing: -0.04em;
-      line-height: 1;
-    }
-
-    .typeflow-word span {
-      background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .universe-logo {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-
-    .universe-mark {
-      width: 52px;
-      height: 52px;
-      border-radius: 50%;
-      background:
-        radial-gradient(circle at 34% 30%, #fff7ad 0 7%, transparent 8%),
-        radial-gradient(circle at 58% 58%, #fb7185 0 8%, transparent 9%),
-        radial-gradient(circle at center, #7c3aed 0 34%, #111827 35% 58%, #f97316 60% 63%, #111827 65%);
-      box-shadow: 0 0 22px rgba(124, 58, 237, 0.45), inset 0 0 18px rgba(255,255,255,0.12);
+      font-size: 1.15rem;
+      font-weight: 900;
+      box-shadow: 0 12px 24px -14px var(--logo-shadow);
       flex: 0 0 auto;
       transition: transform 0.18s ease;
       position: relative;
       overflow: hidden;
     }
 
-    .universe-mark::after {
+    .game-mark svg {
+      width: 30px;
+      height: 30px;
+      display: block;
+    }
+
+    .game-mark::after {
       content: '';
       position: absolute;
-      width: 76px;
-      height: 20px;
-      left: -12px;
-      top: 16px;
-      border: 3px solid rgba(249, 115, 22, 0.9);
-      border-left-color: transparent;
-      border-right-color: transparent;
-      border-radius: 50%;
-      transform: rotate(-22deg);
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.22), transparent 48%);
+      pointer-events: none;
     }
 
-    .card:hover .universe-mark {
-      transform: scale(1.08) rotate(8deg);
+    .card:hover .game-mark {
+      transform: scale(1.08) rotate(-4deg);
     }
 
-    .universe-word {
+    .game-word {
       font-size: 1.18rem;
       font-weight: 800;
       letter-spacing: -0.04em;
       line-height: 1.04;
     }
 
-    .universe-word span {
-      background: linear-gradient(135deg, #7c3aed 0%, #ec4899 45%, #f97316 100%);
+    .game-word span:first-child {
+      background: var(--logo-gradient);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
 
-    .scramble-logo {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-
-    .scramble-mark {
-      width: 52px;
-      height: 52px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, #22c55e 0%, #14b8a6 100%);
-      color: #fff;
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 4px;
-      padding: 9px;
-      box-shadow: 0 12px 24px -14px rgba(34, 197, 94, 0.7);
-      flex: 0 0 auto;
-      transition: transform 0.18s ease;
-    }
-
-    .scramble-mark span {
-      background: rgba(255,255,255,0.18);
-      border-radius: 5px;
-      display: grid;
-      place-items: center;
-      font-size: 0.72rem;
-      font-weight: 900;
-    }
-
-    .card:hover .scramble-mark {
-      transform: scale(1.08) rotate(5deg);
-    }
-
-    .scramble-word {
-      font-size: 1.18rem;
-      font-weight: 800;
-      letter-spacing: -0.04em;
-      line-height: 1.04;
-    }
-
-    .scramble-word span {
-      background: linear-gradient(135deg, #16a34a 0%, #14b8a6 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .uno-logo {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-
-    .uno-mark {
-      width: 52px;
-      height: 52px;
-      border-radius: 14px;
-      background:
-        linear-gradient(135deg, transparent 0 44%, rgba(255,255,255,0.9) 45% 55%, transparent 56%),
-        linear-gradient(45deg, #ef4444 0 25%, #3b82f6 25% 50%, #22c55e 50% 75%, #facc15 75%);
-      border: 2px solid #fff;
-      box-shadow: 0 12px 24px -14px rgba(239, 68, 68, 0.7);
-      flex: 0 0 auto;
-      transition: transform 0.18s ease;
-    }
-
-    .card:hover .uno-mark {
-      transform: scale(1.08) rotate(-6deg);
-    }
-
-    .uno-word {
-      font-size: 1.18rem;
-      font-weight: 800;
-      letter-spacing: -0.04em;
-      line-height: 1.04;
-    }
-
-    .uno-word span {
-      background: linear-gradient(135deg, #ef4444 0%, #3b82f6 50%, #22c55e 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .trade-logo {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-
-    .trade-mark {
-      width: 52px;
-      height: 52px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, #fbbf24 0%, #38bdf8 100%);
-      color: #111827;
-      display: grid;
-      place-items: center;
-      font-size: 1.55rem;
-      box-shadow: 0 12px 24px -14px rgba(251, 191, 36, 0.8);
-      flex: 0 0 auto;
-      transition: transform 0.18s ease;
-    }
-
-    .card:hover .trade-mark {
-      transform: scale(1.08) rotate(6deg);
-    }
-
-    .trade-word {
-      font-size: 1.18rem;
-      font-weight: 800;
-      letter-spacing: -0.04em;
-      line-height: 1.04;
-    }
-
-    .trade-word span {
-      background: linear-gradient(135deg, #d97706 0%, #0891b2 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .card-title {
-      font-size: 1.05rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      margin-bottom: 8px;
-    }
+    .logo-universe { --logo-gradient: linear-gradient(135deg, #7c3aed 0%, #ec4899 48%, #f97316 100%); --logo-shadow: rgba(124, 58, 237, 0.72); }
+    .logo-scramble { --logo-gradient: linear-gradient(135deg, #16a34a 0%, #14b8a6 100%); --logo-shadow: rgba(34, 197, 94, 0.7); }
+    .logo-uno { --logo-gradient: linear-gradient(135deg, #ef4444 0%, #3b82f6 52%, #22c55e 100%); --logo-shadow: rgba(239, 68, 68, 0.7); }
+    .logo-trade { --logo-gradient: linear-gradient(135deg, #d97706 0%, #0891b2 100%); --logo-shadow: rgba(217, 119, 6, 0.68); }
+    .logo-cup { --logo-gradient: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); --logo-shadow: rgba(245, 158, 11, 0.74); }
 
     .card-desc {
       font-size: 0.855rem;
@@ -562,9 +373,9 @@
 
       <!-- Universe Destroyer -->
       <a class="card card--violet" href="/universe-clicker/">
-        <div class="universe-logo" aria-label="Universe Destroyer">
-          <div class="universe-mark" aria-hidden="true"></div>
-          <div class="universe-word"><span>Universe Destroyer</span></div>
+        <div class="game-logo logo-universe" aria-label="Universe Destroyer">
+          <div class="game-mark" aria-hidden="true">UD</div>
+          <div class="game-word"><span>Universe Destroyer</span></div>
         </div>
         <div class="card-desc">Crack open the cosmos, collect energy, and push through cosmic eras.</div>
         <div class="card-cta">Play Universe Destroyer</div>
@@ -573,11 +384,9 @@
 
       <!-- Daily Word Scramble -->
       <a class="card card--green" href="/word-scramble/">
-        <div class="scramble-logo" aria-label="Daily Word Scramble">
-          <div class="scramble-mark" aria-hidden="true">
-            <span>W</span><span>R</span><span>D</span><span>?</span>
-          </div>
-          <div class="scramble-word"><span>Daily Word Scramble</span> <span class="badge">new</span></div>
+        <div class="game-logo logo-scramble" aria-label="Daily Word Scramble">
+          <div class="game-mark" aria-hidden="true">WS</div>
+          <div class="game-word"><span>Daily Word Scramble</span> <span class="badge">new</span></div>
         </div>
         <div class="card-desc">Unscramble the same daily words as everyone else and chase a perfect score.</div>
         <div class="card-cta">Play Word Scramble</div>
@@ -586,9 +395,9 @@
 
       <!-- UNO Duel -->
       <a class="card card--amber" href="/uno/">
-        <div class="uno-logo" aria-label="UNO Duel">
-          <div class="uno-mark" aria-hidden="true"></div>
-          <div class="uno-word"><span>UNO Duel</span> <span class="badge">new</span></div>
+        <div class="game-logo logo-uno" aria-label="UNO Duel">
+          <div class="game-mark" aria-hidden="true">UNO</div>
+          <div class="game-word"><span>UNO Duel</span> <span class="badge">new</span></div>
         </div>
         <div class="card-desc">Play against an NPC with one balanced deck and no rigged hands.</div>
         <div class="card-cta">Play UNO Duel</div>
@@ -597,9 +406,9 @@
 
       <!-- Trade Alley -->
       <a class="card card--pink" href="/trade-alley/">
-        <div class="trade-logo" aria-label="Trade Alley">
-          <div class="trade-mark" aria-hidden="true">⇄</div>
-          <div class="trade-word"><span>Trade Alley</span> <span class="badge">new</span></div>
+        <div class="game-logo logo-trade" aria-label="Trade Alley">
+          <div class="game-mark" aria-hidden="true">TA</div>
+          <div class="game-word"><span>Trade Alley</span> <span class="badge">new</span></div>
         </div>
         <div class="card-desc">Accept deals, cancel offers, or risk a 50/50 steal from random NPC traders.</div>
         <div class="card-cta">Play Trade Alley</div>
@@ -608,8 +417,10 @@
 
       <!-- The Little Cup -->
       <a class="card card--amber" href="/the-little-cup/">
-        <div class="card-icon" aria-hidden="true">☕</div>
-        <div class="card-title">The Little Cup <span class="badge">new</span></div>
+        <div class="game-logo logo-cup" aria-label="The Little Cup">
+          <div class="game-mark" aria-hidden="true">LC</div>
+          <div class="game-word"><span>The Little Cup</span> <span class="badge">new</span></div>
+        </div>
         <div class="card-desc">Run a cafe by cooking orders with quick mini-games before customers run out of time.</div>
         <div class="card-cta">Play The Little Cup</div>
         <span class="card-arrow">↗</span>
