@@ -251,6 +251,12 @@
     }
   </style>
 </head>
+<div id="googol-win" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(10,8,16,.96);flex-direction:column;align-items:center;justify-content:center;gap:1.2rem;text-align:center;padding:2rem;">
+  <div style="font-size:4rem">🌌</div>
+  <div style="font-size:2rem;font-weight:900;color:#fbbf24">You reached a Googol!</div>
+  <div style="color:#b8a99a;max-width:340px;line-height:1.6">You earned <strong style="color:#fff7ed">10<sup>100</sup></strong> dollars. The coffee dimension has been unlocked. You win.</div>
+  <button onclick="document.getElementById('googol-win').style.display='none'" style="margin-top:.5rem;padding:.6rem 1.6rem;background:#fbbf24;color:#1a1625;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer">Keep Playing</button>
+</div>
 <body>
 <header>
   <a class="brand" href="https://gamed.fun/">gamed.fun</a>
@@ -424,19 +430,30 @@ function freshState() {
     clickMult: 1, bldMult: {}, globalMult: 1,
     frenzy: 0, miniFrenzy: 0, mseen: [],
     workers: {}, upgradeSlots: [], thingSlots: [],
+    won: false,
   };
 }
 
 // ── HELPERS ────────────────────────────────────────────────
+const FMT_TIERS = [
+  [1e3,  'K'],[1e6,  'M'],[1e9,  'B'],[1e12, 'T'],
+  [1e15, 'Qa'],[1e18,'Qi'],[1e21,'Sx'],[1e24,'Sp'],
+  [1e27, 'Oc'],[1e30,'No'],[1e33,'De'],[1e36,'UDe'],
+  [1e39, 'DDe'],[1e42,'TDe'],[1e45,'QaDe'],[1e48,'QiDe'],
+  [1e51, 'SxDe'],[1e54,'SpDe'],[1e57,'OcDe'],[1e60,'NoDe'],
+  [1e63, 'Vi'],[1e66,'UVi'],[1e69,'DVi'],[1e72,'TVi'],
+  [1e75, 'QaVi'],[1e78,'QiVi'],[1e81,'SxVi'],[1e84,'SpVi'],
+  [1e87, 'OcVi'],[1e90,'NoVi'],[1e93,'Tg'],[1e96,'UTg'],
+  [1e99, 'DTg'],[1e100,'Googol'],
+];
 function fmt(n) {
   if (n < 0.1)  return n.toFixed(2);
   if (n < 1)    return n.toFixed(1);
   if (n < 1e3)  return Math.floor(n).toLocaleString();
-  if (n < 1e6)  return (n/1e3).toFixed(1)+'K';
-  if (n < 1e9)  return (n/1e6).toFixed(1)+'M';
-  if (n < 1e12) return (n/1e9).toFixed(1)+'B';
-  if (n < 1e15) return (n/1e12).toFixed(1)+'T';
-  return n.toExponential(2);
+  for (let i = FMT_TIERS.length - 1; i >= 0; i--) {
+    if (n >= FMT_TIERS[i][0]) return (n / FMT_TIERS[i][0]).toFixed(1) + FMT_TIERS[i][1];
+  }
+  return n.toFixed(0);
 }
 
 function bldCost(b) {
@@ -621,11 +638,13 @@ function render() {
 
 // ── ACTIONS ────────────────────────────────────────────────
 function onCupClick(e) {
+  if (G.won) return;
   const earned = clickVal();
   G.cash += earned;
   G.totalEarned += earned;
   spawnFloat(e.clientX, e.clientY, '+$' + fmt(earned));
   checkMilestones();
+  checkGoogol();
   render();
 }
 
@@ -749,19 +768,32 @@ function rotateTicker() {
   setTimeout(rotateTicker, 7_000);
 }
 
+// ── GOOGOL WIN ─────────────────────────────────────────────
+const GOOGOL = 1e100;
+function checkGoogol() {
+  if (G.totalEarned >= GOOGOL && !G.won) {
+    G.won = true;
+    clearInterval(fastLoop);
+    clearInterval(slowLoop);
+    save();
+    document.getElementById('googol-win').style.display = 'flex';
+  }
+}
+
 // ── GAME LOOP ──────────────────────────────────────────────
-setInterval(() => {
+const fastLoop = setInterval(() => {
   const inc = totalCps() * 0.1;
   if (inc > 0) {
     G.cash += inc; G.totalEarned += inc;
     checkMilestones();
+    checkGoogol();
   }
   if (G.frenzy > 0) G.frenzy = Math.max(0, G.frenzy - 0.1);
   if (G.miniFrenzy > 0) G.miniFrenzy = Math.max(0, G.miniFrenzy - 0.1);
   renderHUD();
 }, 100);
 
-setInterval(() => { render(); save(); }, 1_000);
+const slowLoop = setInterval(() => { render(); save(); }, 1_000);
 
 // ── SAVE / LOAD ────────────────────────────────────────────
 function save() {
@@ -792,6 +824,7 @@ document.getElementById('restartBtn').addEventListener('click', () => {
   render();
 });
 load();
+if (G.won) document.getElementById('googol-win').style.display = 'flex';
 render();
 scheduleGolden();
 setTimeout(rotateTicker, 4_000);
