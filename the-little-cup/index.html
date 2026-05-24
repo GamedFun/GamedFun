@@ -469,11 +469,6 @@
     }
 
     function selectCustomer(id) {
-      const selected = customers.find(customer => customer.id === id);
-      if (selected?.cooked) {
-        serveCustomer(id);
-        return;
-      }
       activeId = id;
       buildMiniGame();
       render();
@@ -496,7 +491,7 @@
       foodIcon.textContent = customer.order.icon;
       if (customer.cooked) {
         miniTitle.textContent = `${customer.order.name} is ready`;
-        miniHelp.textContent = 'Click that customer to serve them.';
+        miniHelp.textContent = 'Leave it ready or press Serve when you want.';
         serveBtn.disabled = false;
         message.textContent = 'Ready to serve.';
         return;
@@ -641,7 +636,7 @@
       if (customer) customer.cooked = true;
       serveBtn.disabled = false;
       miniGame.innerHTML = '';
-      miniHelp.textContent = 'Order is cooked. Click the customer to serve them.';
+      miniHelp.textContent = 'Order is cooked. Leave it ready or press Serve.';
       message.textContent = 'Ready to serve.';
       render();
     }
