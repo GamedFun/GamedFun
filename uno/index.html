@@ -305,6 +305,7 @@
           <button class="color-btn blue" data-pick="blue" type="button">Blue</button>
         </div>
         <div class="controls">
+          <button class="secondary" id="stackingBtn" type="button" aria-pressed="false">Stacking: Off</button>
           <button class="secondary" id="newGameBtn" type="button">New game</button>
         </div>
       </div>
@@ -331,6 +332,7 @@
     const playerCountEl = document.getElementById('playerCount');
     const npcCountEl = document.getElementById('npcCount');
     const drawBtn = document.getElementById('drawBtn');
+    const stackingBtn = document.getElementById('stackingBtn');
     const newGameBtn = document.getElementById('newGameBtn');
     const colorPicker = document.getElementById('colorPicker');
     const colorDot = document.getElementById('colorDot');
@@ -344,6 +346,8 @@
     let turn = 'player';
     let gameOver = false;
     let pendingWild = null;
+    let pendingDraw = null;
+    let stackingEnabled = localStorage.getItem('uno_stacking') === 'on';
 
     function buildDeck() {
       const cards = [];
@@ -382,6 +386,7 @@
       turn = 'player';
       gameOver = false;
       pendingWild = null;
+      pendingDraw = null;
       for (let i = 0; i < 7; i++) {
         player.push(deck.pop());
         npc.push(deck.pop());
@@ -405,6 +410,9 @@
     }
 
     function canPlay(cardToCheck) {
+      if (pendingDraw && stackingEnabled) {
+        return cardToCheck.value === pendingDraw.value;
+      }
       const top = topCard();
       return cardToCheck.color === 'wild'
         || cardToCheck.color === currentColor
@@ -452,15 +460,19 @@
 
     function applyCardEffect(played, owner) {
       const other = owner === 'player' ? npc : player;
-      if (played.value === '+2') {
-        drawCard(other);
-        drawCard(other);
-        turn = owner;
-        messageEl.textContent = `${owner === 'player' ? 'NPC' : 'You'} drew 2. ${owner === 'player' ? 'Your' : 'NPC'} turn again.`;
-      } else if (played.value === '+4') {
-        for (let i = 0; i < 4; i++) drawCard(other);
-        turn = owner;
-        messageEl.textContent = `${owner === 'player' ? 'NPC' : 'You'} drew 4. ${owner === 'player' ? 'Your' : 'NPC'} turn again.`;
+      if (played.value === '+2' || played.value === '+4') {
+        const amount = played.value === '+2' ? 2 : 4;
+        const target = owner === 'player' ? 'npc' : 'player';
+        if (stackingEnabled && owner !== 'start') {
+          const previousAmount = pendingDraw?.amount || 0;
+          pendingDraw = { value: played.value, amount: previousAmount + amount, target };
+          turn = target;
+          messageEl.textContent = `${target === 'player' ? 'You' : 'NPC'} must stack ${played.value} or draw ${pendingDraw.amount}.`;
+        } else {
+          for (let i = 0; i < amount; i++) drawCard(other);
+          turn = owner;
+          messageEl.textContent = `${owner === 'player' ? 'NPC' : 'You'} drew ${amount}. ${owner === 'player' ? 'Your' : 'NPC'} turn again.`;
+        }
       } else if (played.value === 'Skip' || played.value === 'Reverse') {
         turn = owner;
         messageEl.textContent = `${owner === 'player' ? 'NPC' : 'You'} got skipped.`;
@@ -507,8 +519,12 @@
       if (playableIndex >= 0) {
         const played = npc[playableIndex];
         playFrom(npc, playableIndex, 'npc');
-        messageEl.textContent = `NPC played ${labelFor(played)}.`;
+        if (!pendingDraw) messageEl.textContent = `NPC played ${labelFor(played)}.`;
       } else {
+        if (pendingDraw) {
+          resolvePendingDraw('npc');
+          return;
+        }
         drawCard(npc);
         const drawn = npc[npc.length - 1];
         if (drawn && canPlay(drawn)) {
@@ -557,12 +573,20 @@
       npcCountEl.textContent = npc.length;
       deckCountEl.textContent = `${deck.length} cards left in deck`;
       drawBtn.disabled = turn !== 'player' || gameOver;
+      drawBtn.textContent = pendingDraw && turn === 'player' ? `DRAW ${pendingDraw.amount}` : 'DRAW';
+      stackingBtn.textContent = `Stacking: ${stackingEnabled ? 'On' : 'Off'}`;
+      stackingBtn.setAttribute('aria-pressed', String(stackingEnabled));
+      stackingBtn.disabled = Boolean(pendingDraw) || turn === 'choosing';
       colorDot.style.color = `var(--${currentColor})`;
       colorName.textContent = currentColor;
     }
 
     drawBtn.addEventListener('click', () => {
       if (turn !== 'player' || gameOver) return;
+      if (pendingDraw) {
+        resolvePendingDraw('player');
+        return;
+      }
       drawCard(player);
       const drawn = player[player.length - 1];
       if (drawn && canPlay(drawn)) {
@@ -575,6 +599,18 @@
       render();
     });
 
+    function resolvePendingDraw(target) {
+      const hand = target === 'player' ? player : npc;
+      const other = target === 'player' ? 'npc' : 'player';
+      const amount = pendingDraw.amount;
+      for (let i = 0; i < amount; i++) drawCard(hand);
+      pendingDraw = null;
+      turn = other;
+      messageEl.textContent = `${target === 'player' ? 'You drew' : 'NPC drew'} ${amount}. ${other === 'player' ? 'Your' : 'NPC'} turn.`;
+      render();
+      if (turn === 'npc') setTimeout(npcTurn, 650);
+    }
+
     colorPicker.addEventListener('click', event => {
       const btn = event.target.closest('[data-pick]');
       if (!btn || !pendingWild) return;
@@ -582,6 +618,13 @@
       const played = pendingWild;
       pendingWild = null;
       finishPlayedCard(played, 'player');
+    });
+
+    stackingBtn.addEventListener('click', () => {
+      stackingEnabled = !stackingEnabled;
+      localStorage.setItem('uno_stacking', stackingEnabled ? 'on' : 'off');
+      messageEl.textContent = `Stacking ${stackingEnabled ? 'on' : 'off'}.`;
+      render();
     });
 
     newGameBtn.addEventListener('click', startGame);
