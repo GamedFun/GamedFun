@@ -834,6 +834,8 @@ let initialBurstTimers = [];
 let filterRarity = 'all';
 let collOpen = false;
 let customEmojiDefs = [];
+let questState = { date: '', quests: [], usedIds: [], completedCount: 0 };
+let questOpen = false;
 
 const gameArea = document.getElementById('game-area');
 const coinCountEl = document.getElementById('coinCount');
@@ -1690,23 +1692,13 @@ const QUEST_POOL = [
   { id:'new5',     label:'Find 5 new emojis',        type:'new',       target:5,  reward:110 },
 ];
 
-let questState = { date: '', quests: [], usedIds: [], completedCount: 0 };
-let questOpen = false;
-
 function getTodayStr() { return new Date().toISOString().slice(0, 10); }
 
 function initQuests() {
   const today = getTodayStr();
   if (questState.date === today) return;
-  let hash = 0;
-  for (const c of today) hash = (Math.imul(31, hash) + c.charCodeAt(0)) | 0;
-  hash = Math.abs(hash);
-  const n = QUEST_POOL.length;
-  const picked = [], used = new Set();
-  for (let i = 0; picked.length < 3; i++) {
-    const idx = (hash + i * 37) % n;
-    if (!used.has(idx)) { used.add(idx); picked.push(QUEST_POOL[idx]); }
-  }
+  const shuffled = [...QUEST_POOL].sort(() => Math.random() - 0.5);
+  const picked = shuffled.slice(0, 3);
   questState = {
     date: today,
     quests: picked.map(q => ({ id: q.id, progress: 0, claimed: false })),
