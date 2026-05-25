@@ -480,6 +480,14 @@
   }
   .combo-display { display: inline-flex; flex-direction: column; align-items: center; line-height: 1; vertical-align: middle; }
   .combo-display span { font-size: .5em; display: block; line-height: 1.15; }
+  #toast {
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+    background: #332d45; border: 1px solid var(--border); border-radius: 10px;
+    padding: .5rem 1.1rem; font-size: .85rem; font-weight: 700; color: var(--text);
+    z-index: 300; pointer-events: none; opacity: 0; transition: opacity .2s;
+    white-space: nowrap;
+  }
+  #toast.show { opacity: 1; }
 </style>
 </head>
 <body>
@@ -497,6 +505,7 @@
   <div class="stat">🪙 <strong id="coinCount">0</strong> coins</div>
   <div class="stat">📦 <strong id="progress">0 / ?</strong> collected</div>
   <div class="stat" id="streakDisplay" style="font-size:.85rem;color:#fbbf24;font-weight:900;min-width:60px;text-align:right"></div>
+  <button id="share-btn" onclick="shareGame()" style="border:1px solid var(--border);border-radius:8px;background:#2a2438;color:var(--text);font-size:.78rem;font-weight:800;padding:.3rem .55rem;cursor:pointer;white-space:nowrap;">📤 Share</button>
   <button id="new-game-btn" onclick="newGame()">New Game</button>
 </div>
 
@@ -1254,6 +1263,54 @@ function fightAgain() {
   battleState = null;
   showPickScreen();
 }
+// ── TOAST ──────────────────────────────────────────────────
+const toastEl = document.createElement('div');
+toastEl.id = 'toast';
+document.body.appendChild(toastEl);
+let toastTimer = null;
+function showToast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200);
+}
+
+// ── SHARE ──────────────────────────────────────────────────
+function shareGame() {
+  const found = Object.keys(collection).length;
+  const total = EMOJIS.length + customEmojiDefs.length;
+
+  const rarityRank = ['mythic','legendary','epic','rare','uncommon','common'];
+  let bestEmoji = null;
+  for (const r of rarityRank) {
+    bestEmoji = EMOJIS.find(e => e.r === r && (collection[e.n] || 0) > 0);
+    if (bestEmoji) break;
+  }
+  const bestCustom = customEmojiDefs.filter(c => (collection[c.n]||0) > 0)
+    .sort((a,b) => rarityRank.indexOf(a.r) - rarityRank.indexOf(b.r))[0];
+
+  const bestLine = bestEmoji
+    ? `${bestEmoji.e} ${bestEmoji.n} (${RARITIES[bestEmoji.r].name})`
+    : 'nothing yet!';
+  const fusionLine = customEmojiDefs.filter(c => (collection[c.n]||0) > 0).length;
+
+  const text = [
+    `🎮 Emoji Pop — gamed.fun/emoji-catcher/`,
+    `📦 ${found} / ${total} collected`,
+    bestEmoji ? `⭐ Best: ${bestLine}` : null,
+    fusionLine > 0 ? `⚗️ ${fusionLine} custom fusion${fusionLine > 1 ? 's' : ''} crafted` : null,
+    `Can you beat me?`,
+  ].filter(Boolean).join('\n');
+
+  if (navigator.share) {
+    navigator.share({ text, url: 'https://gamed.fun/emoji-catcher/' }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(text + '\nhttps://gamed.fun/emoji-catcher/')
+      .then(() => showToast('✅ Copied to clipboard!'))
+      .catch(() => showToast('❌ Could not copy'));
+  }
+}
+
 document.getElementById('themeBtn').textContent=document.documentElement.dataset.theme==='dark'?'☀️':'🌙';
 function toggleTheme(){const n=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=n;localStorage.setItem('gf-theme',n);document.getElementById('themeBtn').textContent=n==='dark'?'☀️':'🌙';}
 
