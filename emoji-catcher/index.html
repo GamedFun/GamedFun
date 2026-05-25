@@ -721,6 +721,7 @@ let spawnTimer = null;
 let initialBurstTimers = [];
 let filterRarity = 'all';
 let collOpen = false;
+let customEmojiDefs = [];
 
 const gameArea = document.getElementById('game-area');
 const coinCountEl = document.getElementById('coinCount');
@@ -1123,18 +1124,18 @@ function doAction(type) {
 
   if (type === 'attack') {
     playerDmg = Math.round(playerAtk * (0.85 + Math.random() * 0.3));
-    logBattle(`${playerEmoji.e} attacks for ${playerDmg}!`);
+    logBattle(`${emojiText(playerEmoji)} attacks for ${playerDmg}!`);
   } else if (type === 'power') {
     if (Math.random() < 0.28) {
-      logBattle(`${playerEmoji.e} Power Strike... missed! 😬`);
+      logBattle(`${emojiText(playerEmoji)} Power Strike... missed! 😬`);
     } else {
       playerDmg = Math.round(playerAtk * (1.6 + Math.random() * 0.6));
-      logBattle(`${playerEmoji.e} Power Strike for ${playerDmg}! 💥`);
+      logBattle(`${emojiText(playerEmoji)} Power Strike for ${playerDmg}! 💥`);
     }
   } else {
     playerDmg = Math.round(playerAtk * 0.35);
     battleState.guarding = true;
-    logBattle(`${playerEmoji.e} guards, deals ${playerDmg}. 🛡️`);
+    logBattle(`${emojiText(playerEmoji)} guards, deals ${playerDmg}. 🛡️`);
   }
 
   battleState.npcHP = Math.max(0, battleState.npcHP - playerDmg);
@@ -1208,15 +1209,23 @@ function toggleTheme(){const n=document.documentElement.dataset.theme==='dark'?'
 const RARITY_ORDER = ['common','uncommon','rare','epic','legendary','mythic'];
 const FUSE_COSTS = { common:15, uncommon:40, rare:120, epic:350, legendary:1000, mythic:3000 };
 
-let customEmojiDefs = [];
 let fuseOpen = false;
 let fuseSlotActive = 1;
 let fuseEmoji1 = null;
 let fuseEmoji2 = null;
 
+function emojiParts(emoji) {
+  if (emoji?.custom) return emoji.parts || [];
+  return emoji?.e ? [emoji.e] : [];
+}
+
 function emojiHTML(emoji) {
-  if (emoji?.custom) return `<span class="combo-display"><span>${emoji.parts[0]}</span><span>${emoji.parts[1]}</span></span>`;
+  if (emoji?.custom) return `<span class="combo-display">${emojiParts(emoji).map(part => `<span>${part}</span>`).join('')}</span>`;
   return emoji?.e || '';
+}
+
+function emojiText(emoji) {
+  return emojiParts(emoji).join('');
 }
 
 function comboKey(e1, e2) {
@@ -1237,7 +1246,7 @@ function makeCustomEmoji(e1, e2) {
   const rng = STAT_RANGES[targetR];
   const hp  = Math.round(rng.hpMin  + (rng.hpMax  - rng.hpMin)  * (0.7 + Math.random() * 0.3));
   const atk = Math.round(rng.atkMin + (rng.atkMax - rng.atkMin) * (0.7 + Math.random() * 0.3));
-  const def = { parts: [sorted[0].e, sorted[1].e], n: `${w1}-${w2}`, r: targetR, custom: true, key, hp, atk };
+  const def = { parts: [...emojiParts(sorted[0]), ...emojiParts(sorted[1])], n: `${w1}-${w2}`, r: targetR, custom: true, key, hp, atk };
   customEmojiDefs.push(def);
   return def;
 }
@@ -1272,7 +1281,8 @@ function renderFuseOverlay() {
   const resName = document.getElementById('fuse-result-name');
   if (fuseEmoji1 && fuseEmoji2) {
     const sorted = [fuseEmoji1, fuseEmoji2].sort((a,b) => a.n.localeCompare(b.n));
-    resEl.innerHTML = `<span class="combo-display"><span>${sorted[0].e || (sorted[0].parts||[])[0]||''}</span><span>${sorted[1].e || (sorted[1].parts||[])[0]||''}</span></span>`;
+    const previewParts = [...emojiParts(sorted[0]), ...emojiParts(sorted[1])];
+    resEl.innerHTML = `<span class="combo-display">${previewParts.map(part => `<span>${part}</span>`).join('')}</span>`;
     const existing = customEmojiDefs.find(c => c.key === comboKey(fuseEmoji1, fuseEmoji2));
     resName.textContent = existing ? existing.n : '??? (new!)';
   } else {
