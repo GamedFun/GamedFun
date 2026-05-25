@@ -624,25 +624,25 @@
 
 <div id="bottom-bar">
   <div id="summon-row">
-    <button class="summon-btn" onclick="doSummon('basic')">
+    <button class="summon-btn" data-summon-type="basic" onclick="doSummon('basic')">
       <span>Basic Pull</span>
-      <span class="cost">10 🪙</span>
+      <span class="cost"></span>
     </button>
-    <button class="summon-btn" onclick="doSummon('uncommon')">
+    <button class="summon-btn" data-summon-type="uncommon" onclick="doSummon('uncommon')">
       <span>Uncommon+</span>
-      <span class="cost">50 🪙</span>
+      <span class="cost"></span>
     </button>
-    <button class="summon-btn" onclick="doSummon('rare')">
+    <button class="summon-btn" data-summon-type="rare" onclick="doSummon('rare')">
       <span>Rare+</span>
-      <span class="cost">150 🪙</span>
+      <span class="cost"></span>
     </button>
-    <button class="summon-btn" onclick="doSummon('epic')">
+    <button class="summon-btn" data-summon-type="epic" onclick="doSummon('epic')">
       <span>Epic+</span>
-      <span class="cost">500 🪙</span>
+      <span class="cost"></span>
     </button>
-    <button class="summon-btn" onclick="doSummon('legendary')">
+    <button class="summon-btn" data-summon-type="legendary" onclick="doSummon('legendary')">
       <span>Legendary+</span>
-      <span class="cost">2000 🪙</span>
+      <span class="cost"></span>
     </button>
   </div>
   <div style="display:flex;gap:.4rem;padding:.4rem .7rem;border-top:1px solid var(--border);">
@@ -1004,7 +1004,7 @@ function doSummon(type) {
   const weights = SUMMON_WEIGHTS[type];
   const rKey = rollRarity(rarityList, weights);
   const emoji = rollEmoji(rKey);
-  collect(emoji, rKey, { getBoundingClientRect: () => ({ left: window.innerWidth/2-28, top: window.innerHeight/2-28, width:56, height:56 }) }, null, true, 5);
+  collect(emoji, rKey, { getBoundingClientRect: () => ({ left: window.innerWidth/2-28, top: window.innerHeight/2-28, width:56, height:56 }) }, null, false, 5);
   showSummonResult(emoji, rKey);
   trackQuest('pull');
 }
@@ -1018,10 +1018,17 @@ function showSummonResult(emoji, rKey) {
 }
 
 function flashBtn(type) {
-  const btns = document.querySelectorAll('.summon-btn');
-  const costs = Object.values(SUMMON_COSTS);
-  const idx = Object.keys(SUMMON_COSTS).indexOf(type);
-  if (btns[idx]) { btns[idx].style.background = '#4c1d2e'; setTimeout(() => btns[idx].style.background = '', 300); }
+  const btn = document.querySelector(`.summon-btn[data-summon-type="${type}"]`);
+  if (btn) { btn.style.background = '#4c1d2e'; setTimeout(() => btn.style.background = '', 300); }
+}
+
+function syncSummonButtons() {
+  document.querySelectorAll('.summon-btn').forEach(btn => {
+    const cost = SUMMON_COSTS[btn.dataset.summonType] || 0;
+    const costEl = btn.querySelector('.cost');
+    if (costEl) costEl.textContent = `${cost} 🪙`;
+    btn.classList.toggle('disabled', !creativeMode && coins < cost);
+  });
 }
 
 // ── HUD ────────────────────────────────────────────────────
@@ -1031,10 +1038,7 @@ function updateHUD() {
   progressEl.textContent = found + ' / ' + (TOTAL + customEmojiDefs.length);
   const sd = document.getElementById('streakDisplay');
   if (sd) sd.textContent = streak >= 2 ? '🔥 ×' + Math.min(streak, 10) + ' combo!' : '';
-  document.querySelectorAll('.summon-btn').forEach((btn, i) => {
-    const cost = Object.values(SUMMON_COSTS)[i];
-    btn.classList.toggle('disabled', !creativeMode && coins < cost);
-  });
+  syncSummonButtons();
 }
 
 // ── COLLECTION ─────────────────────────────────────────────
