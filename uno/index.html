@@ -450,7 +450,7 @@
 
     function canPlay(cardToCheck) {
       if (pendingDraw && stackingEnabled) {
-        return cardToCheck.value === pendingDraw.value;
+        return cardToCheck.value === pendingDraw.value || cardToCheck.value === '+4';
       }
       const top = topCard();
       return cardToCheck.color === 'wild'

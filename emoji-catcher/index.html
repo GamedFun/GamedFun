@@ -419,6 +419,23 @@
   [data-theme="light"] body { background: #f0f0f5; }
   [data-theme="light"] header { background: rgba(245,245,250,.95); }
   [data-theme="light"] #battle-log { background: #f0f0f5; }
+  [data-theme="light"] #new-game-btn { background: #e4e4ef; }
+  [data-theme="light"] #new-game-btn:hover { background: #d5d5e8; }
+  #share-btn { background: #2a2438; }
+  [data-theme="light"] #share-btn { background: #e4e4ef; }
+  [data-theme="light"] #collection-overlay,
+  [data-theme="light"] #battle-overlay,
+  [data-theme="light"] #fuse-overlay { background: #f0f0f5; }
+  [data-theme="light"] .coll-cell,
+  [data-theme="light"] .battle-pick-cell,
+  [data-theme="light"] .fuse-slot,
+  [data-theme="light"] .fuse-pick-cell { background: #ffffff; }
+  [data-theme="light"] .battle-card { background: #ffffff; }
+  [data-theme="light"] #battle-actions .battle-act-btn,
+  [data-theme="light"] .summon-btn,
+  [data-theme="light"] .result-btn { background: #e4e4ef; color: #111827; }
+  [data-theme="light"] .result-btn.primary { background: rgba(248,113,113,.15); color: #e03c3c; }
+  [data-theme="light"] #fuse-cost-label { color: #6b7280; }
 
   /* FUSION OVERLAY */
   #fuse-overlay {
@@ -506,7 +523,7 @@
   <div class="stat">🪙 <strong id="coinCount">0</strong> coins</div>
   <div class="stat">📦 <strong id="progress">0 / ?</strong> collected</div>
   <div class="stat" id="streakDisplay" style="font-size:.85rem;color:#fbbf24;font-weight:900;min-width:60px;text-align:right"></div>
-  <button id="share-btn" onclick="shareGame()" style="border:1px solid var(--border);border-radius:8px;background:#2a2438;color:var(--text);font-size:.78rem;font-weight:800;padding:.3rem .55rem;cursor:pointer;white-space:nowrap;">📤 Share</button>
+  <button id="share-btn" onclick="shareGame()" style="border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.78rem;font-weight:800;padding:.3rem .55rem;cursor:pointer;white-space:nowrap;">📤 Share</button>
   <button id="new-game-btn" onclick="newGame()">New Game</button>
 </div>
 
