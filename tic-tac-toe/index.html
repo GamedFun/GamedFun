@@ -190,16 +190,22 @@
 <main>
   <h1>Tic Tac Toe</h1>
 
-  <div class="diff-group">
-    <button class="diff-btn active" data-diff="easy">Easy</button>
-    <button class="diff-btn" data-diff="medium">Medium</button>
-    <button class="diff-btn" data-diff="hard">Hard</button>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:.5rem;">
+    <div class="diff-group">
+      <button class="diff-btn active" data-diff="easy">Easy</button>
+      <button class="diff-btn" data-diff="medium">Medium</button>
+      <button class="diff-btn" data-diff="hard">Hard</button>
+    </div>
+    <div class="diff-group">
+      <button class="diff-btn active" data-order="first">Go First</button>
+      <button class="diff-btn" data-order="second">Go Second</button>
+    </div>
   </div>
 
   <div class="scores">
     <div class="score-item you">
       <strong id="scoreYou">0</strong>
-      You (X)
+      <span id="youLabel">You (X)</span>
     </div>
     <div class="score-item">
       <strong id="scoreDraw">0</strong>
@@ -207,7 +213,7 @@
     </div>
     <div class="score-item bot">
       <strong id="scoreBot">0</strong>
-      Bot (O)
+      <span id="botLabel">Bot (O)</span>
     </div>
   </div>
 
@@ -233,6 +239,9 @@ const WINS = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
 let board = Array(9).fill(null);
 let locked = false;
 let difficulty = 'easy';
+let goFirst = true;
+let playerMark = 'X';
+let botMark = 'O';
 let scores = { you: 0, draw: 0, bot: 0 };
 
 function checkWinner(b) {
@@ -270,12 +279,12 @@ function getEmpty(b) { return b.map((v, i) => v === null ? i : -1).filter(i => i
 
 function minimax(b, isMax, depth) {
   const result = checkWinner(b);
-  if (result) return result.winner === 'O' ? 10 - depth : depth - 10;
+  if (result) return result.winner === botMark ? 10 - depth : depth - 10;
   const empty = getEmpty(b);
   if (!empty.length) return 0;
   let best = isMax ? -Infinity : Infinity;
   for (const i of empty) {
-    b[i] = isMax ? 'O' : 'X';
+    b[i] = isMax ? botMark : playerMark;
     const score = minimax(b, !isMax, depth + 1);
     b[i] = null;
     best = isMax ? Math.max(best, score) : Math.min(best, score);
@@ -292,26 +301,22 @@ function getBotMove() {
   }
 
   if (difficulty === 'medium') {
-    // Take the win
     for (const i of empty) {
-      board[i] = 'O';
+      board[i] = botMark;
       if (checkWinner(board)) { board[i] = null; return i; }
       board[i] = null;
     }
-    // Block player
     for (const i of empty) {
-      board[i] = 'X';
+      board[i] = playerMark;
       if (checkWinner(board)) { board[i] = null; return i; }
       board[i] = null;
     }
-    // Random
     return empty[Math.floor(Math.random() * empty.length)];
   }
 
-  // Hard: minimax
   let bestScore = -Infinity, bestMove = empty[0];
   for (const i of empty) {
-    board[i] = 'O';
+    board[i] = botMark;
     const score = minimax(board, false, 0);
     board[i] = null;
     if (score > bestScore) { bestScore = score; bestMove = i; }
@@ -322,7 +327,7 @@ function getBotMove() {
 function botPlay() {
   const move = getBotMove();
   if (move === -1) return;
-  board[move] = 'O';
+  board[move] = botMark;
   const result = checkWinner(board);
   if (result) {
     render(result.line);
@@ -345,7 +350,7 @@ function botPlay() {
 
 function handleClick(i) {
   if (locked || board[i]) return;
-  board[i] = 'X';
+  board[i] = playerMark;
   const result = checkWinner(board);
   if (result) {
     render(result.line);
@@ -370,17 +375,38 @@ function handleClick(i) {
 }
 
 function newGame() {
+  playerMark = goFirst ? 'X' : 'O';
+  botMark    = goFirst ? 'O' : 'X';
+  document.getElementById('youLabel').textContent = `You (${playerMark})`;
+  document.getElementById('botLabel').textContent = `Bot (${botMark})`;
   board = Array(9).fill(null);
   locked = false;
   render();
-  setStatus('Your turn', 'your-turn');
+  if (goFirst) {
+    setStatus('Your turn', 'your-turn');
+  } else {
+    locked = true;
+    setStatus('Bot is thinking…', 'bot-turn');
+    setTimeout(botPlay, 420);
+  }
 }
 
-document.querySelectorAll('.diff-btn').forEach(btn => {
+document.querySelectorAll('[data-diff]').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('[data-diff]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     difficulty = btn.dataset.diff;
+    scores = { you: 0, draw: 0, bot: 0 };
+    updateScores();
+    newGame();
+  });
+});
+
+document.querySelectorAll('[data-order]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-order]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    goFirst = btn.dataset.order === 'first';
     scores = { you: 0, draw: 0, bot: 0 };
     updateScores();
     newGame();
