@@ -580,6 +580,29 @@
     white-space: nowrap;
   }
   #toast.show { opacity: 1; }
+
+  /* Rarity flash overlay */
+  #rarity-flash {
+    position: fixed; inset: 0; z-index: 150; pointer-events: none;
+    opacity: 0; transition: opacity .1s;
+  }
+  #rarity-flash.on { opacity: 1; animation: rarityFlash .55s ease-out forwards; }
+  @keyframes rarityFlash { 0%{opacity:.38} 100%{opacity:0} }
+
+  /* Completion overlay */
+  #completion-overlay {
+    display: none; position: fixed; inset: 0; z-index: 400;
+    background: rgba(10,8,18,.88); backdrop-filter: blur(8px);
+    flex-direction: column; align-items: center; justify-content: center;
+    gap: 1rem; animation: overlayIn .35s ease;
+  }
+  #completion-overlay.on { display: flex; }
+  @keyframes overlayIn { from{opacity:0;transform:scale(.94)} to{opacity:1;transform:scale(1)} }
+  #completion-overlay .big-emoji { font-size: 5rem; line-height: 1; }
+  #completion-overlay h2 { font-size: 2rem; font-weight: 900; color: #fbbf24; }
+  #completion-overlay p { color: rgba(255,255,255,.6); font-size: .95rem; text-align: center; max-width: 280px; }
+  #completion-close { background: #fbbf24; border: none; border-radius: 12px; color: #422006; cursor: pointer; font: inherit; font-size: 1rem; font-weight: 900; padding: .72rem 1.6rem; margin-top: .4rem; }
+  @keyframes confettiFall { to { transform: translateY(110vh) rotate(800deg); opacity: 0; } }
 </style>
 </head>
 <body>
@@ -602,7 +625,7 @@
 </div>
 
 <div id="start-screen">
-  <div style="font-size:3.5rem;line-height:1">🎮</div>
+  <img src="/logo.svg" alt="gamed.fun" style="width:64px;height:64px;border-radius:18px;display:block;margin:0 auto;box-shadow:0 12px 32px rgba(251,191,36,.35);">
   <h1>Emoji Pop</h1>
   <p id="start-tagline">Catch emojis, build your collection.</p>
   <div id="mode-btns">
@@ -733,6 +756,15 @@
   </div>
   <div id="fuse-hint">Tap a slot above to make it active, then pick from your collection:</div>
   <div id="fuse-picker-grid"></div>
+</div>
+
+<div id="rarity-flash"></div>
+
+<div id="completion-overlay">
+  <div class="big-emoji">🏆</div>
+  <h2>Collection Complete!</h2>
+  <p>You caught every emoji in the game. Legendary.</p>
+  <button id="completion-close" onclick="document.getElementById('completion-overlay').classList.remove('on')">Keep Playing</button>
 </div>
 
 <div id="collection-overlay">
@@ -957,6 +989,36 @@ function spawnToScreen(emoji, rKey) {
 }
 
 // ── COLLECT ────────────────────────────────────────────────
+let completionShown = false;
+
+function launchConfetti(colors) {
+  const c = colors || ['#fbbf24','#f87171','#a78bfa','#38bdf8','#34d399','#ffffff'];
+  for (let i = 0; i < 80; i++) {
+    const el = document.createElement('div');
+    const size = 6 + Math.random() * 9;
+    el.style.cssText = [
+      'position:fixed', `top:-${size}px`, `left:${Math.random()*100}%`,
+      `width:${size}px`, `height:${size}px`,
+      `background:${c[Math.floor(Math.random()*c.length)]}`,
+      `border-radius:${Math.random()>.5?'50%':'2px'}`,
+      'pointer-events:none', 'z-index:9999',
+      `animation:confettiFall ${1.5+Math.random()*2}s ease-in forwards`,
+      `animation-delay:${Math.random()*.8}s`
+    ].join(';');
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  }
+}
+
+function rarityFlash(color) {
+  const el = document.getElementById('rarity-flash');
+  el.style.background = color;
+  el.classList.remove('on');
+  void el.offsetWidth;
+  el.classList.add('on');
+  el.addEventListener('animationend', () => el.classList.remove('on'), { once: true });
+}
+
 function collect(emoji, rKey, el, timeout, noCoins, coinMultiplier = 1) {
   clearTimeout(timeout);
   activeEmojis = activeEmojis.filter(a => a.el !== el);
@@ -989,10 +1051,25 @@ function collect(emoji, rKey, el, timeout, noCoins, coinMultiplier = 1) {
   document.body.appendChild(pop);
   setTimeout(() => pop.remove(), 950);
 
+  if (isNew && rKey === 'legendary') { rarityFlash('rgba(251,191,36,.55)'); launchConfetti(['#fbbf24','#fff','#f97316']); }
+  if (isNew && rKey === 'mythic')    { rarityFlash('rgba(248,113,113,.55)'); launchConfetti(['#f87171','#fff','#c084fc']); }
+
   trackQuest('catch', rKey, isNew);
   updateHUD();
   saveGame();
   if (collOpen) renderCollection();
+
+  if (isNew && !completionShown) {
+    const found = Object.keys(collection).length;
+    const total = TOTAL + customEmojiDefs.length;
+    if (found >= total) {
+      completionShown = true;
+      setTimeout(() => {
+        document.getElementById('completion-overlay').classList.add('on');
+        launchConfetti();
+      }, 600);
+    }
+  }
 }
 
 // ── SUMMON ─────────────────────────────────────────────────
