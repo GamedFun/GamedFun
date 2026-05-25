@@ -1040,37 +1040,34 @@ function emojiStats(emoji) {
   };
 }
 
-// Stamp stats onto every emoji and NPC once at load time
-// (done after EMOJIS and NPCS are defined below)
+// Stamp stats onto every emoji once at load time.
 
 // ── BATTLE ─────────────────────────────────────────────────
-const NPCS = [
-  { name:'Wimpy Worm',      e:'🐛', r:'common'    },
-  { name:'Grumpy Frog',     e:'🐸', r:'common'    },
-  { name:'Sneaky Fox',      e:'🦊', r:'uncommon'  },
-  { name:'Wild Wolf',       e:'🐺', r:'uncommon'  },
-  { name:'Clumsy Bear',     e:'🐻', r:'uncommon'  },
-  { name:'Fierce Shark',    e:'🦈', r:'rare'      },
-  { name:'Stone Croc',      e:'🐊', r:'rare'      },
-  { name:'Iron Elephant',   e:'🐘', r:'rare'      },
-  { name:'Roaring Dragon',  e:'🐉', r:'epic'      },
-  { name:'Ancient T-Rex',   e:'🦖', r:'epic'      },
-  { name:'Space Overlord',  e:'👾', r:'epic'      },
-  { name:'Shadow Vampire',  e:'🧛', r:'epic'      },
-  { name:'Burning Phoenix', e:'🔥', r:'legendary' },
-  { name:'Diamond Golem',   e:'💎', r:'legendary' },
-  { name:'Storm King',      e:'🌀', r:'legendary' },
-  { name:'Cosmic Horror',   e:'🌌', r:'mythic'    },
-  { name:'Thunder God',     e:'⚡', r:'mythic'    },
-  { name:'Void Wizard',     e:'🪄', r:'mythic'    },
-];
-
 EMOJIS.forEach(e => Object.assign(e, emojiStats(e)));
-NPCS.forEach(n => Object.assign(n, emojiStats(n)));
+const NPCS = EMOJIS.map(e => ({ ...e, name: e.n }));
 if (refreshCustomEmojiStats()) saveGame();
 
 let battleState = null;
 let battleOpen = false;
+
+function battlePower(fighter) {
+  return (fighter.hp || 0) + (fighter.atk || 0) * 5;
+}
+
+function pickBattleOpponent(playerEmoji) {
+  const playerPower = battlePower(playerEmoji);
+  const ranked = [...NPCS].sort((a, b) => battlePower(a) - battlePower(b));
+  const closestIndex = ranked.reduce((bestIndex, npc, i) => {
+    const bestGap = Math.abs(battlePower(ranked[bestIndex]) - playerPower);
+    const gap = Math.abs(battlePower(npc) - playerPower);
+    return gap < bestGap ? i : bestIndex;
+  }, 0);
+  const spread = Math.max(8, Math.round(ranked.length * 0.08));
+  const min = Math.max(0, closestIndex - Math.round(spread * 0.6));
+  const max = Math.min(ranked.length - 1, closestIndex + spread);
+  const pool = ranked.slice(min, max + 1);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 function openBattle() {
   battleOpen = true;
@@ -1111,7 +1108,7 @@ function renderFighterPick() {
 }
 
 function startBattle(emojiDef) {
-  const npc = NPCS[Math.floor(Math.random() * NPCS.length)];
+  const npc = pickBattleOpponent(emojiDef);
   battleState = {
     playerEmoji: emojiDef,
     playerHP: emojiDef.hp, playerMaxHP: emojiDef.hp, playerAtk: emojiDef.atk,
@@ -1221,7 +1218,7 @@ function endBattle(won) {
   if (won) {
     const reward = nr.coins * 3;
     coins += reward;
-    const found = EMOJIS.find(em => em.e === npc.e);
+    const found = EMOJIS.find(em => em.n === npc.n);
     let extra = '';
     if (found) {
       const wasNew = !collection[found.n];
