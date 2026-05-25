@@ -632,8 +632,7 @@ const RARITIES = {
 };
 
 const EMOJIS = [
-  // Common (20)
-  // Common (50) — food, treats, nature, toys kids love
+  // Common (84) — food, treats, nature, toys kids love
   {e:'🍎',n:'Apple',r:'common'},{e:'🍊',n:'Orange',r:'common'},{e:'🍋',n:'Lemon',r:'common'},
   {e:'🍇',n:'Grapes',r:'common'},{e:'🍓',n:'Strawberry',r:'common'},{e:'🍉',n:'Watermelon',r:'common'},
   {e:'🥕',n:'Carrot',r:'common'},{e:'🌽',n:'Corn',r:'common'},{e:'🌻',n:'Sunflower',r:'common'},
@@ -651,7 +650,19 @@ const EMOJIS = [
   {e:'🌷',n:'Tulip',r:'common'},{e:'🍰',n:'Cake Slice',r:'common'},{e:'🎂',n:'Birthday Cake',r:'common'},
   {e:'🚂',n:'Train',r:'common'},{e:'✈️',n:'Airplane',r:'common'},{e:'🎨',n:'Palette',r:'common'},
   {e:'🧩',n:'Puzzle Piece',r:'common'},{e:'🎀',n:'Ribbon',r:'common'},{e:'🌺',n:'Hibiscus',r:'common'},
-  // Uncommon (32) — cute animals kids recognise
+  {e:'🍌',n:'Banana',r:'common'},{e:'🍒',n:'Cherries',r:'common'},{e:'🍑',n:'Peach',r:'common'},
+  {e:'🥝',n:'Kiwi',r:'common'},{e:'🍍',n:'Pineapple',r:'common'},{e:'🥥',n:'Coconut',r:'common'},
+  {e:'🥨',n:'Pretzel',r:'common'},{e:'🍪',n:'Cookie',r:'common'},{e:'🥧',n:'Pie',r:'common'},
+  {e:'🍿',n:'Popcorn',r:'common'},{e:'🥤',n:'Soda',r:'common'},{e:'🧃',n:'Juice Box',r:'common'},
+  {e:'🛼',n:'Roller Skate',r:'common'},{e:'🪁',n:'Kite',r:'common'},{e:'🪀',n:'Yo-Yo',r:'common'},
+  {e:'✨',n:'Sparkles',r:'common'},{e:'🪅',n:'Pinata',r:'common'},{e:'🪩',n:'Mirror Ball',r:'common'},
+  {e:'🧱',n:'Brick',r:'common'},{e:'🪵',n:'Wood Log',r:'common'},{e:'🪨',n:'Rock',r:'common'},
+  {e:'🌱',n:'Seedling',r:'common'},{e:'🌲',n:'Evergreen',r:'common'},{e:'🌳',n:'Tree',r:'common'},
+  {e:'🍁',n:'Maple Leaf',r:'common'},{e:'🌼',n:'Daisy',r:'common'},{e:'🪷',n:'Lotus',r:'common'},
+  {e:'🫧',n:'Bubbles',r:'common'},{e:'🧼',n:'Soap',r:'common'},{e:'🪥',n:'Toothbrush',r:'common'},
+  {e:'🧦',n:'Socks',r:'common'},{e:'🧢',n:'Cap',r:'common'},{e:'🕶️',n:'Sunglasses',r:'common'},
+  {e:'📚',n:'Books',r:'common'},
+  // Uncommon (60) — cute animals kids recognise
   {e:'🐶',n:'Dog',r:'uncommon'},{e:'🐱',n:'Cat',r:'uncommon'},{e:'🐭',n:'Mouse',r:'uncommon'},
   {e:'🐰',n:'Rabbit',r:'uncommon'},{e:'🦊',n:'Fox',r:'uncommon'},{e:'🐻',n:'Bear',r:'uncommon'},
   {e:'🐼',n:'Panda',r:'uncommon'},{e:'🐨',n:'Koala',r:'uncommon'},{e:'🐯',n:'Tiger',r:'uncommon'},
@@ -663,7 +674,17 @@ const EMOJIS = [
   {e:'🐛',n:'Caterpillar',r:'uncommon'},{e:'🐣',n:'Hatching Chick',r:'uncommon'},
   {e:'🐥',n:'Baby Chick',r:'uncommon'},{e:'🦦',n:'Otter',r:'uncommon'},{e:'🦥',n:'Sloth',r:'uncommon'},
   {e:'🦚',n:'Peacock',r:'uncommon'},{e:'🐾',n:'Paw Prints',r:'uncommon'},{e:'🐻‍❄️',n:'Polar Bear',r:'uncommon'},
-  // Rare (28) — exotic animals + fantasy lite
+  {e:'🐴',n:'Horse',r:'uncommon'},{e:'🫏',n:'Donkey',r:'uncommon'},{e:'🐮',n:'Cow',r:'uncommon'},
+  {e:'🐷',n:'Pig',r:'uncommon'},{e:'🐽',n:'Pig Nose',r:'uncommon'},{e:'🐹',n:'Hamster',r:'uncommon'},
+  {e:'🦇',n:'Bat',r:'uncommon'},{e:'🐦',n:'Bird',r:'uncommon'},{e:'🐦‍⬛',n:'Black Bird',r:'uncommon'},
+  {e:'🪿',n:'Goose',r:'uncommon'},{e:'🦃',n:'Turkey',r:'uncommon'},{e:'🐌',n:'Snail',r:'uncommon'},
+  {e:'🪲',n:'Beetle',r:'uncommon'},{e:'🐞',n:'Lady Beetle',r:'uncommon'},{e:'🦗',n:'Cricket',r:'uncommon'},
+  {e:'🪱',n:'Worm',r:'uncommon'},{e:'🐜',n:'Ant',r:'uncommon'},{e:'🪰',n:'Fly',r:'uncommon'},
+  {e:'🦟',n:'Mosquito',r:'uncommon'},{e:'🐟',n:'Fish',r:'uncommon'},{e:'🐅',n:'Tiger Side',r:'uncommon'},
+  {e:'🐈',n:'Cat Side',r:'uncommon'},{e:'🐕',n:'Dog Side',r:'uncommon'},{e:'🐩',n:'Poodle',r:'uncommon'},
+  {e:'🐁',n:'Mouse Side',r:'uncommon'},{e:'🐀',n:'Rat',r:'uncommon'},{e:'🐓',n:'Rooster',r:'uncommon'},
+  {e:'🕊️',n:'Dove',r:'uncommon'},
+  // Rare (50) — exotic animals + fantasy lite
   {e:'🦄',n:'Unicorn',r:'rare'},{e:'🐙',n:'Octopus',r:'rare'},
   {e:'🦑',n:'Squid',r:'rare'},{e:'🦀',n:'Crab',r:'rare'},{e:'🐬',n:'Dolphin',r:'rare'},
   {e:'🦈',n:'Shark',r:'rare'},{e:'🐊',n:'Crocodile',r:'rare'},{e:'🦁',n:'Lion',r:'rare'},
@@ -674,26 +695,49 @@ const EMOJIS = [
   {e:'🦅',n:'Eagle',r:'rare'},{e:'🦢',n:'Swan',r:'rare'},{e:'🐡',n:'Blowfish',r:'rare'},
   {e:'🦎',n:'Lizard',r:'rare'},{e:'🐍',n:'Snake',r:'rare'},{e:'🦤',n:'Dodo',r:'rare'},
   {e:'🪸',n:'Coral',r:'rare'},{e:'🐚',n:'Shell',r:'rare'},
-  // Epic (18) — mythical creatures + cool characters kids love
+  {e:'🦍',n:'Gorilla',r:'rare'},{e:'🦧',n:'Orangutan',r:'rare'},{e:'🐪',n:'Camel',r:'rare'},
+  {e:'🐫',n:'Two-Hump Camel',r:'rare'},{e:'🦙',n:'Llama',r:'rare'},{e:'🦌',n:'Deer',r:'rare'},
+  {e:'🦣',n:'Mammoth',r:'rare'},{e:'🦫',n:'Beaver',r:'rare'},{e:'🦨',n:'Skunk',r:'rare'},
+  {e:'🦡',n:'Badger',r:'rare'},{e:'🪻',n:'Hyacinth',r:'rare'},{e:'🦴',n:'Fossil Bone',r:'rare'},
+  {e:'🦞',n:'Lobster',r:'rare'},{e:'🦐',n:'Shrimp',r:'rare'},{e:'🪼',n:'Jellyfish',r:'rare'},
+  {e:'🐳',n:'Spouting Whale',r:'rare'},{e:'🪽',n:'Wing',r:'rare'},{e:'🪶',n:'Feather',r:'rare'},
+  {e:'🕷️',n:'Spider',r:'rare'},{e:'🐲',n:'Dragon Face',r:'rare'},{e:'🕸️',n:'Spider Web',r:'rare'},
+  {e:'🪺',n:'Nest With Eggs',r:'rare'},
+  // Epic (36) — mythical creatures + cool characters kids love
   {e:'🐉',n:'Dragon',r:'epic'},{e:'🦕',n:'Sauropod',r:'epic'},{e:'🦖',n:'T-Rex',r:'epic'},
   {e:'🧙',n:'Wizard',r:'epic'},{e:'🧜',n:'Merperson',r:'epic'},{e:'🧝',n:'Elf',r:'epic'},
   {e:'🦸',n:'Superhero',r:'epic'},{e:'🧞',n:'Genie',r:'epic'},{e:'🧟',n:'Zombie',r:'epic'},
   {e:'🧛',n:'Vampire',r:'epic'},{e:'🧌',n:'Troll',r:'epic'},{e:'👾',n:'Space Invader',r:'epic'},
   {e:'🤖',n:'Robot',r:'epic'},{e:'👻',n:'Ghost',r:'epic'},{e:'🧚',n:'Fairy',r:'epic'},
   {e:'👽',n:'Alien',r:'epic'},{e:'🦹',n:'Supervillain',r:'epic'},{e:'🛸',n:'UFO',r:'epic'},
-  // Legendary (12) — treasures and wonders
+  {e:'🥷',n:'Ninja',r:'epic'},{e:'🧑‍🚀',n:'Astronaut',r:'epic'},{e:'🧑‍🚒',n:'Firefighter',r:'epic'},
+  {e:'🧑‍🔬',n:'Scientist',r:'epic'},{e:'🧑‍🎤',n:'Rock Star',r:'epic'},{e:'🧑‍🎨',n:'Artist',r:'epic'},
+  {e:'🧑‍✈️',n:'Pilot',r:'epic'},{e:'👨‍🚀',n:'Moon Explorer',r:'epic'},{e:'👩‍🚒',n:'Rescue Hero',r:'epic'},
+  {e:'🎭',n:'Theater Masks',r:'epic'},{e:'🎪',n:'Circus Tent',r:'epic'},{e:'🎡',n:'Ferris Wheel',r:'epic'},
+  {e:'🎢',n:'Roller Coaster',r:'epic'},{e:'🚀',n:'Rocket',r:'epic'},{e:'🛰️',n:'Satellite',r:'epic'},
+  {e:'🪐',n:'Ringed Planet',r:'epic'},{e:'☄️',n:'Comet',r:'epic'},{e:'🌪️',n:'Tornado',r:'epic'},
+  // Legendary (26) — treasures and wonders
   {e:'💎',n:'Diamond',r:'legendary'},{e:'👑',n:'Crown',r:'legendary'},{e:'🏆',n:'Trophy',r:'legendary'},
   {e:'🔮',n:'Crystal Ball',r:'legendary'},{e:'🌈',n:'Rainbow',r:'legendary'},
   {e:'🗝️',n:'Old Key',r:'legendary'},{e:'🧿',n:'Evil Eye',r:'legendary'},{e:'🪬',n:'Hamsa',r:'legendary'},
   {e:'🌟',n:'Glowing Star',r:'legendary'},{e:'🔥',n:'Fire',r:'legendary'},
   {e:'🌀',n:'Cyclone',r:'legendary'},{e:'💫',n:'Dizzy Star',r:'legendary'},
-  // Mythic (8) — the rarest of the rare
+  {e:'🏰',n:'Castle',r:'legendary'},{e:'🗿',n:'Moai',r:'legendary'},{e:'⚜️',n:'Fleur-de-lis',r:'legendary'},
+  {e:'🛡️',n:'Shield',r:'legendary'},{e:'⚔️',n:'Crossed Swords',r:'legendary'},{e:'🏹',n:'Bow and Arrow',r:'legendary'},
+  {e:'🪙',n:'Gold Coin',r:'legendary'},{e:'💰',n:'Money Bag',r:'legendary'},{e:'📜',n:'Ancient Scroll',r:'legendary'},
+  {e:'🧭',n:'Compass',r:'legendary'},{e:'⌛',n:'Hourglass',r:'legendary'},{e:'⏳',n:'Flowing Hourglass',r:'legendary'},
+  {e:'🕯️',n:'Candle',r:'legendary'},{e:'🏺',n:'Amphora',r:'legendary'},
+  // Mythic (18) — the rarest of the rare
   {e:'🌌',n:'Milky Way',r:'mythic'},{e:'🪄',n:'Magic Wand',r:'mythic'},{e:'⚡',n:'Lightning',r:'mythic'},
   {e:'🌠',n:'Shooting Star',r:'mythic'},{e:'🔱',n:'Trident',r:'mythic'},
   {e:'🌋',n:'Volcano',r:'mythic'},{e:'🧬',n:'DNA',r:'mythic'},{e:'🎆',n:'Fireworks',r:'mythic'},
+  {e:'☢️',n:'Radioactive',r:'mythic'},{e:'☣️',n:'Biohazard',r:'mythic'},{e:'♾️',n:'Infinity',r:'mythic'},
+  {e:'🕳️',n:'Portal',r:'mythic'},{e:'🧪',n:'Potion',r:'mythic'},{e:'🧫',n:'Petri Dish',r:'mythic'},
+  {e:'🔯',n:'Cosmic Sigil',r:'mythic'},{e:'🌐',n:'World Grid',r:'mythic'},{e:'💥',n:'Collision',r:'mythic'},
+  {e:'🧲',n:'Magnet',r:'mythic'},
 ];
 
-const TOTAL = EMOJIS.length; // 148
+const TOTAL = EMOJIS.length; // 274
 const MAX_ACTIVE = 12;
 const SUMMON_COSTS = { basic:10, uncommon:50, rare:150, epic:500, legendary:2000 };
 const SUMMON_POOLS = {
@@ -1023,6 +1067,7 @@ const NPCS = [
 
 EMOJIS.forEach(e => Object.assign(e, emojiStats(e)));
 NPCS.forEach(n => Object.assign(n, emojiStats(n)));
+if (refreshCustomEmojiStats()) saveGame();
 
 let battleState = null;
 let battleOpen = false;
@@ -1228,6 +1273,30 @@ function emojiText(emoji) {
   return emojiParts(emoji).join('');
 }
 
+function statsFromParts(parts) {
+  return (parts || []).reduce((stats, part) => {
+    const base = EMOJIS.find(em => em.e === part);
+    if (!base) return stats;
+    stats.hp += base.hp || emojiStats(base).hp;
+    stats.atk += base.atk || emojiStats(base).atk;
+    return stats;
+  }, { hp: 0, atk: 0 });
+}
+
+function refreshCustomEmojiStats() {
+  let changed = false;
+  customEmojiDefs.forEach(custom => {
+    const stats = statsFromParts(custom.parts);
+    if (!stats.hp || !stats.atk) return;
+    if (custom.hp !== stats.hp || custom.atk !== stats.atk) {
+      custom.hp = stats.hp;
+      custom.atk = stats.atk;
+      changed = true;
+    }
+  });
+  return changed;
+}
+
 function comboKey(e1, e2) {
   return [e1.n, e2.n].sort().join('|');
 }
@@ -1243,10 +1312,9 @@ function makeCustomEmoji(e1, e2) {
   const targetR = RARITY_ORDER[targetRi];
   const w1 = sorted[0].n.split(' ')[0];
   const w2 = sorted[1].n.split(' ')[0];
-  const rng = STAT_RANGES[targetR];
-  const hp  = Math.round(rng.hpMin  + (rng.hpMax  - rng.hpMin)  * (0.7 + Math.random() * 0.3));
-  const atk = Math.round(rng.atkMin + (rng.atkMax - rng.atkMin) * (0.7 + Math.random() * 0.3));
-  const def = { parts: [...emojiParts(sorted[0]), ...emojiParts(sorted[1])], n: `${w1}-${w2}`, r: targetR, custom: true, key, hp, atk };
+  const parts = [...emojiParts(sorted[0]), ...emojiParts(sorted[1])];
+  const { hp, atk } = statsFromParts(parts);
+  const def = { parts, n: `${w1}-${w2}`, r: targetR, custom: true, key, hp, atk };
   customEmojiDefs.push(def);
   return def;
 }
