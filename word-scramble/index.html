@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script>document.documentElement.dataset.theme=localStorage.getItem('gf-theme')||'dark';</script>
-  <title>Daily Word Scramble</title>
-<link rel="icon" type="image/svg+xml" href="../logo.svg">
+  <title>Daily Word Scramble — gamed.fun</title>
+  <link rel="icon" type="image/svg+xml" href="../logo.svg">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -65,7 +65,7 @@
       display: grid;
       gap: 1rem;
     }
-    .setup, .game, .records {
+    .setup, .game, .result-screen, .records {
       background: rgba(24,35,56,0.92);
       border: 1px solid var(--border);
       border-radius: 14px;
@@ -108,12 +108,31 @@
       font-size: 0.82rem;
       font-weight: 900;
       padding: 0.5rem 0.8rem;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
     .difficulty-btn.active {
       background: var(--accent);
       border-color: var(--accent);
       color: #052e16;
     }
+
+    /* Progress dots */
+    .progress-dots {
+      display: flex;
+      gap: 5px;
+    }
+    .dot {
+      flex: 1;
+      height: 6px;
+      border-radius: 99px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+    .dot.correct { background: var(--accent); border-color: var(--accent); }
+    .dot.wrong   { background: var(--wrong);  border-color: var(--wrong);  }
+    .dot.current { background: var(--accent-2); border-color: var(--accent-2); opacity: 0.55; }
+
     .game {
       padding: 1.3rem;
       display: grid;
@@ -131,23 +150,45 @@
       font-weight: 900;
       line-height: 1;
     }
-    .scrambled {
+    .score.bump { animation: scoreBump 0.25s ease; }
+
+    /* Letter tiles */
+    .tiles-wrap {
       min-height: 5.4rem;
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-wrap: wrap;
+      gap: 7px;
       background: var(--panel-2);
       border: 1px solid var(--border);
       border-radius: 12px;
+      padding: 1rem;
+    }
+    .tiles-wrap.shake { animation: shake 0.4s ease; }
+    .tile {
+      background: var(--panel);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
       color: var(--accent-2);
-      font-size: clamp(2rem, 8vw, 4.4rem);
+      font-size: clamp(1.3rem, 5.5vw, 2.1rem);
       font-weight: 900;
+      width: clamp(36px, 8.5vw, 52px);
+      height: clamp(42px, 8.5vw, 56px);
+      display: grid;
+      place-items: center;
+      text-transform: uppercase;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.22);
+      animation: tileIn 0.18s ease backwards;
+    }
+    .tiles-placeholder {
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      text-align: center;
-      padding: 1rem;
-      overflow-wrap: anywhere;
     }
+
     .answer-row {
       display: flex;
       gap: 0.6rem;
@@ -163,8 +204,10 @@
       font-size: 1rem;
       padding: 0.78rem 0.9rem;
       outline: none;
+      transition: border-color 0.18s;
     }
     input:focus { border-color: var(--accent); }
+    input.wrong-flash { border-color: var(--wrong) !important; transition: none; }
     button {
       background: var(--accent);
       border: none;
@@ -174,11 +217,10 @@
       font: inherit;
       font-weight: 900;
       padding: 0.78rem 1rem;
+      transition: opacity 0.15s, transform 0.1s;
     }
-    button:disabled {
-      cursor: not-allowed;
-      opacity: 0.55;
-    }
+    button:active:not(:disabled) { transform: scale(0.96); }
+    button:disabled { cursor: not-allowed; opacity: 0.45; }
     button.secondary {
       background: transparent;
       border: 1px solid var(--border);
@@ -190,12 +232,75 @@
       font-size: 0.9rem;
     }
     .feedback.good { color: var(--accent); }
-    .feedback.bad { color: var(--wrong); }
+    .feedback.bad  { color: var(--wrong); }
     .actions {
       display: flex;
       flex-wrap: wrap;
       gap: 0.6rem;
     }
+
+    /* Result screen */
+    .result-screen {
+      padding: 1.5rem;
+      display: none;
+      flex-direction: column;
+      gap: 1.3rem;
+      animation: fadeUp 0.38s ease;
+    }
+    .result-screen.visible { display: flex; }
+    .result-top { display: flex; align-items: flex-end; gap: 1rem; flex-wrap: wrap; }
+    .result-score-big { font-size: 3.8rem; font-weight: 900; color: var(--accent); line-height: 1; }
+    .result-meta { padding-bottom: 0.3rem; }
+    .result-meta .label { margin-bottom: 0.18rem; }
+    .perfect-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: linear-gradient(135deg, #22c55e, #38bdf8);
+      color: #052e16;
+      font-size: 0.7rem;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 99px;
+    }
+    .result-emoji-grid {
+      font-size: 1.55rem;
+      letter-spacing: 3px;
+      line-height: 1.9;
+    }
+    .result-divider { height: 1px; background: var(--border); }
+    .result-words { display: grid; gap: 0.45rem; }
+    .result-word-row {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      font-size: 0.88rem;
+    }
+    .result-word-row .rw-icon { font-size: 0.95rem; flex: 0 0 auto; line-height: 1; }
+    .result-word-row .rw-word {
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .result-word-row.r-correct .rw-word { color: var(--accent); }
+    .result-word-row.r-wrong   .rw-word { color: var(--wrong); }
+    .result-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+    .btn-share-big {
+      background: var(--accent);
+      border: none;
+      border-radius: 10px;
+      color: #052e16;
+      cursor: pointer;
+      font: inherit;
+      font-size: 1rem;
+      font-weight: 900;
+      padding: 0.78rem 1.4rem;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn-share-big:active { transform: scale(0.97); }
+
     .records {
       padding: 1rem;
       display: grid;
@@ -215,17 +320,57 @@
       font-weight: 800;
       padding: 0.42rem 0.6rem;
     }
+
+    /* Animations */
+    @keyframes tileIn {
+      from { opacity: 0; transform: translateY(7px) scale(0.82); }
+      to   { opacity: 1; transform: translateY(0)  scale(1); }
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      18%     { transform: translateX(-8px); }
+      36%     { transform: translateX(8px); }
+      54%     { transform: translateX(-5px); }
+      72%     { transform: translateX(5px); }
+    }
+    @keyframes scoreBump {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.28); }
+      100% { transform: scale(1); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes confettiFall {
+      to { transform: translateY(110vh) rotate(800deg); opacity: 0; }
+    }
+
     @media (max-width: 540px) {
       .answer-row { flex-direction: column; }
-      button { width: 100%; }
+      .answer-row button { width: 100%; }
+      .result-actions button { flex: 1; }
     }
     @media (max-width: 420px) {
       header { padding: .5rem .75rem; }
       main { padding: 1rem .75rem 3rem; }
     }
-    [data-theme="light"] { --bg: #f5f5f5; --panel: #ffffff; --panel-2: #f0f0f5; --text: #111827; --muted: #6b7280; --border: rgba(0,0,0,.1); }
-    [data-theme="light"] body { background: radial-gradient(circle at 20% 10%,rgba(34,197,94,.07),transparent 28rem),radial-gradient(circle at 85% 20%,rgba(56,189,248,.06),transparent 24rem),#f5f5f5; }
-    [data-theme="light"] .setup, [data-theme="light"] .game, [data-theme="light"] .records { background: #ffffff; }
+
+    [data-theme="light"] {
+      --bg: #f5f5f5; --panel: #ffffff; --panel-2: #f0f0f5;
+      --text: #111827; --muted: #6b7280; --border: rgba(0,0,0,.1);
+    }
+    [data-theme="light"] body {
+      background:
+        radial-gradient(circle at 20% 10%,rgba(34,197,94,.07),transparent 28rem),
+        radial-gradient(circle at 85% 20%,rgba(56,189,248,.06),transparent 24rem),
+        #f5f5f5;
+    }
+    [data-theme="light"] .setup,
+    [data-theme="light"] .game,
+    [data-theme="light"] .result-screen,
+    [data-theme="light"] .records { background: #ffffff; }
+    [data-theme="light"] .tile { background: #f4f4f8; }
   </style>
 </head>
 <body>
@@ -259,11 +404,13 @@
       </div>
     </section>
 
-    <section class="game">
+    <section class="game" id="gameSection">
+      <div class="progress-dots" id="progressDots" aria-label="Progress"></div>
+
       <div class="top-row">
         <div>
           <div class="label">Score</div>
-          <div class="score"><span id="scoreVal">0</span>/10</div>
+          <div class="score" id="scoreDisplay"><span id="scoreVal">0</span>/10</div>
         </div>
         <div>
           <div class="label">Word</div>
@@ -271,17 +418,44 @@
         </div>
       </div>
 
-      <div class="scrambled" id="scrambledWord">READY</div>
+      <div class="tiles-wrap" id="tilesWrap">
+        <span class="tiles-placeholder">Get ready…</span>
+      </div>
 
       <form class="answer-row" id="answerForm">
-        <input id="answerInput" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Unscramble the word">
-        <button type="submit">Submit</button>
+        <input id="answerInput" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Type the unscrambled word">
+        <button type="submit" id="submitBtn">Submit</button>
       </form>
 
       <div class="feedback" id="feedback">Same challenge for everyone until midnight Eastern.</div>
+
       <div class="actions">
         <button class="secondary" id="restartBtn" type="button">Restart</button>
-        <button class="secondary" id="shareBtn" type="button">Share Result</button>
+        <button class="secondary" id="skipBtn" type="button">Skip</button>
+        <button class="secondary" id="shareBtn" type="button">Share</button>
+      </div>
+    </section>
+
+    <section class="result-screen" id="resultScreen">
+      <div class="result-top">
+        <div>
+          <div class="label">Final Score</div>
+          <div class="result-score-big" id="resultScoreBig">0/10</div>
+        </div>
+        <div class="result-meta">
+          <div id="perfectBadge" style="display:none" class="perfect-badge">✦ Perfect</div>
+        </div>
+      </div>
+
+      <div class="result-emoji-grid" id="resultEmojiGrid"></div>
+
+      <div class="result-divider"></div>
+
+      <div class="result-words" id="resultWords"></div>
+
+      <div class="result-actions">
+        <button class="btn-share-big" id="resultShareBtn" type="button">Share Result</button>
+        <button class="secondary" id="resultRestartBtn" type="button">Play Again</button>
       </div>
     </section>
 
@@ -313,19 +487,25 @@
     const TOTAL = 10;
     const STORE_KEY = 'daily_scramble_records';
 
-    const scrambledWord = document.getElementById('scrambledWord');
-    const answerForm = document.getElementById('answerForm');
-    const answerInput = document.getElementById('answerInput');
-    const scoreVal = document.getElementById('scoreVal');
-    const wordIndex = document.getElementById('wordIndex');
-    const feedback = document.getElementById('feedback');
-    const restartBtn = document.getElementById('restartBtn');
-    const shareBtn = document.getElementById('shareBtn');
-    const todayRecord = document.getElementById('todayRecord');
-    const bestRecord = document.getElementById('bestRecord');
-    const dailyLabel = document.getElementById('dailyLabel');
-    const streakVal = document.getElementById('streakVal');
-    const difficultyBtns = document.querySelectorAll('[data-difficulty]');
+    const tilesWrap       = document.getElementById('tilesWrap');
+    const answerForm      = document.getElementById('answerForm');
+    const answerInput     = document.getElementById('answerInput');
+    const submitBtn       = document.getElementById('submitBtn');
+    const scoreVal        = document.getElementById('scoreVal');
+    const scoreDisplay    = document.getElementById('scoreDisplay');
+    const wordIndex       = document.getElementById('wordIndex');
+    const feedback        = document.getElementById('feedback');
+    const restartBtn      = document.getElementById('restartBtn');
+    const skipBtn         = document.getElementById('skipBtn');
+    const shareBtn        = document.getElementById('shareBtn');
+    const todayRecord     = document.getElementById('todayRecord');
+    const bestRecord      = document.getElementById('bestRecord');
+    const dailyLabel      = document.getElementById('dailyLabel');
+    const streakVal       = document.getElementById('streakVal');
+    const difficultyBtns  = document.querySelectorAll('[data-difficulty]');
+    const gameSection     = document.getElementById('gameSection');
+    const resultScreen    = document.getElementById('resultScreen');
+    const progressDots    = document.getElementById('progressDots');
 
     let dayKey = getDailyKey();
     let difficulty = 'easy';
@@ -334,33 +514,80 @@
     let score = 0;
     let finished = false;
     let results = [];
+    let wordResults = [];
 
+    // ── Progress dots ────────────────────────────────────────────
+    function initDots() {
+      progressDots.innerHTML = '';
+      for (let i = 0; i < TOTAL; i++) {
+        const d = document.createElement('div');
+        d.className = 'dot';
+        progressDots.appendChild(d);
+      }
+    }
+
+    function updateDots() {
+      progressDots.querySelectorAll('.dot').forEach((dot, i) => {
+        dot.className = 'dot';
+        if (i < results.length) dot.classList.add(results[i] ? 'correct' : 'wrong');
+        else if (i === results.length && !finished) dot.classList.add('current');
+      });
+    }
+
+    // ── Letter tiles ─────────────────────────────────────────────
+    function renderTiles(scrambled) {
+      tilesWrap.innerHTML = '';
+      if (!scrambled) {
+        tilesWrap.innerHTML = '<span class="tiles-placeholder">Get ready…</span>';
+        return;
+      }
+      scrambled.toUpperCase().split('').forEach((letter, i) => {
+        const tile = document.createElement('div');
+        tile.className = 'tile';
+        tile.textContent = letter;
+        tile.style.animationDelay = `${i * 38}ms`;
+        tilesWrap.appendChild(tile);
+      });
+    }
+
+    function shakeTiles() {
+      tilesWrap.classList.remove('shake');
+      void tilesWrap.offsetWidth;
+      tilesWrap.classList.add('shake');
+      tilesWrap.addEventListener('animationend', () => tilesWrap.classList.remove('shake'), { once: true });
+    }
+
+    function flashInput() {
+      answerInput.classList.add('wrong-flash');
+      setTimeout(() => answerInput.classList.remove('wrong-flash'), 380);
+    }
+
+    function bumpScore() {
+      scoreDisplay.classList.remove('bump');
+      void scoreDisplay.offsetWidth;
+      scoreDisplay.classList.add('bump');
+      scoreDisplay.addEventListener('animationend', () => scoreDisplay.classList.remove('bump'), { once: true });
+    }
+
+    // ── Daily seed helpers ────────────────────────────────────────
     function getDailyKey(date = new Date()) {
       const parts = new Intl.DateTimeFormat('en-CA', {
         timeZone: 'America/New_York',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
+        year: 'numeric', month: '2-digit', day: '2-digit',
       }).formatToParts(date);
-      const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
-      return `${values.year}-${values.month}-${values.day}`;
+      const v = Object.fromEntries(parts.map(p => [p.type, p.value]));
+      return `${v.year}-${v.month}-${v.day}`;
     }
 
     function seedFrom(text) {
       let hash = 2166136261;
-      for (let i = 0; i < text.length; i++) {
-        hash ^= text.charCodeAt(i);
-        hash = Math.imul(hash, 16777619);
-      }
+      for (let i = 0; i < text.length; i++) { hash ^= text.charCodeAt(i); hash = Math.imul(hash, 16777619); }
       return hash >>> 0;
     }
 
     function rng(seed) {
-      let value = seed >>> 0;
-      return () => {
-        value = Math.imul(1664525, value) + 1013904223;
-        return (value >>> 0) / 4294967296;
-      };
+      let v = seed >>> 0;
+      return () => { v = Math.imul(1664525, v) + 1013904223; return (v >>> 0) / 4294967296; };
     }
 
     function shuffle(items, random) {
@@ -373,159 +600,218 @@
     }
 
     function scramble(word, random) {
-      let scrambled = word;
-      let attempts = 0;
-      while (scrambled === word && attempts < 12) {
-        scrambled = shuffle(word.split(''), random).join('');
-        attempts++;
-      }
-      return scrambled;
+      let s = word; let attempts = 0;
+      while (s === word && attempts < 12) { s = shuffle(word.split(''), random).join(''); attempts++; }
+      return s;
     }
 
-    function loadRecords() {
-      try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch { return {}; }
-    }
-
-    function saveRecords(records) {
-      try { localStorage.setItem(STORE_KEY, JSON.stringify(records)); } catch {}
-    }
-
-    function start() {
-      dayKey = getDailyKey();
-      const random = rng(seedFrom(`${dayKey}:${difficulty}`));
-      words = shuffle(WORDS[difficulty], random).slice(0, TOTAL).map(word => ({
-        answer: word,
-        scrambled: scramble(word, random)
-      }));
-      index = 0;
-      score = 0;
-      finished = false;
-      results = [];
-      dailyLabel.textContent = `${difficulty} / ${dayKey}`;
-      scoreVal.textContent = score;
-      answerInput.disabled = false;
-      restartBtn.disabled = false;
-      renderWord();
-      renderRecords();
-      answerInput.focus();
-    }
-
-    function renderWord() {
-      if (index >= words.length) {
-        finish();
-        return;
-      }
-      scrambledWord.textContent = words[index].scrambled;
-      wordIndex.textContent = index + 1;
-      answerInput.value = '';
-      feedback.className = 'feedback';
-      feedback.textContent = 'Unscramble the daily word.';
-    }
-
-    function finish() {
-      finished = true;
-      answerInput.disabled = true;
-      restartBtn.disabled = true;
-      scrambledWord.textContent = score === TOTAL ? 'PERFECT' : 'DONE';
-      feedback.className = 'feedback good';
-      feedback.textContent = `You solved ${score} of ${TOTAL}.`;
-      saveResult();
-      renderRecords();
-    }
-
-    function saveResult() {
-      const records = migrateOldRecords(loadRecords());
-      records[difficulty] ||= {};
-      const modeRecords = records[difficulty];
-      modeRecords.days ||= {};
-      modeRecords.days[dayKey] = Math.max(modeRecords.days[dayKey] || 0, score);
-      modeRecords.best = Math.max(modeRecords.best || 0, score);
-      if (score === TOTAL) modeRecords.streak = (modeRecords.lastPerfect === previousDay(dayKey) ? (modeRecords.streak || 0) + 1 : 1);
-      if (score === TOTAL) modeRecords.lastPerfect = dayKey;
-      saveRecords(records);
-    }
+    // ── Records ───────────────────────────────────────────────────
+    function loadRecords() { try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch { return {}; } }
+    function saveRecords(r) { try { localStorage.setItem(STORE_KEY, JSON.stringify(r)); } catch {} }
 
     function migrateOldRecords(records) {
       if (records.days || records.best || records.streak) {
-        records.medium = {
-          days: records.days || {},
-          best: records.best || 0,
-          streak: records.streak || 0,
-          lastPerfect: records.lastPerfect,
-        };
-        delete records.days;
-        delete records.best;
-        delete records.streak;
-        delete records.lastPerfect;
+        records.medium = { days: records.days || {}, best: records.best || 0, streak: records.streak || 0, lastPerfect: records.lastPerfect };
+        delete records.days; delete records.best; delete records.streak; delete records.lastPerfect;
       }
       return records;
     }
 
     function previousDay(key) {
       const [year, month, day] = key.split('-').map(Number);
-      const date = new Date(Date.UTC(year, month - 1, day));
-      date.setUTCDate(date.getUTCDate() - 1);
-      return date.toISOString().slice(0, 10);
+      const d = new Date(Date.UTC(year, month - 1, day));
+      d.setUTCDate(d.getUTCDate() - 1);
+      return d.toISOString().slice(0, 10);
+    }
+
+    function saveResult() {
+      const records = migrateOldRecords(loadRecords());
+      records[difficulty] ||= {};
+      const m = records[difficulty];
+      m.days ||= {};
+      m.days[dayKey] = Math.max(m.days[dayKey] || 0, score);
+      m.best = Math.max(m.best || 0, score);
+      if (score === TOTAL) m.streak = (m.lastPerfect === previousDay(dayKey) ? (m.streak || 0) + 1 : 1);
+      if (score === TOTAL) m.lastPerfect = dayKey;
+      saveRecords(records);
     }
 
     function renderRecords() {
       const records = migrateOldRecords(loadRecords());
       saveRecords(records);
-      const modeRecords = records[difficulty] || {};
-      todayRecord.textContent = `Today: ${modeRecords.days?.[dayKey] || 0}/${TOTAL}`;
-      bestRecord.textContent = `Best: ${modeRecords.best || 0}/${TOTAL}`;
-      streakVal.textContent = modeRecords.streak || 0;
+      const m = records[difficulty] || {};
+      todayRecord.textContent = `Today: ${m.days?.[dayKey] || 0}/${TOTAL}`;
+      bestRecord.textContent  = `Best: ${m.best || 0}/${TOTAL}`;
+      streakVal.textContent   = m.streak || 0;
     }
 
+    // ── Game flow ─────────────────────────────────────────────────
+    function start() {
+      dayKey = getDailyKey();
+      const random = rng(seedFrom(`${dayKey}:${difficulty}`));
+      words = shuffle(WORDS[difficulty], random).slice(0, TOTAL).map(word => ({
+        answer: word, scrambled: scramble(word, random)
+      }));
+      index = 0; score = 0; finished = false; results = []; wordResults = [];
+      dailyLabel.textContent = `${difficulty} / ${dayKey}`;
+      scoreVal.textContent = 0;
+      answerInput.disabled = false;
+      submitBtn.disabled = false;
+      skipBtn.disabled = false;
+      restartBtn.disabled = false;
+      gameSection.style.display = '';
+      resultScreen.classList.remove('visible');
+      initDots();
+      updateDots();
+      renderWord();
+      renderRecords();
+    }
+
+    function renderWord() {
+      if (index >= words.length) { finish(); return; }
+      renderTiles(words[index].scrambled);
+      wordIndex.textContent = index + 1;
+      answerInput.value = '';
+      feedback.className = 'feedback';
+      feedback.textContent = 'Unscramble the daily word.';
+      updateDots();
+      answerInput.focus();
+    }
+
+    function recordAnswer(isCorrect) {
+      const answer = words[index].answer;
+      results.push(isCorrect);
+      wordResults.push({ answer, correct: isCorrect });
+      index++;
+      updateDots();
+    }
+
+    function finish() {
+      finished = true;
+      answerInput.disabled = true;
+      submitBtn.disabled = true;
+      skipBtn.disabled = true;
+      saveResult();
+      renderRecords();
+      setTimeout(showResultScreen, 300);
+      if (score === TOTAL) setTimeout(launchConfetti, 420);
+    }
+
+    function showResultScreen() {
+      gameSection.style.display = 'none';
+      resultScreen.classList.add('visible');
+
+      document.getElementById('resultScoreBig').textContent = `${score}/10`;
+      document.getElementById('perfectBadge').style.display = score === TOTAL ? 'inline-flex' : 'none';
+
+      const grid = results.map(r => r ? '🟩' : '🟥');
+      document.getElementById('resultEmojiGrid').innerHTML =
+        grid.slice(0, 5).join('') + '<br>' + grid.slice(5).join('');
+
+      const wordsEl = document.getElementById('resultWords');
+      wordsEl.innerHTML = '';
+      wordResults.forEach(({ answer, correct }) => {
+        const row = document.createElement('div');
+        row.className = `result-word-row ${correct ? 'r-correct' : 'r-wrong'}`;
+        row.innerHTML = `<span class="rw-icon">${correct ? '🟩' : '🟥'}</span><span class="rw-word">${answer}</span>`;
+        wordsEl.appendChild(row);
+      });
+    }
+
+    // ── Share ─────────────────────────────────────────────────────
+    function buildShareText() {
+      const grid = results.map(r => r ? '🟩' : '🟥');
+      const rows = [grid.slice(0, 5).join(''), grid.slice(5).join('')].filter(Boolean).join('\n');
+      return `Daily Word Scramble · ${difficulty} · ${dayKey}\n${rows}\n${score}/${TOTAL} · gamed.fun/word-scramble/`;
+    }
+
+    async function doShare(feedbackEl) {
+      const text = buildShareText();
+      try {
+        if (navigator.share) await navigator.share({ title: 'Daily Word Scramble', text });
+        else await navigator.clipboard.writeText(text);
+        if (feedbackEl) { feedbackEl.className = 'feedback good'; feedbackEl.textContent = 'Result copied!'; }
+      } catch {
+        if (feedbackEl) { feedbackEl.className = 'feedback'; feedbackEl.textContent = 'Share canceled.'; }
+      }
+    }
+
+    // ── Confetti ──────────────────────────────────────────────────
+    function launchConfetti() {
+      const colors = ['#22c55e','#38bdf8','#f59e0b','#ec4899','#a78bfa','#ffffff'];
+      for (let i = 0; i < 90; i++) {
+        const el = document.createElement('div');
+        const size = 6 + Math.random() * 9;
+        el.style.cssText = [
+          'position:fixed', `top:-${size + 4}px`, `left:${Math.random() * 100}%`,
+          `width:${size}px`, `height:${size}px`,
+          `background:${colors[Math.floor(Math.random() * colors.length)]}`,
+          `border-radius:${Math.random() > 0.45 ? '50%' : '2px'}`,
+          'pointer-events:none', 'z-index:9999',
+          `animation:confettiFall ${1.5 + Math.random() * 2.2}s ease-in forwards`,
+          `animation-delay:${Math.random() * 1}s`
+        ].join(';');
+        document.body.appendChild(el);
+        el.addEventListener('animationend', () => el.remove());
+      }
+    }
+
+    // ── Event listeners ───────────────────────────────────────────
     difficultyBtns.forEach(btn => {
       btn.addEventListener('click', () => {
-        difficultyBtns.forEach(item => item.classList.remove('active'));
+        difficultyBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         difficulty = btn.dataset.difficulty;
         start();
       });
     });
 
-    answerForm.addEventListener('submit', (event) => {
-      event.preventDefault();
+    answerForm.addEventListener('submit', e => {
+      e.preventDefault();
       if (finished) return;
       const guess = answerInput.value.trim().toLowerCase();
       const correct = words[index].answer;
-      const correct_guess = guess === correct;
-      results.push(correct_guess);
-      if (correct_guess) {
+      const isCorrect = guess === correct;
+      recordAnswer(isCorrect);
+
+      if (isCorrect) {
         score++;
         scoreVal.textContent = score;
+        bumpScore();
         feedback.className = 'feedback good';
-        feedback.textContent = 'Correct.';
+        feedback.textContent = 'Correct!';
       } else {
+        shakeTiles();
+        flashInput();
         feedback.className = 'feedback bad';
-        feedback.textContent = `Wrong. It was "${correct}".`;
+        feedback.textContent = `Wrong — it was "${correct}".`;
       }
-      index++;
-      setTimeout(renderWord, 550);
+      setTimeout(renderWord, 600);
+    });
+
+    skipBtn.addEventListener('click', () => {
+      if (finished) return;
+      const correct = words[index].answer;
+      recordAnswer(false);
+      feedback.className = 'feedback bad';
+      feedback.textContent = `Skipped — it was "${correct}".`;
+      setTimeout(renderWord, 700);
     });
 
     restartBtn.addEventListener('click', start);
+    document.getElementById('resultRestartBtn').addEventListener('click', start);
+    shareBtn.addEventListener('click', () => doShare(feedback));
+    document.getElementById('resultShareBtn').addEventListener('click', () => doShare(null));
 
-    shareBtn.addEventListener('click', async () => {
-      const grid = results.map(r => r ? '🟩' : '🟥');
-      const rows = [grid.slice(0, 5).join(''), grid.slice(5).join('')].filter(r => r).join('\n');
-      const text = `Daily Word Scramble · ${difficulty} · ${dayKey}\n${rows}\n${score}/${TOTAL} · gamed.fun/word-scramble/`;
-      try {
-        if (navigator.share) await navigator.share({ title: 'Daily Word Scramble', text });
-        else await navigator.clipboard.writeText(text);
-        feedback.className = 'feedback good';
-        feedback.textContent = finished ? 'Result copied!' : 'Progress copied.';
-      } catch {
-        feedback.className = 'feedback';
-        feedback.textContent = 'Share canceled.';
-      }
-    });
-
+    // ── Boot ──────────────────────────────────────────────────────
     start();
-    document.getElementById('themeBtn').textContent=document.documentElement.dataset.theme==='dark'?'☀️':'🌙';
-    function toggleTheme(){const n=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=n;localStorage.setItem('gf-theme',n);document.getElementById('themeBtn').textContent=n==='dark'?'☀️':'🌙';}
+    document.getElementById('themeBtn').textContent = document.documentElement.dataset.theme === 'dark' ? '☀️' : '🌙';
+    function toggleTheme() {
+      const n = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+      document.documentElement.dataset.theme = n;
+      localStorage.setItem('gf-theme', n);
+      document.getElementById('themeBtn').textContent = n === 'dark' ? '☀️' : '🌙';
+    }
   </script>
 </body>
 </html>
