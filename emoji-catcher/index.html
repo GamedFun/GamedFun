@@ -434,7 +434,11 @@
   [data-theme="light"] #battle-actions .battle-act-btn,
   [data-theme="light"] .summon-btn,
   [data-theme="light"] .result-btn { background: #e4e4ef; color: #111827; }
+  [data-theme="light"] #battle-actions .battle-act-btn:hover:not(:disabled),
+  [data-theme="light"] .summon-btn:hover,
+  [data-theme="light"] .result-btn:hover { background: #d5d5e8; }
   [data-theme="light"] .result-btn.primary { background: rgba(248,113,113,.15); color: #e03c3c; }
+  [data-theme="light"] .hp-bar-wrap { background: #d5d5e8; }
   [data-theme="light"] #fuse-cost-label { color: #6b7280; }
 
   /* FUSION OVERLAY */
@@ -933,11 +937,13 @@ function updateHUD() {
 function openCollection() {
   collOpen = true;
   document.getElementById('collection-overlay').classList.add('open');
+  clearTimeout(spawnTimer);
   renderCollection();
 }
 function closeCollection() {
   collOpen = false;
   document.getElementById('collection-overlay').classList.remove('open');
+  if (!battleOpen && !fuseOpen) scheduleSpawn();
 }
 function setFilter(r) {
   filterRarity = r;
@@ -1115,6 +1121,7 @@ function scaleOpponentToFighter(npc, playerEmoji) {
 function openBattle() {
   battleOpen = true;
   document.getElementById('battle-overlay').classList.add('open');
+  clearTimeout(spawnTimer);
   showPickScreen();
 }
 
@@ -1122,6 +1129,7 @@ function closeBattle() {
   battleOpen = false;
   battleState = null;
   document.getElementById('battle-overlay').classList.remove('open');
+  if (!collOpen && !fuseOpen) scheduleSpawn();
 }
 
 function showPickScreen() {
@@ -1483,11 +1491,13 @@ function openFuse() {
   fuseOpen = true;
   fuseEmoji1 = null; fuseEmoji2 = null; fuseSlotActive = 1;
   document.getElementById('fuse-overlay').classList.add('open');
+  clearTimeout(spawnTimer);
   renderFuseOverlay();
 }
 function closeFuse() {
   fuseOpen = false;
   document.getElementById('fuse-overlay').classList.remove('open');
+  if (!collOpen && !battleOpen) scheduleSpawn();
 }
 
 function earnPlusCoin(el) {
