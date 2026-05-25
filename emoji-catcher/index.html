@@ -1151,7 +1151,9 @@ function startNormalMode() {
   creativeMode = false;
   document.getElementById('start-screen').style.display = 'none';
   loadGame();
+  initQuests();
   updateHUD();
+  updateQuestBadge();
   startGame();
 }
 
@@ -1160,7 +1162,9 @@ function startCreativeMode() {
   document.getElementById('start-screen').style.display = 'none';
   coins = 999999999;
   EMOJIS.forEach(e => { collection[e.n] = 999; });
+  initQuests();
   updateHUD();
+  updateQuestBadge();
   startGame();
 }
 
@@ -1915,8 +1919,6 @@ function closeQuests() {
   if (!collOpen && !battleOpen && !fuseOpen) scheduleSpawn();
 }
 
-initQuests();
-updateQuestBadge();
 
 window.addEventListener('beforeunload', saveGame);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveGame(); });
