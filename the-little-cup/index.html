@@ -257,7 +257,15 @@
       .cup-btn { font-size: 5.5rem; }
     }
     [data-theme="light"] { --bg: #f5f5f5; --panel: #ffffff; --panel-2: #f0f0f5; --text: #111827; --muted: #4b5563; --cream: #111827; --border: rgba(0,0,0,.12); }
-    [data-theme="light"] body { background: radial-gradient(circle at 15% 15%,rgba(251,191,36,.08),transparent 22rem),radial-gradient(circle at 85% 10%,rgba(52,211,153,.07),transparent 22rem),#f5f5f5; }
+    [data-theme="light"] body {
+      background:
+        radial-gradient(circle, rgba(180,130,60,.45) 0 1px, transparent 1px),
+        radial-gradient(circle, rgba(52,211,153,.35) 0 1px, transparent 1px),
+        radial-gradient(circle at 15% 15%, rgba(251,191,36,.08), transparent 22rem),
+        radial-gradient(circle at 85% 10%, rgba(52,211,153,.07), transparent 22rem),
+        #f5f5f5;
+      background-size: 82px 82px, 137px 137px, 100% 100%, 100% 100%, 100% 100%;
+    }
     [data-theme="light"] header { background: rgba(245,245,250,.95); }
     [data-theme="light"] .center-total,
     [data-theme="light"] .center-cps,
