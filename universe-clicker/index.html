@@ -111,8 +111,36 @@
     #restart-btn:hover { background: rgba(255,255,255,.18); }
 
     /* ── FUN VISUAL EFFECTS ── */
-    body.rainbow { background: #1a003a !important; }
-    [data-theme="light"] body.rainbow { background: #ede8ff !important; }
+    body.rainbow { animation: rainbowBg 6s linear infinite !important; }
+    @keyframes rainbowBg {
+      0%   { background-color: #280000; }
+      16%  { background-color: #1e1400; }
+      33%  { background-color: #002800; }
+      50%  { background-color: #002828; }
+      66%  { background-color: #000028; }
+      83%  { background-color: #140028; }
+      100% { background-color: #280000; }
+    }
+    body.rainbow::before {
+      content: '';
+      position: fixed;
+      top: -200%; left: -200%;
+      width: 500%; height: 500%;
+      pointer-events: none;
+      z-index: 0;
+      background: repeating-linear-gradient(
+        60deg,
+        rgba(255,0,0,.13) 0px, rgba(255,100,0,.13) 60px,
+        rgba(255,230,0,.13) 120px, rgba(0,210,0,.13) 180px,
+        rgba(0,120,255,.13) 240px, rgba(160,0,255,.13) 300px,
+        rgba(255,0,180,.13) 360px, rgba(255,0,0,.13) 420px
+      );
+      animation: rainbowDrift 4s linear infinite;
+    }
+    @keyframes rainbowDrift {
+      from { transform: translate(0, 0); }
+      to   { transform: translate(420px, 0); }
+    }
     /* SUBWAY CORNER */
     #subway-corner { display:none; position:fixed; bottom:70px; right:12px; z-index:210; pointer-events:none; }
     #subway-corner.on { display:block; }
