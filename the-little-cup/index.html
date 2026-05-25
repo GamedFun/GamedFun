@@ -311,6 +311,7 @@
       <div class="center-total">$<span id="cTotal">0</span> earned</div>
       <div class="center-cps">earning $<span id="cCps">0</span> per second</div>
       <div class="center-cpc">$<span id="cCpc">1</span> per click</div>
+      <div class="center-cpc" id="wealthLine" style="display:none;color:var(--gold);margin-top:.2rem">worker wealth bonus <span id="cWealth"></span>×</div>
     </div>
     <button class="cup-btn" id="cupBtn" type="button">☕</button>
     <div class="frenzy-wrap" id="frenzyWrap">
@@ -502,7 +503,7 @@ function workerLevelMult(id) {
   return 1 + workerLevel(id) * 0.15;
 }
 function wealthMult() {
-  return 1 + Math.log10(Math.max(10, G.totalEarned)) * 0.1;
+  return 1 + Math.log10(Math.max(1, Math.floor(G.totalEarned / 100))) * 0.1;
 }
 
 function totalCps() {
@@ -555,9 +556,11 @@ function condState() {
 // ── DOM REFS ───────────────────────────────────────────────
 const hCash    = document.getElementById('hCash');
 const hCps     = document.getElementById('hCps');
-const cTotal   = document.getElementById('cTotal');
-const cCps     = document.getElementById('cCps');
-const cCpc     = document.getElementById('cCpc');
+const cTotal      = document.getElementById('cTotal');
+const cCps        = document.getElementById('cCps');
+const cCpc        = document.getElementById('cCpc');
+const cWealth     = document.getElementById('cWealth');
+const wealthLine  = document.getElementById('wealthLine');
 const cupBtn   = document.getElementById('cupBtn');
 const clickArea= document.getElementById('clickArea');
 const upgPanel = document.getElementById('upgPanel');
@@ -574,6 +577,11 @@ function renderHUD() {
   cTotal.textContent   = fmt(G.totalEarned);
   cCps.textContent     = fmt(cps);
   cCpc.textContent     = fmt(cpc);
+  const wm = wealthMult();
+  if (wm > 1) {
+    wealthLine.style.display = '';
+    cWealth.textContent = wm.toFixed(2);
+  }
   if (G.frenzy > 0) {
     frenzyWrap.classList.add('on');
     frenzyFill.style.width = (G.frenzy / 77 * 100) + '%';
