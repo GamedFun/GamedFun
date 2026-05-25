@@ -1159,7 +1159,7 @@ function startCreativeMode() {
   creativeMode = true;
   document.getElementById('start-screen').style.display = 'none';
   coins = 999999999;
-  EMOJIS.forEach(e => { if (!collection[e.n]) collection[e.n] = 1; });
+  EMOJIS.forEach(e => { collection[e.n] = 999; });
   updateHUD();
   startGame();
 }
@@ -1671,9 +1671,9 @@ function renderFuseOverlay() {
   const btn = document.getElementById('fuse-btn');
   const costLabel = document.getElementById('fuse-cost-label');
   const sameEmoji = fuseEmoji1 && fuseEmoji2 && fuseEmoji1.n === fuseEmoji2.n;
-  const hasEnough = !sameEmoji || (collection[fuseEmoji1?.n] || 0) >= 2;
+  const hasEnough = creativeMode || !sameEmoji || (collection[fuseEmoji1?.n] || 0) >= 2;
   const cost = fuseCost();
-  btn.disabled = !(fuseEmoji1 && fuseEmoji2 && hasEnough && coins >= cost);
+  btn.disabled = !(fuseEmoji1 && fuseEmoji2 && hasEnough && (creativeMode || coins >= cost));
 
   if (fuseEmoji1 && fuseEmoji2) {
     if (sameEmoji && !hasEnough) {
@@ -1707,7 +1707,7 @@ function renderFusePickerGrid() {
     cell.style.borderColor = RARITIES[em.r].color + '66';
     if (fuseEmoji1?.n === em.n) cell.classList.add('selected-1');
     if (fuseEmoji2?.n === em.n) cell.classList.add('selected-2');
-    cell.innerHTML = `<span>${emojiHTML(em)}</span><span class="fp-count">×${collection[em.n]}</span>`;
+    cell.innerHTML = `<span>${emojiHTML(em)}</span><span class="fp-count">${creativeMode ? '∞' : '×' + collection[em.n]}</span>`;
     cell.addEventListener('click', () => pickFuseEmoji(em));
     grid.appendChild(cell);
   }
@@ -1722,21 +1722,23 @@ function pickFuseEmoji(em) {
 function doFuse() {
   if (!fuseEmoji1 || !fuseEmoji2) return;
   const sameEmoji = fuseEmoji1.n === fuseEmoji2.n;
-  if (sameEmoji && (collection[fuseEmoji1.n] || 0) < 2) return;
+  if (!creativeMode && sameEmoji && (collection[fuseEmoji1.n] || 0) < 2) return;
   const cost = fuseCost();
   if (!creativeMode && coins < cost) return;
 
   const result = makeCustomEmoji(fuseEmoji1, fuseEmoji2);
 
-  if (!creativeMode) coins -= cost;
-  if (sameEmoji) {
-    collection[fuseEmoji1.n] = (collection[fuseEmoji1.n] || 0) - 2;
-  } else {
-    collection[fuseEmoji1.n] = (collection[fuseEmoji1.n] || 0) - 1;
-    collection[fuseEmoji2.n] = (collection[fuseEmoji2.n] || 0) - 1;
+  if (!creativeMode) {
+    coins -= cost;
+    if (sameEmoji) {
+      collection[fuseEmoji1.n] = (collection[fuseEmoji1.n] || 0) - 2;
+    } else {
+      collection[fuseEmoji1.n] = (collection[fuseEmoji1.n] || 0) - 1;
+      collection[fuseEmoji2.n] = (collection[fuseEmoji2.n] || 0) - 1;
+    }
+    if ((collection[fuseEmoji1.n] || 0) <= 0) delete collection[fuseEmoji1.n];
+    if (!sameEmoji && (collection[fuseEmoji2.n] || 0) <= 0) delete collection[fuseEmoji2.n];
   }
-  if ((collection[fuseEmoji1.n] || 0) <= 0) delete collection[fuseEmoji1.n];
-  if (!sameEmoji && (collection[fuseEmoji2.n] || 0) <= 0) delete collection[fuseEmoji2.n];
 
   const wasNew = !collection[result.n];
   collection[result.n] = (collection[result.n] || 0) + 1;
