@@ -85,7 +85,15 @@
       color: var(--gold);
       font-size: 1.55rem;
       font-weight: 1000;
+      transition: color .25s;
     }
+    .value.flash-up { animation: worthUp .5s ease; }
+    .value.flash-down { animation: worthDown .5s ease; }
+    @keyframes worthUp   { 0%,100%{color:var(--gold)} 50%{color:#4ade80;transform:scale(1.12)} }
+    @keyframes worthDown { 0%,100%{color:var(--gold)} 50%{color:#fb7185;transform:scale(0.96)} }
+    @keyframes stealPulse { 0%,100%{opacity:1} 50%{opacity:.45} }
+    button.flipping { animation: stealPulse .45s ease-in-out infinite; pointer-events:none; }
+    button:active:not(:disabled):not(.flipping) { transform: scale(0.96); transition: transform .08s; }
     .grid {
       display: grid;
       grid-template-columns: minmax(0, 1.15fr) minmax(280px, .85fr);
@@ -609,7 +617,9 @@
     acceptBtn.addEventListener('click', () => {
       const give = selectedItem();
       if (!offer || !give) return;
+      const prev = netWorth();
       acceptCurrentOffer();
+      flashWorth(prev);
     });
 
     addBtn.addEventListener('click', () => {
@@ -651,15 +661,36 @@
     stealBtn.addEventListener('click', () => {
       const give = selectedItem();
       if (!offer || !give) return;
-      if (Math.random() < .5) {
-        inventory.push(offer.take);
-        if (offer.addOn) inventory.push(offer.addOn);
-        finishDeal(`Steal worked. You kept ${give.name} and took the offer.`);
-      } else {
-        inventory.splice(selectedIndex, 1);
-        finishDeal(`Steal failed. You lost ${give.name} and got nothing back.`);
-      }
+      const prevWorth = netWorth();
+      [acceptBtn, addBtn, haggleBtn, cancelBtn, stealBtn].forEach(b => b.disabled = true);
+      stealBtn.classList.add('flipping');
+      stealBtn.textContent = 'Flipping…';
+      const capturedOffer = offer;
+      const capturedIndex = selectedIndex;
+      setTimeout(() => {
+        stealBtn.classList.remove('flipping');
+        stealBtn.textContent = 'Steal 50/50';
+        if (Math.random() < .5) {
+          inventory.push(capturedOffer.take);
+          if (capturedOffer.addOn) inventory.push(capturedOffer.addOn);
+          finishDeal(`Steal worked. You kept ${give.name} and took the offer.`);
+        } else {
+          inventory.splice(capturedIndex, 1);
+          finishDeal(`Steal failed. You lost ${give.name} and got nothing back.`);
+        }
+        flashWorth(prevWorth);
+      }, 900);
     });
+
+    function flashWorth(prevWorth) {
+      const current = netWorth();
+      const el = document.getElementById('netWorth');
+      const cls = current >= prevWorth ? 'flash-up' : 'flash-down';
+      el.classList.remove('flash-up', 'flash-down');
+      void el.offsetWidth;
+      el.classList.add(cls);
+      el.addEventListener('animationend', () => el.classList.remove(cls), { once: true });
+    }
 
     newRunBtn.addEventListener('click', startRun);
     if (!loadGame()) startRun();

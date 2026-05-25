@@ -299,6 +299,41 @@
     [data-theme="light"] { --bg: #f5f5f5; --panel: #ffffff; --panel-2: #f0f0f5; --text: #111827; --muted: #6b7280; --border: rgba(0,0,0,.1); }
     [data-theme="light"] body { background: radial-gradient(circle at 18% 16%,rgba(239,68,68,.08),transparent 24rem),radial-gradient(circle at 84% 12%,rgba(59,130,246,.08),transparent 24rem),radial-gradient(circle at 50% 90%,rgba(34,197,94,.06),transparent 24rem),#f5f5f5; }
     [data-theme="light"] .panel { background: rgba(255,255,255,.95); }
+    [data-theme="light"] #win-overlay { background: rgba(220,215,240,.82); }
+
+    /* Win overlay */
+    #win-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(10,8,18,.78);
+      backdrop-filter: blur(6px);
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 1rem;
+      animation: overlayIn .32s ease;
+    }
+    #win-overlay.on { display: flex; }
+    @keyframes overlayIn { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: scale(1); } }
+    #win-title { font-size: 3rem; font-weight: 900; letter-spacing: -.02em; }
+    #win-sub { color: rgba(255,255,255,.6); font-size: .95rem; font-weight: 700; }
+    #win-play-btn {
+      background: #fff;
+      border: none;
+      border-radius: 12px;
+      color: #111;
+      cursor: pointer;
+      font: inherit;
+      font-size: 1rem;
+      font-weight: 900;
+      padding: .72rem 1.6rem;
+      margin-top: .4rem;
+      transition: transform .1s;
+    }
+    #win-play-btn:active { transform: scale(.96); }
+    @keyframes confettiFall { to { transform: translateY(110vh) rotate(800deg); opacity: 0; } }
   </style>
 </head>
 <body>
@@ -310,6 +345,12 @@
     <button id="themeBtn" onclick="toggleTheme()" style="background:none;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:1rem;padding:.3rem .55rem;color:var(--muted);line-height:1">☀️</button>
     <a class="home-link" href="https://gamed.fun/">All games</a>
   </header>
+
+  <div id="win-overlay">
+    <div id="win-title"></div>
+    <div id="win-sub"></div>
+    <button id="win-play-btn">Play Again</button>
+  </div>
 
   <main>
     <section class="table">
@@ -538,6 +579,33 @@
       return false;
     }
 
+    const winOverlay = document.getElementById('win-overlay');
+    const winTitle   = document.getElementById('win-title');
+    const winSub     = document.getElementById('win-sub');
+    document.getElementById('win-play-btn').addEventListener('click', () => {
+      winOverlay.classList.remove('on');
+      startGame();
+    });
+
+    function launchConfetti() {
+      const colors = ['#ef4444','#facc15','#22c55e','#3b82f6','#ffffff','#c084fc'];
+      for (let i = 0; i < 80; i++) {
+        const el = document.createElement('div');
+        const size = 6 + Math.random() * 9;
+        el.style.cssText = [
+          'position:fixed', `top:-${size}px`, `left:${Math.random()*100}%`,
+          `width:${size}px`, `height:${size}px`,
+          `background:${colors[Math.floor(Math.random()*colors.length)]}`,
+          `border-radius:${Math.random()>.5?'50%':'2px'}`,
+          'pointer-events:none', 'z-index:9999',
+          `animation:confettiFall ${1.5+Math.random()*2}s ease-in forwards`,
+          `animation-delay:${Math.random()*.8}s`
+        ].join(';');
+        document.body.appendChild(el);
+        el.addEventListener('animationend', () => el.remove());
+      }
+    }
+
     function win(text) {
       gameOver = true;
       turn = 'over';
@@ -545,6 +613,14 @@
       messageEl.textContent = text;
       colorPicker.classList.remove('on');
       render();
+      const playerWon = text.startsWith('You');
+      setTimeout(() => {
+        winTitle.textContent = playerWon ? 'You win! 🎉' : 'NPC wins 😅';
+        winTitle.style.color = playerWon ? '#22c55e' : '#f87171';
+        winSub.textContent = playerWon ? 'Nice hand.' : 'Better luck next time.';
+        winOverlay.classList.add('on');
+        if (playerWon) launchConfetti();
+      }, 400);
     }
 
     function chooseNpcColor() {
