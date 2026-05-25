@@ -824,7 +824,7 @@ function spawnToScreen(emoji, rKey) {
 }
 
 // ── COLLECT ────────────────────────────────────────────────
-function collect(emoji, rKey, el, timeout, noCoins) {
+function collect(emoji, rKey, el, timeout, noCoins, coinMultiplier = 1) {
   clearTimeout(timeout);
   activeEmojis = activeEmojis.filter(a => a.el !== el);
   if (el.classList) {
@@ -841,7 +841,7 @@ function collect(emoji, rKey, el, timeout, noCoins) {
   clearTimeout(streakTimer);
   streakTimer = setTimeout(() => { streak = 0; updateHUD(); }, 3000);
   const mult = Math.min(streak, 10);
-  const earned = noCoins ? 0 : Math.ceil(RARITIES[rKey].coins * (1 + (mult - 1) * 0.2));
+  const earned = noCoins ? 0 : Math.ceil(RARITIES[rKey].coins * coinMultiplier * (1 + (mult - 1) * 0.2));
   coins += earned;
 
   // Coin popup
@@ -870,7 +870,7 @@ function doSummon(type) {
   const weights = SUMMON_WEIGHTS[type];
   const rKey = rollRarity(rarityList, weights);
   const emoji = rollEmoji(rKey);
-  collect(emoji, rKey, { getBoundingClientRect: () => ({ left: window.innerWidth/2-28, top: window.innerHeight/2-28, width:56, height:56 }) }, null, false);
+  collect(emoji, rKey, { getBoundingClientRect: () => ({ left: window.innerWidth/2-28, top: window.innerHeight/2-28, width:56, height:56 }) }, null, false, 5);
   showSummonResult(emoji, rKey);
 }
 
@@ -1343,12 +1343,13 @@ function closeFuse() {
 }
 
 function earnPlusCoin(el) {
-  coins += 1;
+  const earned = 10;
+  coins += earned;
   const rect = el.getBoundingClientRect();
   const pop = document.createElement('div');
   pop.className = 'coin-pop';
   pop.style.cssText = `left:${rect.left + rect.width/2}px;top:${rect.top}px;color:#facc15;transform-origin:center;`;
-  pop.textContent = '+1🪙';
+  pop.textContent = `+${earned}🪙`;
   document.body.appendChild(pop);
   setTimeout(() => pop.remove(), 950);
   updateHUD();
