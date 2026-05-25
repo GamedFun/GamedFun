@@ -1279,36 +1279,101 @@ function showToast(msg) {
 function shareGame() {
   const found = Object.keys(collection).length;
   const total = EMOJIS.length + customEmojiDefs.length;
-
   const rarityRank = ['mythic','legendary','epic','rare','uncommon','common'];
-  let bestEmoji = null;
+  const rarityColors = { mythic:'#f87171', legendary:'#fbbf24', epic:'#c084fc', rare:'#60a5fa', uncommon:'#34d399', common:'#9ca3af' };
+
+  const topEmojis = [];
   for (const r of rarityRank) {
-    bestEmoji = EMOJIS.find(e => e.r === r && (collection[e.n] || 0) > 0);
-    if (bestEmoji) break;
+    topEmojis.push(...EMOJIS.filter(e => e.r === r && (collection[e.n]||0) > 0));
+    if (topEmojis.length >= 8) break;
   }
-  const bestCustom = customEmojiDefs.filter(c => (collection[c.n]||0) > 0)
-    .sort((a,b) => rarityRank.indexOf(a.r) - rarityRank.indexOf(b.r))[0];
+  const fusions = customEmojiDefs.filter(c => (collection[c.n]||0) > 0);
+  const best = topEmojis[0];
 
-  const bestLine = bestEmoji
-    ? `${bestEmoji.e} ${bestEmoji.n} (${RARITIES[bestEmoji.r].name})`
-    : 'nothing yet!';
-  const fusionLine = customEmojiDefs.filter(c => (collection[c.n]||0) > 0).length;
+  const W = 600, H = 380;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
 
-  const text = [
-    `🎮 Emoji Pop — gamed.fun/emoji-catcher/`,
-    `📦 ${found} / ${total} collected`,
-    bestEmoji ? `⭐ Best: ${bestLine}` : null,
-    fusionLine > 0 ? `⚗️ ${fusionLine} custom fusion${fusionLine > 1 ? 's' : ''} crafted` : null,
-    `Can you beat me?`,
-  ].filter(Boolean).join('\n');
+  // Background
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#181219'); bg.addColorStop(1, '#1a1625');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
 
-  if (navigator.share) {
-    navigator.share({ text, url: 'https://gamed.fun/emoji-catcher/' }).catch(() => {});
-  } else {
-    navigator.clipboard.writeText(text + '\nhttps://gamed.fun/emoji-catcher/')
-      .then(() => showToast('✅ Copied to clipboard!'))
-      .catch(() => showToast('❌ Could not copy'));
+  // Top gold bar
+  const topBar = ctx.createLinearGradient(0, 0, W, 0);
+  topBar.addColorStop(0, 'rgba(251,191,36,0)');
+  topBar.addColorStop(0.5, 'rgba(251,191,36,0.7)');
+  topBar.addColorStop(1, 'rgba(251,191,36,0)');
+  ctx.fillStyle = topBar; ctx.fillRect(0, 0, W, 2);
+
+  // Border
+  ctx.strokeStyle = 'rgba(255,255,255,0.13)';
+  ctx.lineWidth = 1; ctx.strokeRect(0.5, 0.5, W-1, H-1);
+
+  // Title
+  ctx.fillStyle = '#fbbf24';
+  ctx.font = 'bold 32px -apple-system,"Helvetica Neue",Arial,sans-serif';
+  ctx.fillText('Emoji Pop', 32, 54);
+
+  // URL
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = '14px -apple-system,"Helvetica Neue",Arial,sans-serif';
+  ctx.fillText('gamed.fun/emoji-catcher/', 32, 76);
+
+  // Collection count
+  ctx.fillStyle = '#fff7ed';
+  ctx.font = 'bold 58px -apple-system,"Helvetica Neue",Arial,sans-serif';
+  const countStr = String(found);
+  ctx.fillText(countStr, 32, 154);
+  const countW = ctx.measureText(countStr).width;
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = '22px -apple-system,"Helvetica Neue",Arial,sans-serif';
+  ctx.fillText(` / ${total} collected`, 32 + countW + 4, 146);
+
+  // Emoji row
+  ctx.font = '42px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+  topEmojis.slice(0, 8).forEach((em, i) => ctx.fillText(em.e, 32 + i * 68, 226));
+
+  // Divider
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.fillRect(32, 244, W - 64, 1);
+
+  // Best
+  if (best) {
+    ctx.fillStyle = rarityColors[best.r] || '#fbbf24';
+    ctx.font = 'bold 15px -apple-system,"Helvetica Neue",Arial,sans-serif';
+    ctx.fillText(`⭐ Best: ${best.e} ${best.n}  ·  ${RARITIES[best.r].name}`, 32, 272);
   }
+
+  // Fusions
+  if (fusions.length > 0) {
+    ctx.fillStyle = '#60a5fa';
+    ctx.font = 'bold 15px -apple-system,"Helvetica Neue",Arial,sans-serif';
+    ctx.fillText(`⚗️  ${fusions.length} custom fusion${fusions.length > 1 ? 's' : ''} crafted`, 32, 298);
+  }
+
+  // CTA
+  ctx.fillStyle = 'rgba(255,255,255,0.38)';
+  ctx.font = '13px -apple-system,"Helvetica Neue",Arial,sans-serif';
+  ctx.fillText('Can you beat my collection?', 32, H - 20);
+
+  canvas.toBlob(blob => {
+    if (!blob) { showToast('❌ Could not generate image'); return; }
+    const file = new File([blob], 'emoji-pop.png', { type: 'image/png' });
+    const shareText = `🎮 Emoji Pop — ${found}/${total} collected!\ngamed.fun/emoji-catcher/`;
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], text: shareText }).catch(() => {});
+    } else if (navigator.share) {
+      navigator.share({ text: shareText, url: 'https://gamed.fun/emoji-catcher/' }).catch(() => {});
+    } else {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'emoji-pop-score.png'; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      showToast('✅ Image saved!');
+    }
+  }, 'image/png');
 }
 
 document.getElementById('themeBtn').textContent=document.documentElement.dataset.theme==='dark'?'☀️':'🌙';
