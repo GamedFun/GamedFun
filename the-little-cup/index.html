@@ -256,10 +256,24 @@
       .click-area { min-height: 55vw; padding: 1.5rem 1rem; }
       .cup-btn { font-size: 5.5rem; }
     }
-    [data-theme="light"] { --bg: #f5f5f5; --panel: #ffffff; --panel-2: #f0f0f5; --text: #111827; --muted: #6b7280; --border: rgba(0,0,0,.12); }
+    [data-theme="light"] { --bg: #f5f5f5; --panel: #ffffff; --panel-2: #f0f0f5; --text: #111827; --muted: #4b5563; --cream: #111827; --border: rgba(0,0,0,.12); }
     [data-theme="light"] body { background: radial-gradient(circle at 15% 15%,rgba(251,191,36,.08),transparent 22rem),radial-gradient(circle at 85% 10%,rgba(52,211,153,.07),transparent 22rem),#f5f5f5; }
     [data-theme="light"] header { background: rgba(245,245,250,.95); }
-    [data-theme="light"] .center-total { color: #111827; }
+    [data-theme="light"] .center-total,
+    [data-theme="light"] .center-cps,
+    [data-theme="light"] .center-cpc,
+    [data-theme="light"] .header-cash,
+    [data-theme="light"] .header-cps,
+    [data-theme="light"] .bld-name,
+    [data-theme="light"] .bld-desc,
+    [data-theme="light"] .upg-name,
+    [data-theme="light"] .upg-desc,
+    [data-theme="light"] .panel-label,
+    [data-theme="light"] .upg-none,
+    [data-theme="light"] .bld-owned,
+    [data-theme="light"] .ticker { color: #111827; }
+    [data-theme="light"] .ticker { background: rgba(0,0,0,.04); }
+    [data-theme="light"] .toast-body { color: #4b5563; }
   </style>
 </head>
 <div id="googol-win" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(10,8,16,.96);flex-direction:column;align-items:center;justify-content:center;gap:1.2rem;text-align:center;padding:2rem;">
@@ -444,7 +458,7 @@ function freshState() {
     owned: {}, bought: [],
     clickMult: 1, bldMult: {}, globalMult: 1,
     frenzy: 0, miniFrenzy: 0, mseen: [],
-    workers: {}, upgradeSlots: [], thingSlots: [],
+    workers: {}, workerXP: {}, upgradeSlots: [], thingSlots: [],
     won: false,
   };
 }
@@ -479,8 +493,18 @@ function bldCps(b) {
   return b.baseCps * (G.bldMult[b.id] || 1) * G.globalMult * workerBldMult();
 }
 
+function workerLevel(id) {
+  const xp = (G.workerXP || {})[id] || 0;
+  return Math.floor(Math.sqrt(xp / 10));
+}
+function workerLevelMult(id) {
+  if (!(G.workers[id] || 0)) return 1;
+  return 1 + workerLevel(id) * 0.15;
+}
+
 function totalCps() {
-  let t = (G.workers.w_baker || 0) * 1 + (G.workers.w_intern || 0) * 0.5;
+  let t = (G.workers.w_baker || 0) * 1 * workerLevelMult('w_baker')
+        + (G.workers.w_intern || 0) * 0.5 * workerLevelMult('w_intern');
   for (const b of ALL_THINGS) t += (G.owned[b.id] || 0) * bldCps(b);
   t *= workerGlobalMult();
   if (G.frenzy > 0)     t *= 7;
@@ -492,10 +516,28 @@ function clickVal() {
   return G.clickMult * workerClickMult() + totalCps() * 0.01;
 }
 
-function workerClickMult()  { return Math.pow(1.08, G.workers.w_driver||0) * Math.pow(1.10, G.workers.w_marketer||0) * Math.pow(1.07, G.workers.w_barista||0); }
-function workerBldMult()    { return Math.pow(1.06, G.workers.w_roaster||0) * Math.pow(1.08, G.workers.w_chemist||0) * Math.pow(1.12, G.workers.w_wizard||0); }
-function workerGlobalMult() { return Math.pow(1.04, G.workers.w_cashier||0) * Math.pow(1.05, G.workers.w_taster||0) * Math.pow(1.02, G.workers.w_janitor||0) * Math.pow(1.06, G.workers.w_alchemist||0); }
-function workerDiscount()   { return Math.pow(0.96, G.workers.w_manager||0) * Math.pow(0.97, G.workers.w_accountant||0); }
+function workerClickMult() {
+  return Math.pow(1.08, G.workers.w_driver||0)   * workerLevelMult('w_driver')
+       * Math.pow(1.10, G.workers.w_marketer||0)  * workerLevelMult('w_marketer')
+       * Math.pow(1.07, G.workers.w_barista||0)   * workerLevelMult('w_barista');
+}
+function workerBldMult() {
+  return Math.pow(1.06, G.workers.w_roaster||0)  * workerLevelMult('w_roaster')
+       * Math.pow(1.08, G.workers.w_chemist||0)   * workerLevelMult('w_chemist')
+       * Math.pow(1.12, G.workers.w_wizard||0)    * workerLevelMult('w_wizard');
+}
+function workerGlobalMult() {
+  return Math.pow(1.04, G.workers.w_cashier||0)  * workerLevelMult('w_cashier')
+       * Math.pow(1.05, G.workers.w_taster||0)    * workerLevelMult('w_taster')
+       * Math.pow(1.02, G.workers.w_janitor||0)   * workerLevelMult('w_janitor')
+       * Math.pow(1.06, G.workers.w_alchemist||0) * workerLevelMult('w_alchemist');
+}
+function workerDiscount() {
+  const mLvl = 1 + workerLevel('w_manager') * 0.1;
+  const aLvl = 1 + workerLevel('w_accountant') * 0.1;
+  return Math.pow(0.96, (G.workers.w_manager||0) * mLvl)
+       * Math.pow(0.97, (G.workers.w_accountant||0) * aLvl);
+}
 function workerCost(w)      { return Math.ceil(w.baseCost * Math.pow(w.scale, G.workers[w.id] || 0)); }
 
 function totalBld() {
@@ -592,13 +634,16 @@ function renderWorkers() {
   for (const w of WORKERS) {
     const cost  = workerCost(w);
     const count = G.workers[w.id] || 0;
+    const level = workerLevel(w.id);
     const canBuy = G.cash >= cost;
     const card = document.createElement('div');
     card.className = 'upg-card ' + (canBuy ? 'affordable' : 'too-costly');
+    const levelTag = count > 0 && level > 0 ? ` <span style="color:var(--gold);font-size:.62rem;font-weight:900">Lv.${level}</span>` : '';
+    const countTag = count > 0 ? ` <span style="color:var(--mint);font-size:.68rem">×${count}</span>` : '';
     card.innerHTML = `
       <div class="upg-icon">${w.icon}</div>
       <div>
-        <div class="upg-name">${w.name}${count > 0 ? ` <span style="color:var(--mint);font-size:.68rem">×${count}</span>` : ''}</div>
+        <div class="upg-name">${w.name}${countTag}${levelTag}</div>
         <div class="upg-desc">${w.desc}</div>
         <div class="upg-cost">$${fmt(cost)}</div>
       </div>`;
@@ -808,7 +853,14 @@ const fastLoop = setInterval(() => {
   renderHUD();
 }, 100);
 
-const slowLoop = setInterval(() => { render(); save(); }, 1_000);
+const slowLoop = setInterval(() => {
+  if (!G.workerXP) G.workerXP = {};
+  for (const w of WORKERS) {
+    const count = G.workers[w.id] || 0;
+    if (count > 0) G.workerXP[w.id] = (G.workerXP[w.id] || 0) + count;
+  }
+  render(); save();
+}, 1_000);
 
 // ── SAVE / LOAD ────────────────────────────────────────────
 function save() {
