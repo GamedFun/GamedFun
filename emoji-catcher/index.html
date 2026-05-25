@@ -1045,7 +1045,7 @@ function emojiStats(emoji) {
 
 // ── BATTLE ─────────────────────────────────────────────────
 EMOJIS.forEach(e => Object.assign(e, emojiStats(e)));
-const NPCS = EMOJIS.map(e => ({ ...e, name: e.n }));
+const BASE_NPCS = EMOJIS.map(e => ({ ...e, name: e.n }));
 if (refreshCustomEmojiStats()) saveGame();
 
 let battleState = null;
@@ -1055,9 +1055,16 @@ function battlePower(fighter) {
   return (fighter.hp || 0) + (fighter.atk || 0) * 5;
 }
 
+function battleOpponents() {
+  const customNpcs = customEmojiDefs
+    .filter(c => (collection[c.n] || 0) > 0)
+    .map(c => ({ ...c, name: c.n }));
+  return [...BASE_NPCS, ...customNpcs];
+}
+
 function pickBattleOpponent(playerEmoji) {
   const playerPower = battlePower(playerEmoji);
-  const ranked = [...NPCS].sort((a, b) => battlePower(a) - battlePower(b));
+  const ranked = battleOpponents().sort((a, b) => battlePower(a) - battlePower(b));
   const closestIndex = ranked.reduce((bestIndex, npc, i) => {
     const bestGap = Math.abs(battlePower(ranked[bestIndex]) - playerPower);
     const gap = Math.abs(battlePower(npc) - playerPower);
@@ -1136,7 +1143,7 @@ function renderBattle() {
   pBar.className = 'hp-bar' + (pPct < 25 ? ' critical' : pPct < 50 ? ' low' : '');
   document.getElementById('player-card').style.borderColor = RARITIES[playerEmoji.r].color;
 
-  document.getElementById('npc-emoji').textContent = npc.e;
+  document.getElementById('npc-emoji').innerHTML = emojiHTML(npc);
   document.getElementById('npc-name').textContent = npc.name;
   document.getElementById('npc-hp-text').textContent = `${npcHP} / ${npcMaxHP}`;
   const nPct = Math.max(0, npcHP / npcMaxHP * 100);
@@ -1195,9 +1202,9 @@ function doAction(type) {
     const fullBlock = g && Math.random() < 0.8;
     const nd = fullBlock ? 0 : Math.round(npcAtk * (0.85 + Math.random() * 0.3));
     if (fullBlock) {
-      logBattle(`${npc.e} attacks — fully blocked! 🛡️`);
+      logBattle(`${emojiText(npc)} attacks — fully blocked! 🛡️`);
     } else {
-      logBattle(`${npc.e} hits back for ${nd}${g ? ' (guard broke! 💥)' : ''}!`);
+      logBattle(`${emojiText(npc)} hits back for ${nd}${g ? ' (guard broke! 💥)' : ''}!`);
     }
     battleState.playerHP = Math.max(0, battleState.playerHP - nd);
     renderBattle();
@@ -1219,13 +1226,15 @@ function endBattle(won) {
   if (won) {
     const reward = nr.coins * 3;
     coins += reward;
-    const found = EMOJIS.find(em => em.n === npc.n);
+    const found = npc.custom
+      ? customEmojiDefs.find(em => em.n === npc.n)
+      : EMOJIS.find(em => em.n === npc.n);
     let extra = '';
     if (found) {
       const wasNew = !collection[found.n];
       collection[found.n] = (collection[found.n] || 0) + 1;
       if (wasNew) newlyFound.add(found.n);
-      extra = `\nCaptured ${npc.e} ${found.n}!`;
+      extra = `\nCaptured ${emojiText(npc)} ${found.n}!`;
     }
     document.getElementById('result-icon').textContent = '🏆';
     document.getElementById('result-title').textContent = 'Victory!';
