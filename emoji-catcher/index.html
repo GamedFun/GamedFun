@@ -1917,6 +1917,9 @@ function closeQuests() {
 
 initQuests();
 updateQuestBadge();
+
+window.addEventListener('beforeunload', saveGame);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveGame(); });
 </script>
 </body>
 </html>
