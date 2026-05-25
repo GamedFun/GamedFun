@@ -870,7 +870,7 @@ function doSummon(type) {
   const weights = SUMMON_WEIGHTS[type];
   const rKey = rollRarity(rarityList, weights);
   const emoji = rollEmoji(rKey);
-  collect(emoji, rKey, { getBoundingClientRect: () => ({ left: window.innerWidth/2-28, top: window.innerHeight/2-28, width:56, height:56 }) }, null, true);
+  collect(emoji, rKey, { getBoundingClientRect: () => ({ left: window.innerWidth/2-28, top: window.innerHeight/2-28, width:56, height:56 }) }, null, false);
   showSummonResult(emoji, rKey);
 }
 
