@@ -1087,6 +1087,14 @@ function pickBattleOpponent(playerEmoji) {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
+function scaleOpponentToFighter(npc, playerEmoji) {
+  const hpRoll = 0.8 + Math.random() * 0.45;
+  const atkRoll = 0.75 + Math.random() * 0.5;
+  const hp = Math.max(npc.hp || 1, Math.round((playerEmoji.hp || 1) * hpRoll));
+  const atk = Math.max(npc.atk || 1, Math.round((playerEmoji.atk || 1) * atkRoll));
+  return { ...npc, hp, atk, scaled: true };
+}
+
 function openBattle() {
   battleOpen = true;
   document.getElementById('battle-overlay').classList.add('open');
@@ -1126,7 +1134,7 @@ function renderFighterPick() {
 }
 
 function startBattle(emojiDef) {
-  const npc = pickBattleOpponent(emojiDef);
+  const npc = scaleOpponentToFighter(pickBattleOpponent(emojiDef), emojiDef);
   battleState = {
     playerEmoji: emojiDef,
     playerHP: emojiDef.hp, playerMaxHP: emojiDef.hp, playerAtk: emojiDef.atk,
@@ -1234,7 +1242,7 @@ function endBattle(won) {
   const { npc } = battleState;
   const nr = RARITIES[npc.r];
   if (won) {
-    const reward = nr.coins * 3;
+    const reward = Math.max(nr.coins * 3, Math.round(battlePower(npc) / 25));
     coins += reward;
     const found = npc.custom
       ? customEmojiDefs.find(em => em.n === npc.n)
