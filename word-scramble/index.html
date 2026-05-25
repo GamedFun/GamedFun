@@ -333,6 +333,7 @@
     let index = 0;
     let score = 0;
     let finished = false;
+    let results = [];
 
     function getDailyKey(date = new Date()) {
       const parts = new Intl.DateTimeFormat('en-CA', {
@@ -399,6 +400,7 @@
       index = 0;
       score = 0;
       finished = false;
+      results = [];
       dailyLabel.textContent = `${difficulty} / ${dayKey}`;
       scoreVal.textContent = score;
       answerInput.disabled = false;
@@ -489,7 +491,9 @@
       if (finished) return;
       const guess = answerInput.value.trim().toLowerCase();
       const correct = words[index].answer;
-      if (guess === correct) {
+      const correct_guess = guess === correct;
+      results.push(correct_guess);
+      if (correct_guess) {
         score++;
         scoreVal.textContent = score;
         feedback.className = 'feedback good';
@@ -505,12 +509,14 @@
     restartBtn.addEventListener('click', start);
 
     shareBtn.addEventListener('click', async () => {
-      const text = `Daily Word Scramble (${difficulty})\n${score}/${TOTAL} solved\nhttps://gamed.fun/word-scramble/`;
+      const grid = results.map(r => r ? '🟩' : '🟥');
+      const rows = [grid.slice(0, 5).join(''), grid.slice(5).join('')].filter(r => r).join('\n');
+      const text = `Daily Word Scramble · ${difficulty} · ${dayKey}\n${rows}\n${score}/${TOTAL} · gamed.fun/word-scramble/`;
       try {
         if (navigator.share) await navigator.share({ title: 'Daily Word Scramble', text });
         else await navigator.clipboard.writeText(text);
         feedback.className = 'feedback good';
-        feedback.textContent = 'Result copied.';
+        feedback.textContent = finished ? 'Result copied!' : 'Progress copied.';
       } catch {
         feedback.className = 'feedback';
         feedback.textContent = 'Share canceled.';
