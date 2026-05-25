@@ -596,7 +596,7 @@
     <button id="close-quest" onclick="closeQuests()">✕</button>
   </div>
   <div id="quest-list"></div>
-  <div id="quest-footer">Quests reset at midnight · Complete all 3 for a bonus!</div>
+  <div id="quest-footer">Completing a quest replaces it with a new one · Resets at midnight</div>
 </div>
 
 <div id="battle-overlay">
@@ -1690,7 +1690,7 @@ const QUEST_POOL = [
   { id:'new5',     label:'Find 5 new emojis',        type:'new',       target:5,  reward:110 },
 ];
 
-let questState = { date: '', quests: [] };
+let questState = { date: '', quests: [], usedIds: [], completedCount: 0 };
 let questOpen = false;
 
 function getTodayStr() { return new Date().toISOString().slice(0, 10); }
@@ -1707,14 +1707,27 @@ function initQuests() {
     const idx = (hash + i * 37) % n;
     if (!used.has(idx)) { used.add(idx); picked.push(QUEST_POOL[idx]); }
   }
-  questState = { date: today, quests: picked.map(q => ({ id: q.id, progress: 0, claimed: false })) };
+  questState = {
+    date: today,
+    quests: picked.map(q => ({ id: q.id, progress: 0, claimed: false })),
+    usedIds: picked.map(q => q.id),
+    completedCount: 0,
+  };
   saveGame();
+}
+
+function nextQuest() {
+  const used = new Set(questState.usedIds);
+  const available = QUEST_POOL.filter(q => !used.has(q.id));
+  if (!available.length) return null;
+  return available[Math.floor(Math.random() * available.length)];
 }
 
 function trackQuest(type, rKey, isNew) {
   if (questState.date !== getTodayStr()) return;
   let changed = false;
-  for (const q of questState.quests) {
+  for (let i = 0; i < questState.quests.length; i++) {
+    const q = questState.quests[i];
     if (q.claimed) continue;
     const def = QUEST_POOL.find(p => p.id === q.id);
     if (!def) continue;
@@ -1728,38 +1741,45 @@ function trackQuest(type, rKey, isNew) {
     changed = true;
     if (q.progress >= def.target) {
       q.claimed = true;
+      questState.completedCount++;
       coins += def.reward;
       coinCountEl.textContent = coins.toLocaleString();
       showToast(`✅ Quest done! +${def.reward} 🪙`);
+      // replace with a new quest after a short delay so the player sees "Complete!"
+      const slotIndex = i;
+      setTimeout(() => {
+        const next = nextQuest();
+        if (next) {
+          questState.usedIds.push(next.id);
+          questState.quests[slotIndex] = { id: next.id, progress: 0, claimed: false };
+        } else {
+          questState.quests[slotIndex] = null; // pool exhausted
+        }
+        saveGame();
+        if (questOpen) renderQuests();
+        updateQuestBadge();
+      }, 1500);
     }
   }
   if (changed) {
     updateQuestBadge();
     saveGame();
     if (questOpen) renderQuests();
-    // bonus if all 3 done
-    if (questState.quests.every(q => q.claimed) && !questState.bonusClaimed) {
-      questState.bonusClaimed = true;
-      coins += 300;
-      coinCountEl.textContent = coins.toLocaleString();
-      showToast('🎉 All quests complete! +300 🪙 bonus!');
-      saveGame();
-    }
   }
 }
 
 function updateQuestBadge() {
-  const pending = questState.quests.filter(q => !q.claimed).length;
-  const done    = questState.quests.filter(q => q.claimed).length;
-  const badge   = document.getElementById('quest-badge');
-  badge.style.display = (done > 0 && !questState.quests.every(q => q.claimed)) ? 'block' : 'none';
-  badge.textContent = done + '/3';
+  const count = questState.completedCount || 0;
+  const badge = document.getElementById('quest-badge');
+  badge.style.display = count > 0 ? 'block' : 'none';
+  badge.textContent = count;
 }
 
 function renderQuests() {
   const list = document.getElementById('quest-list');
   list.innerHTML = '';
   for (const q of questState.quests) {
+    if (!q) continue;
     const def = QUEST_POOL.find(p => p.id === q.id);
     const pct = Math.min(100, Math.round((q.progress / def.target) * 100));
     const div = document.createElement('div');
