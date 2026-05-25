@@ -450,6 +450,7 @@
   .fuse-slot-emoji { font-size: 2rem; line-height: 1; }
   .fuse-slot-name { font-size: .6rem; color: var(--muted); text-align: center; max-width: 70px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .fuse-plus, .fuse-arrow { font-size: 1.3rem; color: var(--muted); flex-shrink: 0; }
+  .fuse-plus { cursor: pointer; user-select: none; }
   #fuse-action {
     display: flex; flex-direction: column; align-items: center; gap: .4rem;
     padding: .4rem 1rem; flex-shrink: 0; border-bottom: 1px solid var(--border);
@@ -583,7 +584,7 @@
       <div class="fuse-slot-emoji" id="fuse-emoji-1">➕</div>
       <div class="fuse-slot-name" id="fuse-name-1">Pick one</div>
     </div>
-    <div class="fuse-plus">+</div>
+    <div class="fuse-plus" onclick="earnPlusCoin(event.currentTarget)" title="+1 coin">+</div>
     <div id="fuse-slot-2" class="fuse-slot" onclick="setFuseSlot(2)">
       <div class="fuse-slot-label">Emoji 2</div>
       <div class="fuse-slot-emoji" id="fuse-emoji-2">➕</div>
@@ -1331,7 +1332,27 @@ function closeFuse() {
   fuseOpen = false;
   document.getElementById('fuse-overlay').classList.remove('open');
 }
-function setFuseSlot(n) { fuseSlotActive = n; renderFuseOverlay(); }
+
+function earnPlusCoin(el) {
+  coins += 1;
+  const rect = el.getBoundingClientRect();
+  const pop = document.createElement('div');
+  pop.className = 'coin-pop';
+  pop.style.cssText = `left:${rect.left + rect.width/2}px;top:${rect.top}px;color:#facc15;transform-origin:center;`;
+  pop.textContent = '+1🪙';
+  document.body.appendChild(pop);
+  setTimeout(() => pop.remove(), 950);
+  updateHUD();
+  saveGame();
+  renderFuseOverlay();
+}
+
+function setFuseSlot(n) {
+  fuseSlotActive = n;
+  const slotEmoji = n === 1 ? fuseEmoji1 : fuseEmoji2;
+  if (!slotEmoji) earnPlusCoin(document.getElementById(`fuse-emoji-${n}`));
+  else renderFuseOverlay();
+}
 
 function renderFuseOverlay() {
   document.getElementById('fuse-slot-1').classList.toggle('active', fuseSlotActive === 1);
