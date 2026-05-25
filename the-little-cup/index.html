@@ -501,10 +501,14 @@ function workerLevelMult(id) {
   if (!(G.workers[id] || 0)) return 1;
   return 1 + workerLevel(id) * 0.15;
 }
+function wealthMult() {
+  return 1 + Math.log10(Math.max(10, G.totalEarned)) * 0.1;
+}
 
 function totalCps() {
-  let t = (G.workers.w_baker || 0) * 1 * workerLevelMult('w_baker')
-        + (G.workers.w_intern || 0) * 0.5 * workerLevelMult('w_intern');
+  const wealth = wealthMult();
+  let t = (G.workers.w_baker || 0) * 1 * workerLevelMult('w_baker') * wealth
+        + (G.workers.w_intern || 0) * 0.5 * workerLevelMult('w_intern') * wealth;
   for (const b of ALL_THINGS) t += (G.owned[b.id] || 0) * bldCps(b);
   t *= workerGlobalMult();
   if (G.frenzy > 0)     t *= 7;
