@@ -256,6 +256,9 @@
       .click-area { min-height: 55vw; padding: 1.5rem 1rem; }
       .cup-btn { font-size: 5.5rem; }
     }
+    @keyframes pageIn { from { opacity: 0; } to { opacity: 1; } }
+    body { animation: pageIn .22s ease; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
     [data-theme="light"] { --bg: #f5f5f5; --panel: #ffffff; --panel-2: #f0f0f5; --text: #111827; --muted: #4b5563; --cream: #111827; --border: rgba(0,0,0,.12); }
     [data-theme="light"] body {
       background:
@@ -581,6 +584,7 @@ const frenzyFill = document.getElementById('frenzyFill');
 function renderHUD() {
   const cps = totalCps(), cpc = clickVal();
   hCash.textContent    = fmt(G.cash);
+  document.title = `☕ ${fmt(G.cash)} — The Little Cup`;
   hCps.textContent     = fmt(cps);
   cTotal.textContent   = fmt(G.totalEarned);
   cCps.textContent     = fmt(cps);

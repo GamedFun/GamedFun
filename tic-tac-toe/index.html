@@ -150,6 +150,18 @@
   .cell.taken { cursor: default; }
   .cell.locked { cursor: default; }
 
+  .cell:not(.taken):not(.locked):hover::after {
+  content: attr(data-ghost);
+  color: var(--x-color);
+  opacity: 0.22;
+  font-size: 2.8rem;
+  font-weight: 900;
+}
+
+  @keyframes pageIn { from { opacity: 0; } to { opacity: 1; } }
+  body { animation: pageIn .22s ease; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+
   @media (max-width: 380px) {
     .cell { width: 86px; height: 86px; font-size: 2.3rem; }
   }
@@ -166,6 +178,8 @@
     100% { transform: scale(1)   rotate(0deg); }
   }
   .cell.pop { animation: cellPop 0.22s cubic-bezier(.34,1.56,.64,1) forwards; }
+
+  @keyframes cellEnter { from { opacity: 0; transform: scale(.75); } to { opacity: 1; transform: scale(1); } }
 
   /* Win-cell pulse */
   @keyframes winPulse {
@@ -314,6 +328,11 @@ function checkWinner(b) {
 function setStatus(text, cls) {
   const el = document.getElementById('status');
   el.textContent = text;
+  if (text.includes('Your turn')) document.title = 'Your turn — Tic Tac Toe';
+  else if (text.includes('thinking')) document.title = 'Bot thinking… — Tic Tac Toe';
+  else if (text.includes('You win')) document.title = 'You win! — Tic Tac Toe';
+  else if (text.includes('Bot wins')) document.title = 'Bot wins — Tic Tac Toe';
+  else if (text.includes('draw')) document.title = "It's a draw — Tic Tac Toe";
   el.className = cls || '';
 }
 
@@ -330,6 +349,11 @@ function render(winLine = []) {
     if (locked) cell.classList.add('locked');
     if (winLine.includes(i)) cell.classList.add('win-cell');
   });
+  if (!locked) {
+    document.querySelectorAll('.cell:not(.taken)').forEach(cell => {
+      cell.dataset.ghost = playerMark;
+    });
+  }
 }
 
 const overlay = document.getElementById('game-overlay');
@@ -487,6 +511,11 @@ function newGame() {
   locked = false;
   overlay.classList.remove('on');
   render();
+  document.querySelectorAll('.cell').forEach((cell, i) => {
+    cell.style.animation = 'none';
+    void cell.offsetWidth;
+    cell.style.animation = `cellEnter .18s ease ${i * 28}ms backwards`;
+  });
   if (goFirst) {
     setStatus('Your turn', 'your-turn');
   } else {

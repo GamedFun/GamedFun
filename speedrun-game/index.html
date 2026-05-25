@@ -99,6 +99,9 @@
       .hud-row { gap: 1.2rem; }
       main { padding: 1rem .75rem 1.5rem; }
     }
+    @keyframes pageIn { from { opacity: 0; } to { opacity: 1; } }
+    body { animation: pageIn .22s ease; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
     [data-theme="light"] { --bg: #f5f5f5; --panel: #ffffff; --text: #111827; --muted: #6b7280; --border: rgba(0,0,0,.1); }
     [data-theme="light"] body { background: #f5f5f5; }
     [data-theme="light"] header { background: rgba(245,245,250,.95); }
@@ -709,6 +712,9 @@ function loop() {
   if (gameState === 'running') {
     document.getElementById('timerEl').textContent = fmtTime(performance.now() - startTime);
   }
+  if (gameState === 'running') document.title = timerEl.textContent + ' — Speedrun';
+  else if (gameState === 'finished') document.title = 'Finished! — Speedrun';
+  else document.title = 'The Speedrun Game — gamed.fun';
 
   requestAnimationFrame(loop);
 }

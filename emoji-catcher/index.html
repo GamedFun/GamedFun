@@ -603,6 +603,9 @@
   #completion-overlay p { color: rgba(255,255,255,.6); font-size: .95rem; text-align: center; max-width: 280px; }
   #completion-close { background: #fbbf24; border: none; border-radius: 12px; color: #422006; cursor: pointer; font: inherit; font-size: 1rem; font-weight: 900; padding: .72rem 1.6rem; margin-top: .4rem; }
   @keyframes confettiFall { to { transform: translateY(110vh) rotate(800deg); opacity: 0; } }
+  @keyframes pageIn { from { opacity: 0; } to { opacity: 1; } }
+  body { animation: pageIn .22s ease; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
 </style>
 </head>
 <body>
@@ -1030,6 +1033,12 @@ function collect(emoji, rKey, el, timeout, noCoins, coinMultiplier = 1) {
   const isNew = !collection[emoji.n];
   collection[emoji.n] = (collection[emoji.n] || 0) + 1;
   if (isNew) newlyFound.add(emoji.n);
+  if (navigator.vibrate) {
+    if (rKey === 'mythic')    navigator.vibrate([30, 15, 60, 15, 30]);
+    else if (rKey === 'legendary') navigator.vibrate([20, 10, 40]);
+    else if (rKey === 'epic') navigator.vibrate([15, 8, 25]);
+    else                      navigator.vibrate(10);
+  }
 
   // Streak
   streak++;
@@ -1113,6 +1122,7 @@ function updateHUD() {
   coinCountEl.textContent = creativeMode ? '∞' : coins.toLocaleString();
   const found = Object.keys(collection).length;
   progressEl.textContent = found + ' / ' + (TOTAL + customEmojiDefs.length);
+  document.title = `${found}/${TOTAL + customEmojiDefs.length} — Emoji Pop`;
   const sd = document.getElementById('streakDisplay');
   if (sd) sd.textContent = streak >= 2 ? '🔥 ×' + Math.min(streak, 10) + ' combo!' : '';
   syncSummonButtons();

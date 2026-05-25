@@ -346,6 +346,10 @@
       to { transform: translateY(110vh) rotate(800deg); opacity: 0; }
     }
 
+    @keyframes pageIn { from { opacity: 0; } to { opacity: 1; } }
+    body { animation: pageIn .22s ease; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+
     @media (max-width: 540px) {
       .answer-row { flex-direction: column; }
       .answer-row button { width: 100%; }
@@ -423,7 +427,7 @@
       </div>
 
       <form class="answer-row" id="answerForm">
-        <input id="answerInput" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Type the unscrambled word">
+        <input id="answerInput" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Type the unscrambled word" onfocus="this.select()">
         <button type="submit" id="submitBtn">Submit</button>
       </form>
 
@@ -645,9 +649,35 @@
       streakVal.textContent   = m.streak || 0;
     }
 
+    // ── Sound effects ─────────────────────────────────────────────
+    function beep(type) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        if (type === 'correct') {
+          o.type = 'triangle';
+          o.frequency.setValueAtTime(523, ctx.currentTime);
+          o.frequency.setValueAtTime(784, ctx.currentTime + 0.1);
+          g.gain.setValueAtTime(0.12, ctx.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.32);
+          o.start(); o.stop(ctx.currentTime + 0.32);
+        } else {
+          o.type = 'sawtooth';
+          o.frequency.setValueAtTime(180, ctx.currentTime);
+          o.frequency.setValueAtTime(140, ctx.currentTime + 0.06);
+          g.gain.setValueAtTime(0.08, ctx.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+          o.start(); o.stop(ctx.currentTime + 0.2);
+        }
+      } catch {}
+    }
+
     // ── Game flow ─────────────────────────────────────────────────
     function start() {
       dayKey = getDailyKey();
+      document.title = 'Daily Word Scramble — gamed.fun';
       const random = rng(seedFrom(`${dayKey}:${difficulty}`));
       words = shuffle(WORDS[difficulty], random).slice(0, TOTAL).map(word => ({
         answer: word, scrambled: scramble(word, random)
@@ -671,6 +701,7 @@
       if (index >= words.length) { finish(); return; }
       renderTiles(words[index].scrambled);
       wordIndex.textContent = index + 1;
+      document.title = `Word ${index + 1}/10 — Daily Scramble`;
       answerInput.value = '';
       feedback.className = 'feedback';
       feedback.textContent = 'Unscramble the daily word.';
@@ -700,6 +731,7 @@
     function showResultScreen() {
       gameSection.style.display = 'none';
       resultScreen.classList.add('visible');
+      document.title = `${score}/10 — Daily Scramble`;
 
       document.getElementById('resultScoreBig').textContent = `${score}/10`;
       document.getElementById('perfectBadge').style.display = score === TOTAL ? 'inline-flex' : 'none';
@@ -776,12 +808,14 @@
 
       if (isCorrect) {
         score++;
+        beep('correct');
         scoreVal.textContent = score;
         bumpScore();
         feedback.className = 'feedback good';
         feedback.textContent = 'Correct!';
       } else {
         shakeTiles();
+        beep('wrong');
         flashInput();
         feedback.className = 'feedback bad';
         feedback.textContent = `Wrong — it was "${correct}".`;
