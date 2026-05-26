@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script>document.documentElement.dataset.theme=localStorage.getItem('gf-theme')||'dark';</script>
-  <title>Planet Stack</title>
+  <title>Sushi Stack</title>
   <link rel="icon" type="image/svg+xml" href="/logo.svg">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
   <style>
@@ -95,8 +95,8 @@
 </div>
 
 <div id="gameover">
-  <div style="font-size:3.5rem">🌌</div>
-  <div id="go-title">Overflowed!</div>
+  <div style="font-size:3.5rem">🍱</div>
+  <div id="go-title">Too Full!</div>
   <div id="go-score">Score<strong id="go-val">0</strong></div>
   <button id="restart-btn">↺ Play Again</button>
 </div>
@@ -114,16 +114,16 @@ function toggleTheme() {
 document.getElementById('themeBtn').textContent =
   document.documentElement.dataset.theme === 'dark' ? '☀️' : '🌙';
 
-// ── PLANET DATA ───────────────────────────────────────────────────────────────
+// ── FOOD DATA ─────────────────────────────────────────────────────────────────
 const PLANETS = [
-  { name:'Moon',    hex:'#c2c2d8', r:18,  pts:1  },
-  { name:'Mercury', hex:'#b5835a', r:26,  pts:3  },
-  { name:'Mars',    hex:'#c1440e', r:36,  pts:6  },
-  { name:'Earth',   hex:'#2a7ae2', r:48,  pts:10 },
-  { name:'Neptune', hex:'#5080e8', r:62,  pts:15 },
-  { name:'Saturn',  hex:'#e8c87a', r:80,  pts:21 },
-  { name:'Jupiter', hex:'#d4903a', r:100, pts:28 },
-  { name:'Sun',     hex:'#ffcc00', r:124, pts:36 },
+  { name:'Sesame',  emoji:'🫘', hex:'#f5ead0', r:18,  pts:1  },
+  { name:'Onigiri', emoji:'🍙', hex:'#e8e4d8', r:26,  pts:3  },
+  { name:'Gyoza',   emoji:'🥟', hex:'#e8b84b', r:36,  pts:6  },
+  { name:'Shrimp',  emoji:'🦐', hex:'#ff7755', r:48,  pts:10 },
+  { name:'Sushi',   emoji:'🍣', hex:'#f06040', r:62,  pts:15 },
+  { name:'Ramen',   emoji:'🍜', hex:'#f5a623', r:80,  pts:21 },
+  { name:'Bento',   emoji:'🍱', hex:'#8b6430', r:100, pts:28 },
+  { name:'Feast',   emoji:'🎉', hex:'#e8305a', r:124, pts:36 },
 ];
 const MAX_SPAWN = 4;
 
@@ -300,7 +300,7 @@ function doGameOver() {
   gameOver = true;
   document.getElementById('go-val').textContent = score.toLocaleString();
   gameoverEl.classList.add('on');
-  document.title = 'Game Over — Planet Stack';
+  document.title = 'Game Over — Sushi Stack';
 }
 
 document.getElementById('restart-btn').addEventListener('click', () => {
@@ -311,29 +311,24 @@ document.getElementById('restart-btn').addEventListener('click', () => {
   currentTier = rndTier(); nextTier = rndTier();
   refreshNext();
   gameoverEl.classList.remove('on');
-  document.title = 'Planet Stack';
+  document.title = 'Sushi Stack';
 });
 
 // ── DRAW ──────────────────────────────────────────────────────────────────────
 function drawPlanet(x, y, r, tier, alpha) {
   const pd = PLANETS[tier];
+  const a  = alpha ?? 1;
   ctx.save();
-  ctx.globalAlpha = alpha ?? 1;
+  ctx.globalAlpha = a;
 
-  // Glow for Sun
-  if (tier === 7) {
-    ctx.shadowBlur  = 28;
-    ctx.shadowColor = '#ff9900';
-  }
-
-  // Sphere gradient (light top-left → dark bottom-right)
+  // Soft circle background
   const grad = ctx.createRadialGradient(
-    x - r * 0.32, y - r * 0.36, r * 0.06,
+    x - r * 0.28, y - r * 0.32, r * 0.05,
     x,            y,             r
   );
-  grad.addColorStop(0,    lighten(pd.hex, 0.72));
-  grad.addColorStop(0.45, pd.hex);
-  grad.addColorStop(1,    darken(pd.hex, 0.52));
+  grad.addColorStop(0,    lighten(pd.hex, 0.55));
+  grad.addColorStop(0.5,  pd.hex);
+  grad.addColorStop(1,    darken(pd.hex, 0.38));
 
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -341,17 +336,14 @@ function drawPlanet(x, y, r, tier, alpha) {
   ctx.fill();
   ctx.restore();
 
-  // Planet name label on medium+ planets
-  if (r >= 48 && (alpha ?? 1) > 0.5) {
-    ctx.save();
-    ctx.globalAlpha = 0.88;
-    ctx.fillStyle   = '#fff';
-    ctx.font        = `700 ${Math.round(r * 0.27)}px system-ui, sans-serif`;
-    ctx.textAlign   = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(pd.name, x, y);
-    ctx.restore();
-  }
+  // Emoji on top
+  ctx.save();
+  ctx.globalAlpha = a * 0.95;
+  ctx.font        = `${Math.round(r * 1.25)}px serif`;
+  ctx.textAlign   = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(pd.emoji, x, y + r * 0.06);
+  ctx.restore();
 }
 
 function draw() {
@@ -451,8 +443,8 @@ function loop(now) {
   checkOverflow();
   draw();
   document.title = gameOver
-    ? 'Game Over — Planet Stack'
-    : `${score.toLocaleString()} — Planet Stack`;
+    ? 'Game Over — Sushi Stack'
+    : `${score.toLocaleString()} — Sushi Stack`;
 }
 requestAnimationFrame(loop);
 </script>
