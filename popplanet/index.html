@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+  <title>PopPlanet — gamed.fun</title>
+  <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #05030f;
+      color: #f8fafc;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    #game { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+
+    /* ── HUD ── */
+    .hud {
+      position: fixed; top: 0; left: 0; right: 0;
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding: 16px 18px; z-index: 10; pointer-events: none;
+    }
+    .hud-left { display: flex; gap: 22px; }
+    .hud-right { display: flex; gap: 8px; pointer-events: auto; }
+    .stat { display: flex; flex-direction: column; line-height: 1.1; }
+    .stat-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.12em; color: #8b87a8; font-weight: 700; }
+    .stat span:last-child, .stat #level, .stat #score { font-size: 1.35rem; font-weight: 800; }
+    .icon-btn {
+      pointer-events: auto;
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
+      color: #f8fafc; width: 40px; height: 40px; border-radius: 11px;
+      font-size: 1.1rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+      text-decoration: none; transition: background 0.15s;
+    }
+    .icon-btn:hover { background: rgba(255,255,255,0.15); }
+
+    /* ── ship timer bar ── */
+    .ship-bar-wrap {
+      position: fixed; top: 64px; left: 50%; transform: translateX(-50%);
+      width: min(440px, 80vw); height: 8px; border-radius: 99px;
+      background: rgba(255,255,255,0.1); z-index: 10; overflow: hidden;
+    }
+    .ship-bar { height: 100%; width: 100%; background: linear-gradient(90deg,#fbbf24,#f97316); border-radius: 99px; }
+
+    /* ── charge meter ── */
+    .charge-wrap {
+      position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+      width: min(440px, 86vw); z-index: 10; text-align: center;
+      display: flex; flex-direction: column; align-items: center; gap: 7px;
+    }
+    .charge-track {
+      width: 100%; height: 12px; border-radius: 99px;
+      background: rgba(255,255,255,0.1); overflow: hidden; border: 1px solid rgba(255,255,255,0.12);
+    }
+    .charge-fill { height: 100%; width: 0%; border-radius: 99px;
+      background: linear-gradient(90deg,#6366f1,#a855f7,#ec4899); transition: width 0.25s ease; }
+    .charge-wrap.ready .charge-track { box-shadow: 0 0 18px rgba(168,85,247,0.8); }
+    .charge-hint { font-size: 0.72rem; color: #a5a1c0; font-weight: 600; }
+    .launch-btn {
+      pointer-events: auto; cursor: pointer; border: none;
+      background: linear-gradient(135deg,#6366f1,#a855f7,#ec4899); color: #fff;
+      font-weight: 800; font-size: 0.95rem; padding: 11px 26px; border-radius: 99px;
+      box-shadow: 0 10px 30px -8px rgba(168,85,247,0.9);
+      animation: pulse 1.1s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+
+    /* ── toast ── */
+    .toast {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) scale(0.8);
+      font-size: 2.6rem; font-weight: 900; z-index: 20; pointer-events: none;
+      opacity: 0; transition: opacity 0.3s, transform 0.3s;
+      text-shadow: 0 4px 24px rgba(0,0,0,0.6);
+      background: linear-gradient(135deg,#a5b4fc,#f0abfc); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+
+    /* ── touch controls (ship mode) ── */
+    .touch {
+      position: fixed; bottom: 22px; left: 0; right: 0; z-index: 15;
+      display: flex; justify-content: space-between; padding: 0 22px; pointer-events: none;
+    }
+    .touch-left, .touch-right { display: flex; gap: 14px; pointer-events: auto; }
+    .tbtn {
+      width: 66px; height: 66px; border-radius: 50%;
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+      color: #fff; font-size: 1.5rem; font-weight: 800; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;
+      touch-action: none;
+    }
+    .tbtn small { font-size: 0.5rem; font-weight: 700; letter-spacing: 0.05em; opacity: 0.8; margin-top: 2px; }
+    .tbtn:active { background: rgba(255,255,255,0.28); }
+    .tbtn.fire { background: rgba(236,72,153,0.35); border-color: rgba(236,72,153,0.6); }
+
+    /* ── overlays ── */
+    .overlay {
+      position: fixed; inset: 0; z-index: 30;
+      display: flex; align-items: center; justify-content: center; padding: 22px;
+      background: radial-gradient(circle at 50% 40%, rgba(40,20,70,0.55), rgba(5,3,15,0.86));
+      backdrop-filter: blur(3px);
+    }
+    .panel {
+      width: min(480px, 100%); text-align: center;
+      background: rgba(20,16,38,0.78); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 24px; padding: 34px 28px 30px;
+      box-shadow: 0 30px 80px -30px rgba(0,0,0,0.9);
+    }
+    .title {
+      font-size: clamp(2.6rem, 11vw, 4rem); font-weight: 900; letter-spacing: -0.02em; line-height: 1;
+      background: linear-gradient(135deg,#818cf8 0%, #c084fc 45%, #f472b6 100%);
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .title span { display: inline; }
+    .subtitle { margin: 14px auto 18px; max-width: 360px; color: #c4c0db; font-size: 0.95rem; line-height: 1.5; }
+    .rules { list-style: none; text-align: left; max-width: 360px; margin: 0 auto 22px; display: flex; flex-direction: column; gap: 9px; }
+    .rules li { font-size: 0.85rem; color: #d8d5ea; line-height: 1.4; }
+    .rules b { color: #fff; }
+    .big-btn {
+      cursor: pointer; border: none; color: #fff; font-weight: 800; font-size: 1.1rem;
+      padding: 14px 46px; border-radius: 99px;
+      background: linear-gradient(135deg,#6366f1,#a855f7,#ec4899);
+      box-shadow: 0 14px 36px -10px rgba(168,85,247,0.9); transition: transform 0.12s;
+    }
+    .big-btn:hover { transform: translateY(-2px); }
+    .hint-line { margin-top: 14px; font-size: 0.72rem; color: #8b87a8; }
+    .over-title { font-size: 2.4rem; font-weight: 900; }
+    .over-sub { color: #c4c0db; margin: 6px 0 16px; }
+    .final { display: flex; justify-content: center; gap: 32px; margin-bottom: 22px; font-size: 1rem; color: #c4c0db; }
+    .final b { color: #fff; font-size: 1.6rem; display: block; }
+    .text-link { display: inline-block; margin-top: 16px; color: #a5a1c0; font-size: 0.8rem; text-decoration: none; }
+    .text-link:hover { color: #fff; }
+    .hidden { display: none !important; }
+
+    @media (max-width: 520px) {
+      .hud { padding: 12px 14px; }
+      .stat span:last-child { font-size: 1.15rem; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <!-- HUD -->
+  <div id="hud" class="hud hidden">
+    <div class="hud-left">
+      <div class="stat"><span class="stat-label">Level</span><span id="level">1</span></div>
+      <div class="stat"><span class="stat-label">Score</span><span id="score">0</span></div>
+    </div>
+    <div class="hud-right">
+      <button id="muteBtn" class="icon-btn" title="Sound">&#128266;</button>
+      <a class="icon-btn" href="/" title="Back to gamed.fun">&#127968;</a>
+    </div>
+  </div>
+
+  <!-- ship timer -->
+  <div id="shipBarWrap" class="ship-bar-wrap hidden"><div id="shipBar" class="ship-bar"></div></div>
+
+  <!-- charge meter -->
+  <div id="chargeWrap" class="charge-wrap hidden">
+    <button id="launchBtn" class="launch-btn hidden">&#128640; LAUNCH</button>
+    <div class="charge-track"><div id="chargeFill" class="charge-fill"></div></div>
+    <span id="chargeHint" class="charge-hint">Match pairs to charge your ship</span>
+  </div>
+
+  <!-- toast -->
+  <div id="toast" class="toast"></div>
+
+  <!-- touch controls (ship mode only) -->
+  <div id="touch" class="touch hidden">
+    <div class="touch-left">
+      <button class="tbtn" data-act="left">&#9664;</button>
+      <button class="tbtn" data-act="right">&#9654;</button>
+    </div>
+    <div class="touch-right">
+      <button class="tbtn" data-act="thrust">&#9650;<small>THRUST</small></button>
+      <button class="tbtn fire" data-act="fire">&#9679;<small>FIRE</small></button>
+    </div>
+  </div>
+
+  <!-- start overlay -->
+  <div id="startOverlay" class="overlay">
+    <div class="panel">
+      <h1 class="title">Pop<span>Planet</span></h1>
+      <p class="subtitle">Peek, remember, and match the planets — before they grow and smash together.</p>
+      <ul class="rules">
+        <li>&#128072; Tap two planets to peek. A matching pair goes <b>POP!</b></li>
+        <li>&#127759; Unmatched planets keep <b>growing</b> &mdash; big ones glow red.</li>
+        <li>&#128165; If two big planets touch, it's <b>game over</b>.</li>
+        <li>&#128640; Match pairs to charge up, then launch a ship and blast them <b>Asteroids-style</b>!</li>
+      </ul>
+      <button id="startBtn" class="big-btn">Play</button>
+      <p class="hint-line">On a computer: arrow keys to fly, space to launch &amp; shoot.</p>
+    </div>
+  </div>
+
+  <!-- game over overlay -->
+  <div id="overOverlay" class="overlay hidden">
+    <div class="panel">
+      <h2 class="over-title">&#128165; Boom!</h2>
+      <p class="over-sub">Two planets collided.</p>
+      <div class="final">
+        <div>Level<b id="finalLevel">1</b></div>
+        <div>Score<b id="finalScore">0</b></div>
+      </div>
+      <button id="againBtn" class="big-btn">Play Again</button>
+      <br><a class="text-link" href="/">&larr; back to gamed.fun</a>
+    </div>
+  </div>
+
+  <!-- load error -->
+  <div id="loadErr" class="overlay hidden">
+    <div class="panel">
+      <h2 class="over-title">Couldn't start 3D</h2>
+      <p class="over-sub">PopPlanet needs a browser with 3D graphics (WebGL) and an internet connection. Try refreshing, or open it in a different browser.</p>
+    </div>
+  </div>
+
+  <!-- friendly fallback if the 3D engine fails to load -->
+  <script>
+    setTimeout(function () {
+      if (!window.__ppLoaded) {
+        var e = document.getElementById('loadErr');
+        if (e) e.classList.remove('hidden');
+      }
+    }, 6000);
+  </script>
+
+  <script type="importmap">
+  { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+  </script>
+
+  <script type="module">
+  import * as THREE from 'three';   // load the 3D engine (Three.js) from the internet
+  window.__ppLoaded = true;         // tells the "did it load?" check that we're good
+
+  /* ============================================================
+     HOW THIS GAME IS BUILT  (a quick map for whoever's reading)
+       1. CONFIG + DESIGNS ......  the settings + planet looks (tweak these!)
+       2. scene / camera / lights  the 3D "movie set"
+       3. textures + planets ....  make the planets and their patterns
+       4. reveal / match ........  the MEMORY game part
+       5. particles + ship ......  explosions and the Asteroids super-move
+       6. updatePlay ............  the rules, checked many times per second
+       7. input + main loop .....  reading your taps/keys and drawing each frame
+     ============================================================ */
+
+  /* ============================================================
+     CONFIG  —  kids: change these numbers to change how it feels!
+     ============================================================ */
+  const CONFIG = {
+    startPairs:      3,      // how many matching pairs on level 1
+    pairsPerLevel:   1,      // extra pairs added each level
+    maxPairs:        8,      // most pairs the game will ever show
+    planetBaseRadius: 0.75,  // how big planets start
+    growthBase:      0.05,   // how fast planets grow on level 1 (bigger = harder)
+    growthPerLevel:  0.012,  // extra growth speed each level
+    driftSpeed:      1.1,    // how fast planets float around
+    mismatchHideMs:  850,    // how long a wrong pair stays revealed
+    chargeNeeded:    3,      // matches needed to charge the ship
+    shipDuration:    9,      // seconds the ship lasts
+    shipTurn:        3.2,    // how fast the ship turns
+    shipThrust:      15,     // how hard the ship accelerates
+    shipDamping:     0.55,   // how quickly the ship slows down
+    shipMaxSpeed:    17,     // ship top speed
+    bulletSpeed:     26,     // how fast bullets fly
+    bulletLife:      1.1,    // seconds a bullet lives
+    fireCooldown:    0.16,   // seconds between shots
+  };
+
+  /* The different planet looks. Each "design" is a pattern + 2 colors.
+     A matching PAIR is just two planets that share the same design.
+     'a' is the background color, 'b' is the pattern color. Add your own! */
+  const DESIGNS = [
+    { a: '#ef4444', b: '#fecaca', type: 'dots'    },
+    { a: '#3b82f6', b: '#bfdbfe', type: 'stripes' },
+    { a: '#22c55e', b: '#bbf7d0', type: 'rings'   },
+    { a: '#f59e0b', b: '#fde68a', type: 'checker' },
+    { a: '#a855f7', b: '#e9d5ff', type: 'swirl'   },
+    { a: '#ec4899', b: '#fbcfe8', type: 'grid'    },
+    { a: '#06b6d4', b: '#a5f3fc', type: 'dots'    },
+    { a: '#84cc16', b: '#ecfccb', type: 'stripes' },
+  ];
+
+  /* ── THE 3D "MOVIE SET" ──
+     To show 3D you need 3 things: a SCENE (the world), a CAMERA (your eyes),
+     and LIGHTS (so the planets aren't black). The renderer draws it all onto
+     the <canvas>. computeBounds figures out where the screen edges are so
+     planets know where to bounce, even when you resize the window. */
+  const canvas   = document.getElementById('game');
+  let renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  } catch (err) {
+    console.error(err);
+    document.getElementById('loadErr').classList.remove('hidden');
+    throw err;
+  }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x05030f);
+
+  const CAM_Z = 22;
+  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 200);
+  camera.position.set(0, 0, CAM_Z);
+  camera.lookAt(0, 0, 0);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  const key = new THREE.DirectionalLight(0xffffff, 1.15);
+  key.position.set(5, 8, 10);
+  scene.add(key);
+  const rim = new THREE.PointLight(0x8b5cf6, 0.9, 120);
+  rim.position.set(-10, -6, 8);
+  scene.add(rim);
+
+  const bounds = { x: 10, y: 6 };
+  function computeBounds() {
+    const halfH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * CAM_Z;
+    const halfW = halfH * camera.aspect;
+    bounds.x = halfW - 1.4;
+    bounds.y = halfH - 1.4;
+  }
+  function resize() {
+    const w = window.innerWidth, h = window.innerHeight;
+    renderer.setSize(w, h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    computeBounds();
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  /* ── STARFIELD ──
+     700 tiny white dots scattered far behind everything, to look like space. */
+  (function makeStars() {
+    const n = 700;
+    const g = new THREE.BufferGeometry();
+    const pos = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      pos[i * 3]     = (Math.random() - 0.5) * 140;
+      pos[i * 3 + 1] = (Math.random() - 0.5) * 100;
+      pos[i * 3 + 2] = -25 - Math.random() * 45;
+    }
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const m = new THREE.PointsMaterial({ color: 0xffffff, size: 0.28, sizeAttenuation: true, transparent: true, opacity: 0.85 });
+    const pts = new THREE.Points(g, m);
+    scene.add(pts);
+    window.__stars = pts;
+  })();
+  const stars = window.__stars;
+
+  /* ── PLANET PATTERNS ──
+     We draw a picture on a hidden 2D canvas (dots, stripes, swirl...) and then
+     wrap it around the 3D ball like a sticker. 256 means the picture is 256
+     dots wide. makeHiddenTex draws the gray "?" you see before you peek. */
+  function patternTexture(design) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const x = c.getContext('2d');
+    const { a, b, type } = design;
+    x.fillStyle = a; x.fillRect(0, 0, 256, 256);
+    x.fillStyle = b; x.strokeStyle = b; x.lineCap = 'round';
+    if (type === 'dots') {
+      for (let i = 0; i < 6; i++) for (let j = 0; j < 6; j++) {
+        x.beginPath(); x.arc(22 + i * 43, 22 + j * 43, 13, 0, 7); x.fill();
+      }
+    } else if (type === 'stripes') {
+      x.lineWidth = 18;
+      for (let i = -1; i < 11; i++) { x.beginPath(); x.moveTo(i * 32, 0); x.lineTo(i * 32 + 128, 256); x.stroke(); }
+    } else if (type === 'rings') {
+      x.lineWidth = 14;
+      for (let r = 22; r < 210; r += 36) { x.beginPath(); x.arc(128, 128, r, 0, 7); x.stroke(); }
+    } else if (type === 'checker') {
+      for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) if ((i + j) % 2) x.fillRect(i * 32, j * 32, 32, 32);
+    } else if (type === 'swirl') {
+      x.lineWidth = 16; x.beginPath();
+      for (let t = 0; t < 42; t += 0.18) {
+        const r = t * 2.9, px = 128 + Math.cos(t) * r, py = 128 + Math.sin(t) * r;
+        if (t === 0) x.moveTo(px, py); else x.lineTo(px, py);
+      }
+      x.stroke();
+    } else if (type === 'grid') {
+      x.lineWidth = 14;
+      for (let i = 0; i <= 256; i += 43) {
+        x.beginPath(); x.moveTo(i, 0); x.lineTo(i, 256); x.stroke();
+        x.beginPath(); x.moveTo(0, i); x.lineTo(256, i); x.stroke();
+      }
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }
+  function makeHiddenTex() {
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const x = c.getContext('2d');
+    const grd = x.createRadialGradient(108, 98, 18, 128, 128, 150);
+    grd.addColorStop(0, '#3b3357'); grd.addColorStop(1, '#191430');
+    x.fillStyle = grd; x.fillRect(0, 0, 256, 256);
+    x.fillStyle = 'rgba(255,255,255,0.45)';
+    x.font = 'bold 150px Inter, Arial, sans-serif';
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText('?', 128, 142);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }
+  const hiddenTex = makeHiddenTex();
+  const designTexCache = {};
+  function designTex(i) {
+    if (!designTexCache[i]) designTexCache[i] = patternTexture(DESIGNS[i]);
+    return designTexCache[i];
+  }
+
+  /* ── MAKING PLANETS ──
+     Every planet is an object that remembers its own stuff: how big it is
+     (radius), which way it's floating (vx, vy = speed sideways + up/down),
+     and whether it's been revealed, matched, or popped (dead).
+     findSpawn picks an empty spot so new planets don't start on top of each other. */
+  const sphereGeo = new THREE.SphereGeometry(1, 32, 24);
+  let planets = [];
+
+  function makePlanet(designIndex, px, py) {
+    const design = DESIGNS[designIndex];
+    const mat = new THREE.MeshStandardMaterial({
+      map: hiddenTex, roughness: 0.55, metalness: 0.12,
+      emissive: new THREE.Color(0x141228), emissiveIntensity: 0.4,
+    });
+    const mesh = new THREE.Mesh(sphereGeo, mat);
+    mesh.scale.setScalar(CONFIG.planetBaseRadius);
+    mesh.position.set(px, py, 0);
+    scene.add(mesh);
+    const ang = Math.random() * Math.PI * 2;
+    return {
+      mesh, designIndex, design,
+      radius: CONFIG.planetBaseRadius,
+      vx: Math.cos(ang) * CONFIG.driftSpeed,
+      vy: Math.sin(ang) * CONFIG.driftSpeed,
+      spin: (Math.random() - 0.5) * 0.7,
+      revealed: false, matched: false, dead: false, pulse: 0,
+    };
+  }
+  function disposePlanet(p) {
+    scene.remove(p.mesh);
+    if (p.mesh.material) p.mesh.material.dispose();
+  }
+  function activeCount() { return planets.filter(p => !p.dead).length; }
+
+  function findSpawn() {
+    for (let t = 0; t < 70; t++) {
+      const x = (Math.random() * 2 - 1) * bounds.x * 0.85;
+      const y = (Math.random() * 2 - 1) * bounds.y * 0.85;
+      let ok = true;
+      for (const p of planets) {
+        if (Math.hypot(p.mesh.position.x - x, p.mesh.position.y - y) < CONFIG.planetBaseRadius * 3.4) { ok = false; break; }
+      }
+      if (ok) return { x, y };
+    }
+    return { x: (Math.random() * 2 - 1) * bounds.x * 0.6, y: (Math.random() * 2 - 1) * bounds.y * 0.6 };
+  }
+
+  function spawnLevel() {
+    planets.forEach(disposePlanet);
+    planets = [];
+    const pairs = Math.min(CONFIG.startPairs + (level - 1) * CONFIG.pairsPerLevel, CONFIG.maxPairs);
+    const pool = shuffle([...Array(DESIGNS.length).keys()]).slice(0, pairs);
+    const list = [];
+    pool.forEach(i => { list.push(i); list.push(i); });
+    shuffle(list);
+    list.forEach(di => { const s = findSpawn(); planets.push(makePlanet(di, s.x, s.y)); });
+    picks = []; resolving = false;
+  }
+  function growthRate() { return CONFIG.growthBase + (level - 1) * CONFIG.growthPerLevel; }
+
+  // mixes a list into a random order (so the planets aren't in the same spots each time)
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
+    return arr;
+  }
+
+  /* ── THE MEMORY GAME (the heart of it) ──
+     reveal() = show a planet's pattern. hide() = turn it back into a "?".
+     tryMatch() runs once you've peeked at 2 planets: same design = POP both
+     (and charge the ship a little); different = flip them back after a moment. */
+  function reveal(p) {
+    p.revealed = true; p.pulse = 1;
+    p.mesh.material.map = designTex(p.designIndex);
+    p.mesh.material.emissive.set(p.design.a);
+    p.mesh.material.emissiveIntensity = 0.45;
+    p.mesh.material.needsUpdate = true;
+    playPeek();
+  }
+  function hide(p) {
+    p.revealed = false;
+    p.mesh.material.map = hiddenTex;
+    p.mesh.material.emissive.set(0x141228);
+    p.mesh.material.emissiveIntensity = 0.4;
+    p.mesh.material.needsUpdate = true;
+  }
+  function tryMatch() {
+    const [a, b] = picks;
+    if (a.designIndex === b.designIndex) {
+      score += 100 * level;
+      charge = Math.min(charge + 1, CONFIG.chargeNeeded);
+      updateHUD(); updateChargeUI(); playMatch(); vibrate(30);
+      setTimeout(() => { popPlanet(a); popPlanet(b); picks = []; if (activeCount() === 0) nextLevel(); }, 240);
+    } else {
+      resolving = true; playMismatch();
+      setTimeout(() => { if (!a.dead) hide(a); if (!b.dead) hide(b); picks = []; resolving = false; }, CONFIG.mismatchHideMs);
+    }
+  }
+  function popPlanet(p) {
+    if (p.dead) return;
+    p.dead = true; p.matched = true;
+    burst(p.mesh.position, p.design.a, p.design.b, 14);
+    disposePlanet(p);
+    playPop();
+  }
+
+  /* ── EXPLOSIONS ──
+     A "burst" spits out a bunch of tiny colored balls that fly outward and
+     shrink away. bigExplosion is the giant one when two planets crash. */
+  let particles = [];
+  const partGeo = new THREE.SphereGeometry(0.13, 6, 6);
+  function burst(pos, colA, colB, n) {
+    for (let i = 0; i < n; i++) {
+      const m = new THREE.Mesh(partGeo, new THREE.MeshBasicMaterial({ color: Math.random() < 0.5 ? colA : colB }));
+      m.position.copy(pos); scene.add(m);
+      const a = Math.random() * Math.PI * 2, sp = 3 + Math.random() * 6;
+      particles.push({ mesh: m, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: (Math.random() - 0.5) * 4, life: 0.6, max: 0.6 });
+    }
+  }
+  function bigExplosion(x, y) {
+    const cols = ['#fef3c7', '#fbbf24', '#f97316', '#ef4444', '#ffffff'];
+    for (let i = 0; i < 46; i++) {
+      const m = new THREE.Mesh(partGeo, new THREE.MeshBasicMaterial({ color: cols[i % cols.length] }));
+      m.position.set(x, y, 0); scene.add(m);
+      const a = Math.random() * Math.PI * 2, sp = 4 + Math.random() * 12;
+      particles.push({ mesh: m, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: (Math.random() - 0.5) * 6, life: 0.9, max: 0.9 });
+    }
+  }
+  function updateParticles(dt) {
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i]; p.life -= dt;
+      p.mesh.position.x += p.vx * dt; p.mesh.position.y += p.vy * dt; p.mesh.position.z += p.vz * dt;
+      p.mesh.scale.setScalar(Math.max(0, p.life / p.max));
+      if (p.life <= 0) { scene.remove(p.mesh); p.mesh.material.dispose(); particles.splice(i, 1); }
+    }
+  }
+
+  /* ── THE SHIP (your super-move) ──
+     When the charge bar is full you fly a little ship like the old game
+     Asteroids: turn, thrust, and shoot. A bullet that hits a planet pops it
+     AND its partner. The ship lasts a few seconds, then you're back to memory.
+     vx/vy are the ship's speed; "damping" makes it slowly coast to a stop. */
+  let ship = null, bullets = [], shipTimer = 0, fireCd = 0, pendingClear = false;
+  const input = { left: false, right: false, thrust: false, fire: false };
+
+  function enterShip() {
+    if (mode !== 'play' || charge < CONFIG.chargeNeeded) return;
+    charge = 0; updateChargeUI();
+    picks.forEach(p => { if (!p.matched) hide(p); }); picks = []; resolving = false;
+    mode = 'ship'; shipTimer = CONFIG.shipDuration; pendingClear = false;
+    const geo = new THREE.ConeGeometry(0.55, 1.5, 3); geo.rotateZ(-Math.PI / 2);
+    const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0xfff7cc, emissive: 0xf59e0b, emissiveIntensity: 0.7, metalness: 0.3, roughness: 0.4 }));
+    scene.add(mesh);
+    ship = { mesh, x: 0, y: 0, vx: 0, vy: 0, angle: Math.PI / 2 };
+    shipBarWrap.classList.remove('hidden');
+    touchEl.classList.remove('hidden');
+    playLaunch(); vibrate(60);
+  }
+  function exitShip() {
+    if (ship) { scene.remove(ship.mesh); ship.mesh.geometry.dispose(); ship.mesh.material.dispose(); ship = null; }
+    bullets.forEach(b => { scene.remove(b.mesh); b.mesh.material.dispose(); }); bullets = [];
+    shipBarWrap.classList.add('hidden');
+    touchEl.classList.add('hidden');
+    input.left = input.right = input.thrust = input.fire = false;
+    mode = 'play';
+    if (activeCount() === 0 || pendingClear) { pendingClear = false; nextLevel(); }
+  }
+  function fireBullet() {
+    const nx = Math.cos(ship.angle), ny = Math.sin(ship.angle);
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), new THREE.MeshBasicMaterial({ color: 0xfff7cc }));
+    m.position.set(ship.x + nx * 1.0, ship.y + ny * 1.0, 0); scene.add(m);
+    bullets.push({ mesh: m, vx: ship.vx + nx * CONFIG.bulletSpeed, vy: ship.vy + ny * CONFIG.bulletSpeed, life: CONFIG.bulletLife });
+    playShoot();
+  }
+  function shipPop(p) {
+    popPlanet(p);
+    const partner = planets.find(q => !q.dead && q !== p && q.designIndex === p.designIndex);
+    if (partner) popPlanet(partner);
+    score += 50; updateHUD();
+    if (activeCount() === 0) pendingClear = true;
+  }
+  function wrap(o) {
+    if (o.x > bounds.x) o.x = -bounds.x; else if (o.x < -bounds.x) o.x = bounds.x;
+    if (o.y > bounds.y) o.y = -bounds.y; else if (o.y < -bounds.y) o.y = bounds.y;
+  }
+  function updateShip(dt) {
+    shipTimer -= dt;
+    shipBar.style.width = Math.max(0, shipTimer / CONFIG.shipDuration * 100) + '%';
+    if (shipTimer <= 0) { exitShip(); return; }
+
+    if (input.left)  ship.angle += CONFIG.shipTurn * dt;
+    if (input.right) ship.angle -= CONFIG.shipTurn * dt;
+    if (input.thrust) {
+      ship.vx += Math.cos(ship.angle) * CONFIG.shipThrust * dt;
+      ship.vy += Math.sin(ship.angle) * CONFIG.shipThrust * dt;
+    }
+    const damp = Math.max(0, 1 - CONFIG.shipDamping * dt);
+    ship.vx *= damp; ship.vy *= damp;
+    const sp = Math.hypot(ship.vx, ship.vy);
+    if (sp > CONFIG.shipMaxSpeed) { ship.vx *= CONFIG.shipMaxSpeed / sp; ship.vy *= CONFIG.shipMaxSpeed / sp; }
+    ship.x += ship.vx * dt; ship.y += ship.vy * dt; wrap(ship);
+    ship.mesh.position.set(ship.x, ship.y, 0);
+    ship.mesh.rotation.z = ship.angle;
+
+    fireCd -= dt;
+    if (input.fire && fireCd <= 0) { fireBullet(); fireCd = CONFIG.fireCooldown; }
+
+    for (let i = bullets.length - 1; i >= 0; i--) {
+      const b = bullets[i]; b.life -= dt;
+      b.mesh.position.x += b.vx * dt; b.mesh.position.y += b.vy * dt; wrap(b.mesh.position);
+      let hit = false;
+      for (const p of planets) {
+        if (p.dead) continue;
+        if (Math.hypot(p.mesh.position.x - b.mesh.position.x, p.mesh.position.y - b.mesh.position.y) < p.radius + 0.2) { shipPop(p); hit = true; break; }
+      }
+      if (hit || b.life <= 0) { scene.remove(b.mesh); b.mesh.material.dispose(); bullets.splice(i, 1); }
+    }
+
+    // planets keep drifting gently, but don't grow or end the game
+    for (const p of planets) {
+      if (p.dead) continue;
+      p.mesh.position.x += p.vx * dt * 0.5; p.mesh.position.y += p.vy * dt * 0.5;
+      bounceWalls(p); p.mesh.rotation.y += p.spin * dt;
+    }
+  }
+
+  /* ── THE RULES (checked ~60 times a second) ──
+     bounceWalls keeps planets on screen. updatePlay grows the planets, moves
+     them, makes the big ones glow red, and ends the game if two BIG ones touch. */
+  function bounceWalls(p) {
+    const r = p.radius;
+    if (p.mesh.position.x >  bounds.x - r) { p.mesh.position.x =  bounds.x - r; p.vx = -Math.abs(p.vx); }
+    if (p.mesh.position.x < -bounds.x + r) { p.mesh.position.x = -bounds.x + r; p.vx =  Math.abs(p.vx); }
+    if (p.mesh.position.y >  bounds.y - r) { p.mesh.position.y =  bounds.y - r; p.vy = -Math.abs(p.vy); }
+    if (p.mesh.position.y < -bounds.y + r) { p.mesh.position.y = -bounds.y + r; p.vy =  Math.abs(p.vy); }
+  }
+  const DANGER = CONFIG.planetBaseRadius * 2.0;
+  function updatePlay(dt, t) {
+    const gr = growthRate();
+    for (const p of planets) {
+      if (p.dead) continue;
+      if (!p.matched) p.radius += gr * dt;
+      p.mesh.position.x += p.vx * dt; p.mesh.position.y += p.vy * dt;
+      bounceWalls(p);
+      p.mesh.rotation.y += p.spin * dt; p.mesh.rotation.x += p.spin * 0.3 * dt;
+      let s = p.radius;
+      if (p.pulse > 0) { s *= (1 + 0.18 * p.pulse); p.pulse -= dt * 4; }
+      p.mesh.scale.setScalar(s);
+      // danger glow for big, unrevealed planets
+      if (!p.revealed && !p.matched) {
+        const d = Math.min(1, Math.max(0, (p.radius - DANGER * 0.8) / (DANGER * 0.45)));
+        if (d > 0) {
+          p.mesh.material.emissive.setRGB(0.25 + 0.65 * d, 0.04, 0.08);
+          p.mesh.material.emissiveIntensity = 0.4 + 0.6 * d * (0.6 + 0.4 * Math.sin(t * 0.009));
+        }
+      }
+    }
+    for (let i = 0; i < planets.length; i++) {
+      const a = planets[i]; if (a.dead) continue;
+      for (let j = i + 1; j < planets.length; j++) {
+        const b = planets[j]; if (b.dead) continue;
+        const dx = b.mesh.position.x - a.mesh.position.x, dy = b.mesh.position.y - a.mesh.position.y;
+        const d = Math.hypot(dx, dy) || 0.0001;
+        const min = a.radius + b.radius;
+        // touching? (the gap between centers is smaller than their two radii added up)
+        if (d < min) {
+          if (a.radius > DANGER && b.radius > DANGER) { gameOver(a, b); return; }  // both BIG = boom
+          // otherwise just nudge them apart and bounce them off each other
+          const nx = dx / d, ny = dy / d, overlap = min - d;
+          a.mesh.position.x -= nx * overlap / 2; a.mesh.position.y -= ny * overlap / 2;
+          b.mesh.position.x += nx * overlap / 2; b.mesh.position.y += ny * overlap / 2;
+          const vn = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+          if (vn < 0) { a.vx += vn * nx; a.vy += vn * ny; b.vx -= vn * nx; b.vy -= vn * ny; }
+        }
+      }
+    }
+  }
+
+  /* ── GAME FLOW ──
+     The game is always in one "mode": 'menu', 'play', 'ship', or 'over'.
+     startGame resets everything, nextLevel adds more planets, gameOver ends it. */
+  let mode = 'menu', level = 1, score = 0, charge = 0;
+  let picks = [], resolving = false, shakeAmt = 0;
+
+  function startGame() {
+    planets.forEach(disposePlanet); planets = [];
+    level = 1; score = 0; charge = 0; mode = 'play';
+    updateHUD(); updateChargeUI();
+    hud.classList.remove('hidden'); chargeWrap.classList.remove('hidden');
+    startOverlay.classList.add('hidden'); overOverlay.classList.add('hidden');
+    spawnLevel();
+  }
+  function nextLevel() { level++; updateHUD(); toast('Level ' + level); spawnLevel(); }
+  function gameOver(a, b) {
+    mode = 'over';
+    const mx = (a.mesh.position.x + b.mesh.position.x) / 2, my = (a.mesh.position.y + b.mesh.position.y) / 2;
+    bigExplosion(mx, my); shakeAmt = reduceMotion ? 0.15 : 0.7; playBoom(); vibrate([40, 40, 80]);
+    disposePlanet(a); disposePlanet(b);
+    finalLevel.textContent = level; finalScore.textContent = score;
+    setTimeout(() => overOverlay.classList.remove('hidden'), 750);
+  }
+
+  /* ── SCREEN TEXT + BARS ──
+     Grab the HTML pieces (score, level, charge bar...) so we can change them.
+     document.getElementById finds a thing on the page by its id name. */
+  const hud = document.getElementById('hud');
+  const levelEl = document.getElementById('level');
+  const scoreEl = document.getElementById('score');
+  const chargeWrap = document.getElementById('chargeWrap');
+  const chargeFill = document.getElementById('chargeFill');
+  const chargeHint = document.getElementById('chargeHint');
+  const launchBtn = document.getElementById('launchBtn');
+  const shipBarWrap = document.getElementById('shipBarWrap');
+  const shipBar = document.getElementById('shipBar');
+  const touchEl = document.getElementById('touch');
+  const startOverlay = document.getElementById('startOverlay');
+  const overOverlay = document.getElementById('overOverlay');
+  const finalLevel = document.getElementById('finalLevel');
+  const finalScore = document.getElementById('finalScore');
+  const toastEl = document.getElementById('toast');
+  const muteBtn = document.getElementById('muteBtn');
+  let toastT = null;
+
+  function updateHUD() { levelEl.textContent = level; scoreEl.textContent = score; }
+  function updateChargeUI() {
+    chargeFill.style.width = Math.min(1, charge / CONFIG.chargeNeeded) * 100 + '%';
+    const ready = charge >= CONFIG.chargeNeeded;
+    launchBtn.classList.toggle('hidden', !ready);
+    chargeWrap.classList.toggle('ready', ready);
+    chargeHint.textContent = ready ? 'Ship ready!  Space / tap Launch' : 'Match pairs to charge your ship';
+  }
+  function toast(msg) {
+    toastEl.textContent = msg; toastEl.classList.add('show');
+    clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('show'), 1400);
+  }
+
+  /* ── SOUND + RUMBLE ──
+     There are no sound files. We MAKE the beeps with math: pick a pitch (freq)
+     and how long it lasts. vibrate() buzzes a phone. Mute turns it all off. */
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let actx = null, muted = false;
+  function ac() { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); return actx; }
+  function beep(freq, dur, type, vol) {
+    if (muted) return;
+    try {
+      const a = ac(), o = a.createOscillator(), g = a.createGain();
+      o.type = type || 'sine'; o.frequency.value = freq;
+      o.connect(g); g.connect(a.destination);
+      g.gain.setValueAtTime(vol || 0.2, a.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
+      o.start(); o.stop(a.currentTime + dur);
+    } catch (e) {}
+  }
+  function playPeek()     { beep(520, 0.08, 'triangle', 0.13); }
+  function playMatch()    { beep(660, 0.1, 'sine', 0.2); setTimeout(() => beep(880, 0.14, 'sine', 0.2), 90); }
+  function playMismatch() { beep(170, 0.18, 'sawtooth', 0.13); }
+  function playPop()      { beep(440, 0.1, 'square', 0.16); }
+  function playShoot()    { beep(900, 0.05, 'square', 0.08); }
+  function playLaunch()   { beep(300, 0.14, 'sawtooth', 0.18); setTimeout(() => beep(620, 0.18, 'sawtooth', 0.18), 100); }
+  function playBoom() {
+    if (muted) return;
+    try {
+      const a = ac(), b = a.createBuffer(1, a.sampleRate * 0.5, a.sampleRate), d = b.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2);
+      const s = a.createBufferSource(); s.buffer = b;
+      const g = a.createGain(); g.gain.value = 0.35; s.connect(g); g.connect(a.destination); s.start();
+    } catch (e) {}
+  }
+  function vibrate(p) { if (!reduceMotion && navigator.vibrate) { try { navigator.vibrate(p); } catch (e) {} } }
+
+  /* ── READING YOUR TAPS + KEYS ──
+     When you click/tap, we shoot an invisible ray from the camera through your
+     finger to see which planet it hit (that's the Raycaster). Keys drive the
+     ship; the on-screen buttons do the same thing for phones. */
+  const ray = new THREE.Raycaster();
+  const ndc = new THREE.Vector2();
+  function onPointerDown(e) {
+    if (mode !== 'play' || resolving || picks.length >= 2) return;
+    const rect = renderer.domElement.getBoundingClientRect();
+    const cx = (e.clientX != null) ? e.clientX : (e.touches && e.touches[0].clientX);
+    const cy = (e.clientY != null) ? e.clientY : (e.touches && e.touches[0].clientY);
+    ndc.x = ((cx - rect.left) / rect.width) * 2 - 1;
+    ndc.y = -((cy - rect.top) / rect.height) * 2 + 1;
+    ray.setFromCamera(ndc, camera);
+    const hits = ray.intersectObjects(planets.filter(p => !p.dead).map(p => p.mesh), false);
+    if (hits.length) {
+      const p = planets.find(q => q.mesh === hits[0].object);
+      if (p && !p.revealed && !p.matched) { reveal(p); picks.push(p); if (picks.length === 2) tryMatch(); }
+    }
+  }
+  canvas.addEventListener('pointerdown', onPointerDown);
+
+  window.addEventListener('keydown', e => {
+    if (e.code === 'Space') {
+      e.preventDefault();
+      if (mode === 'play' && charge >= CONFIG.chargeNeeded) enterShip();
+      else if (mode === 'ship') input.fire = true;
+      else if (mode === 'menu' || mode === 'over') startGame();
+      return;
+    }
+    if (mode === 'ship') {
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = true;
+      if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = true;
+      if (e.code === 'ArrowUp' || e.code === 'KeyW') input.thrust = true;
+    }
+  });
+  window.addEventListener('keyup', e => {
+    if (e.code === 'Space') input.fire = false;
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = false;
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = false;
+    if (e.code === 'ArrowUp' || e.code === 'KeyW') input.thrust = false;
+  });
+
+  // on-screen ship buttons
+  touchEl.querySelectorAll('.tbtn').forEach(btn => {
+    const act = btn.dataset.act;
+    const on  = e => { e.preventDefault(); input[act] = true; };
+    const off = e => { e.preventDefault(); input[act] = false; };
+    btn.addEventListener('pointerdown', on);
+    btn.addEventListener('pointerup', off);
+    btn.addEventListener('pointerleave', off);
+    btn.addEventListener('pointercancel', off);
+  });
+
+  document.getElementById('startBtn').addEventListener('click', startGame);
+  document.getElementById('againBtn').addEventListener('click', startGame);
+  launchBtn.addEventListener('click', enterShip);
+  muteBtn.addEventListener('click', () => { muted = !muted; muteBtn.innerHTML = muted ? '&#128263;' : '&#128266;'; });
+
+  /* ── THE MAIN LOOP (the heartbeat) ──
+     animate() runs about 60 times every second, like pages in a flip-book.
+     'dt' is how much time passed since the last frame, so movement looks smooth
+     on both fast and slow computers. Each frame: update everything, then draw. */
+  let last = performance.now();
+  function animate(now) {
+    requestAnimationFrame(animate);
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (mode === 'play') updatePlay(dt, now);
+    else if (mode === 'ship') updateShip(dt);
+    updateParticles(dt);
+    if (stars) stars.rotation.z += dt * 0.012;
+    if (shakeAmt > 0.001) {
+      camera.position.x = (Math.random() - 0.5) * shakeAmt;
+      camera.position.y = (Math.random() - 0.5) * shakeAmt;
+      shakeAmt *= Math.max(0, 1 - 4 * dt);
+    } else { camera.position.x = 0; camera.position.y = 0; }
+    renderer.render(scene, camera);
+  }
+  requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
