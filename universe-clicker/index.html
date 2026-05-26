@@ -209,11 +209,15 @@
     [data-theme="light"] #stars { display: none; }
     #themeBtn-uc { position:fixed; top:10px; right:88px; z-index:300; background:rgba(0,0,0,.6); border:1px solid rgba(255,255,255,.2); color:rgba(255,255,255,.6); font-size:.85rem; padding:4px 9px; border-radius:14px; cursor:pointer; }
     [data-theme="light"] #themeBtn-uc { background:rgba(230,230,245,.9); border-color:rgba(0,0,0,.15); color:#555; }
+    #reset-btn-uc { position:fixed; top:10px; right:166px; z-index:300; background:rgba(0,0,0,.6); border:1px solid rgba(255,255,255,.2); color:rgba(255,255,255,.4); font-size:.7rem; padding:4px 9px; border-radius:14px; cursor:pointer; letter-spacing:.04em; }
+    #reset-btn-uc:hover { border-color:#ff4444; color:#ff4444; }
+    [data-theme="light"] #reset-btn-uc { background:rgba(230,230,245,.9); border-color:rgba(0,0,0,.15); color:#999; }
 
   </style>
 </head>
 <body>
 <div id="stars"></div>
+<button id="reset-btn-uc">↺ Reset</button>
 <button id="themeBtn-uc" onclick="toggleTheme()">☀️</button>
 <a id="home-brand" href="https://gamed.fun/" aria-label="gamed.fun"><img src="/logo.svg" alt="" width="15" height="15"><span>gamed.fun</span></a>
 <div id="tidal-bg"><div class="tw"></div><div class="tw"></div><div class="tw"></div></div>
@@ -946,7 +950,7 @@ function stopParticles() {
 // ══════════════════════════════════════════════
 //  RESTART
 // ══════════════════════════════════════════════
-$('restart-btn').addEventListener('click', () => {
+function resetGame() {
   localStorage.removeItem('uc_v1');
   document.body.classList.remove('rainbow');
   critterPool.length = 0;
@@ -954,7 +958,12 @@ $('restart-btn').addEventListener('click', () => {
   elixirBar.classList.remove('on'); elixirDrops.innerHTML = ''; elixirLevel = 0;
   G = freshState();
   gameOverEl.classList.remove('on');
+  msOverlay.classList.remove('on');
   renderEra(); updateHUD();
+}
+$('restart-btn').addEventListener('click', resetGame);
+$('reset-btn-uc').addEventListener('click', () => {
+  if (confirm('Reset the universe? All progress will be lost.')) resetGame();
 });
 
 // ══════════════════════════════════════════════
