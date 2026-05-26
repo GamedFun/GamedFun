@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>document.documentElement.dataset.theme=localStorage.getItem('gf-theme')||'dark';</script>
+  <title>Planet Stack</title>
+  <link rel="icon" type="image/svg+xml" href="/logo.svg">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0b0b18;
+      --text: #e8e8f8;
+      --muted: rgba(255,255,255,.4);
+      --border: rgba(255,255,255,.12);
+      --wall-col: #1a1a36;
+    }
+    [data-theme="light"] {
+      --bg: #e8eaf6;
+      --text: #1a1a2e;
+      --muted: rgba(0,0,0,.45);
+      --border: rgba(0,0,0,.13);
+      --wall-col: #9090c0;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    #c {
+      position: fixed;
+      inset: 0;
+      display: block;
+      cursor: crosshair;
+    }
+
+    /* ── HEADER ── */
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      z-index: 20;
+      pointer-events: none;
+    }
+    .brand {
+      pointer-events: all;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      text-decoration: none;
+      font-size: .82rem;
+      font-weight: 800;
+      color: var(--muted);
+      letter-spacing: .03em;
+    }
+    .brand img { width: 22px; height: 22px; border-radius: 5px; }
+    .brand:hover { color: var(--text); }
+    .hdr-right {
+      margin-left: auto;
+      pointer-events: all;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #themeBtn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: .9rem;
+      padding: .3rem .55rem;
+      color: var(--muted);
+    }
+
+    /* ── HUD ── */
+    #hud {
+      position: fixed;
+      top: 56px;
+      left: 0; right: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 28px;
+      z-index: 20;
+      pointer-events: none;
+      padding: 2px 0;
+    }
+    #score-el {
+      font-size: 1.55rem;
+      font-weight: 900;
+      letter-spacing: .04em;
+      text-shadow: 0 0 22px rgba(140,90,255,.65);
+    }
+    #next-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .74rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    #next-dot {
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: #aaa;
+      flex-shrink: 0;
+      box-shadow: 0 0 8px currentColor;
+    }
+
+    /* ── GAME OVER ── */
+    #gameover {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: rgba(0,0,0,.72);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 14px;
+      animation: goIn .4s ease;
+    }
+    #gameover.on { display: flex; }
+    @keyframes goIn { from{opacity:0;transform:scale(.94)} to{opacity:1;transform:scale(1)} }
+    #go-icon { font-size: 3.5rem; }
+    #go-title { font-size: 2rem; font-weight: 900; }
+    #go-score { color: var(--muted); font-size: .95rem; }
+    #go-score strong { color: var(--text); font-size: 1.8rem; display: block; margin-top: 4px; }
+    #restart-btn {
+      margin-top: 10px;
+      background: rgba(110,70,220,.22);
+      border: 2px solid rgba(120,80,230,.55);
+      color: #c0a0ff;
+      padding: 13px 38px;
+      border-radius: 30px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .15s;
+      letter-spacing: .03em;
+    }
+    #restart-btn:hover { background: rgba(110,70,220,.42); }
+
+    /* ── PAGE IN ── */
+    @keyframes pageIn { from{opacity:0} to{opacity:1} }
+    body { animation: pageIn .25s ease; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<header>
+  <a class="brand" href="/" aria-label="Gamed.fun">
+    <img src="/logo.svg" alt="">
+    <span>Gamed.fun</span>
+  </a>
+  <div class="hdr-right">
+    <button id="themeBtn" onclick="toggleTheme()">☀️</button>
+  </div>
+</header>
+
+<div id="hud">
+  <div id="next-box">
+    <div id="next-dot"></div>
+    <span>Next: <span id="next-name">Moon</span></span>
+  </div>
+  <div id="score-el">0</div>
+</div>
+
+<div id="gameover">
+  <div id="go-icon">🌌</div>
+  <div id="go-title">Overflowed!</div>
+  <div id="go-score">Score<strong id="go-val">0</strong></div>
+  <button id="restart-btn">↺ Play Again</button>
+</div>
+
+<script>
+'use strict';
+
+// ── THEME ─────────────────────────────────────────────────────────────────────
+function toggleTheme() {
+  const n = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = n;
+  localStorage.setItem('gf-theme', n);
+  document.getElementById('themeBtn').textContent = n === 'dark' ? '☀️' : '🌙';
+  applySceneTheme();
+}
+document.getElementById('themeBtn').textContent =
+  document.documentElement.dataset.theme === 'dark' ? '☀️' : '🌙';
+
+// ── PLANET DATA ───────────────────────────────────────────────────────────────
+const PLANETS = [
+  { name:'Moon',    hex:'#c2c2d8', emissive:'#18183a', r:18,  pts:1  },
+  { name:'Mercury', hex:'#b5835a', emissive:'#3a1800', r:26,  pts:3  },
+  { name:'Mars',    hex:'#c1440e', emissive:'#3d0800', r:36,  pts:6  },
+  { name:'Earth',   hex:'#2a7ae2', emissive:'#061840', r:48,  pts:10 },
+  { name:'Neptune', hex:'#5080e8', emissive:'#0a1850', r:62,  pts:15 },
+  { name:'Saturn',  hex:'#e8c87a', emissive:'#503800', r:80,  pts:21 },
+  { name:'Jupiter', hex:'#d4903a', emissive:'#4a2000', r:100, pts:28 },
+  { name:'Sun',     hex:'#ffcc00', emissive:'#ff7700', r:124, pts:36 },
+];
+const MAX_SPAWN = 4; // players drop tiers 0–4
+
+// ── LAYOUT ────────────────────────────────────────────────────────────────────
+const W  = window.innerWidth;
+const H  = window.innerHeight;
+const CX = W / 2;
+const CTRW  = Math.min(380, W - 40);
+const WALL  = 18;
+const LEFT  = CX - CTRW / 2;
+const RIGHT = CX + CTRW / 2;
+const FLOOR = H - 50;
+const DANGER_Y = 130; // Matter Y (top of play zone; smaller = higher on screen)
+const DROP_Y   = 76;  // Matter Y (where planets spawn — above danger line)
+
+// ── THREE.JS ──────────────────────────────────────────────────────────────────
+const scene    = new THREE.Scene();
+const camera   = new THREE.OrthographicCamera(-W/2, W/2, H/2, -H/2, 1, 2000);
+camera.position.z = 800;
+
+const cvs = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas: cvs, alpha: true, antialias: true });
+renderer.setSize(W, H);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+
+// Lighting
+scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+const key = new THREE.DirectionalLight(0xffffff, 1.6);
+key.position.set(300, 400, 600);
+scene.add(key);
+const fill = new THREE.DirectionalLight(0x7799ff, 0.35);
+fill.position.set(-200, -150, 300);
+scene.add(fill);
+
+// Matter → Three coords
+function m2t(mx, my) { return { x: mx - W/2, y: H/2 - my }; }
+
+// ── SCENE ELEMENTS ────────────────────────────────────────────────────────────
+const wallMeshes = [];
+
+function makeBox(cx, cy, bw, bh, color) {
+  const mat  = new THREE.MeshStandardMaterial({ color, roughness: 0.88, metalness: 0.05 });
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, 30), mat);
+  const tp   = m2t(cx, cy);
+  mesh.position.set(tp.x, tp.y, -15);
+  scene.add(mesh);
+  wallMeshes.push(mesh);
+  return mesh;
+}
+
+makeBox(LEFT - WALL/2,  H / 2,          WALL,            H * 2,       0x1a1a36);
+makeBox(RIGHT + WALL/2, H / 2,          WALL,            H * 2,       0x1a1a36);
+makeBox(CX,             FLOOR + WALL/2, CTRW + WALL * 2, WALL,        0x1a1a36);
+
+// Danger bar
+const dangerMat  = new THREE.MeshBasicMaterial({ color: 0xff2222, transparent: true, opacity: 0.42 });
+const dangerBar  = new THREE.Mesh(new THREE.BoxGeometry(CTRW, 2, 1), dangerMat);
+const dtp = m2t(CX, DANGER_Y);
+dangerBar.position.set(dtp.x, dtp.y, 2);
+scene.add(dangerBar);
+
+// Aim ghost sphere
+const aimMat  = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.30, roughness: 0.4 });
+const aimMesh = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 20), aimMat);
+scene.add(aimMesh);
+
+// Vertical guide line (thin, spans DROP_Y to FLOOR)
+const GUIDE_H = FLOOR - DROP_Y;
+const guideMat  = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.07 });
+const guideMesh = new THREE.Mesh(new THREE.BoxGeometry(1.5, GUIDE_H, 1), guideMat);
+const gtp = m2t(CX, (DROP_Y + FLOOR) / 2);
+guideMesh.position.y = gtp.y;
+scene.add(guideMesh);
+
+function applySceneTheme() {
+  const dark = document.documentElement.dataset.theme === 'dark';
+  const wc   = dark ? 0x1a1a36 : 0x8888bb;
+  wallMeshes.forEach(m => m.material.color.setHex(wc));
+}
+applySceneTheme();
+
+// ── MATTER.JS ─────────────────────────────────────────────────────────────────
+const { Engine, Bodies, World, Events } = Matter;
+const engine = Engine.create({ gravity: { x: 0, y: 2.8 } });
+const world  = engine.world;
+
+World.add(world, [
+  Bodies.rectangle(LEFT - WALL/2,  H / 2,          WALL,            H * 3,  { isStatic: true }),
+  Bodies.rectangle(RIGHT + WALL/2, H / 2,          WALL,            H * 3,  { isStatic: true }),
+  Bodies.rectangle(CX,             FLOOR + WALL/2, CTRW + WALL * 2, WALL,   { isStatic: true }),
+]);
+
+// ── PLANET POOL ───────────────────────────────────────────────────────────────
+const planets = [];
+const bodyMap = new Map(); // body.id → planet
+
+function createPlanet(mx, my, tier) {
+  const pd   = PLANETS[tier];
+  const body = Bodies.circle(mx, my, pd.r, {
+    restitution: 0.22,
+    friction:    0.55,
+    frictionAir: 0.01,
+    density:     0.002,
+    label:       'planet',
+  });
+
+  const geo  = new THREE.SphereGeometry(pd.r, 36, 24);
+  const mat  = new THREE.MeshStandardMaterial({
+    color:             new THREE.Color(pd.hex),
+    emissive:          new THREE.Color(pd.emissive),
+    emissiveIntensity: 0.85,
+    roughness:         0.38,
+    metalness:         0.08,
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  const tp   = m2t(mx, my);
+  mesh.position.set(tp.x, tp.y, 0);
+  scene.add(mesh);
+  World.add(world, body);
+
+  const p = { body, mesh, tier, merging: false, born: performance.now() };
+  planets.push(p);
+  bodyMap.set(body.id, p);
+  return p;
+}
+
+function removePlanet(p) {
+  World.remove(world, p.body);
+  scene.remove(p.mesh);
+  p.mesh.geometry.dispose();
+  p.mesh.material.dispose();
+  bodyMap.delete(p.body.id);
+  const i = planets.indexOf(p);
+  if (i !== -1) planets.splice(i, 1);
+}
+
+function punchScale(mesh) {
+  const S = 1.5;
+  mesh.scale.set(S, S, S);
+  const t0   = performance.now();
+  const step = now => {
+    const t = Math.min(1, (now - t0) / 280);
+    const s = S - (S - 1) * t;
+    mesh.scale.set(s, s, s);
+    if (t < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+// ── MERGE LOGIC ───────────────────────────────────────────────────────────────
+const pending = new Set();
+
+Events.on(engine, 'collisionStart', ({ pairs }) => {
+  for (const { bodyA, bodyB } of pairs) {
+    const pa = bodyMap.get(bodyA.id);
+    const pb = bodyMap.get(bodyB.id);
+    if (!pa || !pb)                        continue;
+    if (pa.tier !== pb.tier)               continue;
+    if (pa.merging || pb.merging)          continue;
+    if (pa.tier >= PLANETS.length - 1)    continue; // Sun is max
+
+    pa.merging = pb.merging = true;
+    const key = `${Math.min(bodyA.id, bodyB.id)},${Math.max(bodyA.id, bodyB.id)}`;
+    if (pending.has(key))                  continue;
+    pending.add(key);
+
+    const nt = pa.tier + 1;
+    const mx = (bodyA.position.x + bodyB.position.x) / 2;
+    const my = (bodyA.position.y + bodyB.position.y) / 2;
+
+    setTimeout(() => {
+      pending.delete(key);
+      if (!planets.includes(pa) || !planets.includes(pb) || gameOver) return;
+      removePlanet(pa);
+      removePlanet(pb);
+      const np = createPlanet(mx, my, nt);
+      punchScale(np.mesh);
+      score += PLANETS[nt].pts;
+      scoreEl.textContent = score.toLocaleString();
+      playMerge(nt);
+    }, 16);
+  }
+});
+
+// ── GAME STATE ────────────────────────────────────────────────────────────────
+let gameOver    = false;
+let canDrop     = true;
+let aimX        = CX;
+let score       = 0;
+let currentTier = rndTier();
+let nextTier    = rndTier();
+
+const scoreEl     = document.getElementById('score-el');
+const nextDotEl   = document.getElementById('next-dot');
+const nextNameEl  = document.getElementById('next-name');
+const gameoverEl  = document.getElementById('gameover');
+
+function rndTier() { return Math.floor(Math.random() * (MAX_SPAWN + 1)); }
+
+function refreshNext() {
+  nextDotEl.style.background = PLANETS[nextTier].hex;
+  nextNameEl.textContent     = PLANETS[nextTier].name;
+}
+refreshNext();
+
+// ── DROP ──────────────────────────────────────────────────────────────────────
+function clampX() {
+  const r = PLANETS[currentTier].r;
+  return Math.max(LEFT + r + 2, Math.min(RIGHT - r - 2, aimX));
+}
+
+function dropPlanet() {
+  if (!canDrop || gameOver) return;
+  canDrop = false;
+  createPlanet(clampX(), DROP_Y, currentTier);
+  playDrop(currentTier);
+  currentTier = nextTier;
+  nextTier    = rndTier();
+  refreshNext();
+  setTimeout(() => { canDrop = true; }, 480);
+}
+
+cvs.addEventListener('mousemove', e => { aimX = e.clientX; });
+cvs.addEventListener('click',     dropPlanet);
+cvs.addEventListener('touchmove', e => { aimX = e.touches[0].clientX; }, { passive: true });
+cvs.addEventListener('touchend',  e => { aimX = e.changedTouches[0].clientX; dropPlanet(); }, { passive: true });
+
+// ── GAME OVER ─────────────────────────────────────────────────────────────────
+let dangerTicks = 0;
+
+function checkOverflow() {
+  if (gameOver) return;
+  const now  = performance.now();
+  const over = planets.some(p =>
+    !p.merging &&
+    now - p.born > 1800 &&          // grace period after drop
+    p.body.position.y < DANGER_Y && // center is above danger line
+    p.body.speed < 1.5              // mostly settled
+  );
+  if (over) {
+    dangerTicks++;
+    dangerMat.opacity = 0.42 + 0.42 * Math.abs(Math.sin(dangerTicks * 0.12));
+    if (dangerTicks > 90) doGameOver(); // ~1.5s at 60fps
+  } else {
+    dangerTicks = Math.max(0, dangerTicks - 2);
+    dangerMat.opacity = 0.42;
+  }
+}
+
+function doGameOver() {
+  gameOver = true;
+  aimMesh.visible  = false;
+  guideMesh.visible = false;
+  document.getElementById('go-val').textContent = score.toLocaleString();
+  gameoverEl.classList.add('on');
+  document.title = 'Game Over — Planet Stack';
+}
+
+document.getElementById('restart-btn').addEventListener('click', () => {
+  [...planets].forEach(removePlanet);
+  bodyMap.clear();
+  pending.clear();
+  score       = 0;
+  scoreEl.textContent = '0';
+  gameOver    = false;
+  dangerTicks = 0;
+  dangerMat.opacity   = 0.42;
+  canDrop     = true;
+  currentTier = rndTier();
+  nextTier    = rndTier();
+  refreshNext();
+  gameoverEl.classList.remove('on');
+  aimMesh.visible   = true;
+  guideMesh.visible = true;
+  document.title = 'Planet Stack';
+});
+
+// ── SOUND ─────────────────────────────────────────────────────────────────────
+let audioCtx = null;
+function getAC() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function playDrop(tier) {
+  try {
+    const c = getAC(), o = c.createOscillator(), g = c.createGain();
+    o.type = 'sine';
+    o.frequency.value = 180 + tier * 28;
+    g.gain.setValueAtTime(0.09, c.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.18);
+    o.connect(g); g.connect(c.destination);
+    o.start(); o.stop(c.currentTime + 0.18);
+  } catch {}
+}
+function playMerge(tier) {
+  try {
+    const c    = getAC();
+    const base = 260 + tier * 55;
+    [1, 1.26, 1.5].forEach((ratio, i) => {
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = 'triangle';
+      o.frequency.value = base * ratio;
+      const t = c.currentTime + i * 0.07;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.09, t + 0.04);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+      o.connect(g); g.connect(c.destination);
+      o.start(t); o.stop(t + 0.45);
+    });
+  } catch {}
+}
+
+// ── GAME LOOP ─────────────────────────────────────────────────────────────────
+let lastTime = performance.now();
+
+function loop(now) {
+  requestAnimationFrame(loop);
+  const dt = Math.min(now - lastTime, 48);
+  lastTime  = now;
+
+  Engine.update(engine, dt);
+
+  // Sync Three.js meshes to physics bodies
+  for (const p of planets) {
+    if (p.merging) continue;
+    const tp = m2t(p.body.position.x, p.body.position.y);
+    p.mesh.position.x = tp.x;
+    p.mesh.position.y = tp.y;
+    p.mesh.rotation.z = -p.body.angle;
+  }
+
+  // Update aim guide
+  if (!gameOver) {
+    const pd  = PLANETS[currentTier];
+    const ax  = clampX();
+    const tp  = m2t(ax, DROP_Y);
+    aimMesh.position.set(tp.x, tp.y, 3);
+    aimMesh.scale.set(pd.r, pd.r, pd.r);
+    aimMat.color.set(pd.hex);
+    guideMesh.position.x = tp.x;
+  }
+
+  checkOverflow();
+  renderer.render(scene, camera);
+
+  document.title = gameOver
+    ? 'Game Over — Planet Stack'
+    : `${score.toLocaleString()} — Planet Stack`;
+}
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
