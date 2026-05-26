@@ -412,20 +412,20 @@ const FUN_UPGRADES = [
     onBuy() { addCritter('subway'); addCritter('subway'); showSubwayCorner(); } },
 
   { id:'clash',    name:'Clash Royale',      icon:'⚔️', desc:'deploy a card!',            costFactor:8,  epsFactor:2.5,
-    onBuy() { startElixir(); addCritter(randCR()); showPopup('⚔️ Clash Royale! ⚔️', 'clash-popup'); } },
+    onBuy() { startElixir(); addCritter(randCR()); addCritter(randCR()); showPopup('⚔️ Clash Royale! ⚔️', 'clash-popup'); } },
 
 
   { id:'amogus',   name:'Among Us',          icon:'🫐', desc:'find the impostor',           costFactor:4,  epsFactor:1.5,
     onBuy() { addCritter('amogus'); addCritter('amogus'); } },
 
   { id:'minecraft',name:'Minecraft',         icon:'⛏️', desc:'you found diamonds!',       costFactor:10, epsFactor:3,
-    onBuy() { diamondRain(); } },
+    onBuy() { diamondRain(); setTimeout(diamondRain, 600); } },
 
   { id:'rainbow',  name:'Rainbow Mode',      icon:'🌈', desc:'very colorful',              costFactor:8,  epsFactor:2,
     onBuy() { document.body.classList.add('rainbow'); G.fx.rainbow = true; } },
 
   { id:'nyan',     name:'Nyan Cat',          icon:'🐱', desc:'rainbow trail on every click',costFactor:6, epsFactor:1.8,
-    onBuy() { G.fx.nyan = true; addCritter('nyan'); } },
+    onBuy() { G.fx.nyan = true; addCritter('nyan'); addCritter('nyan'); } },
 
   { id:'cats',     name:'Cat Tax',           icon:'🐈', desc:'cats own everything',         costFactor:4,  epsFactor:1,
     onBuy() { addCritter('cat'); addCritter('cat'); } },
