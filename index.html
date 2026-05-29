@@ -355,6 +355,150 @@
     .card--amber { --card-color: #f59e0b; --card-color-light: #fffbeb; }
     .card--red   { --card-color: #ef4444; --card-color-light: #fef2f2; }
 
+    /* ── FEATURED ── */
+    .featured-card {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px 40px;
+      text-decoration: none;
+      color: inherit;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+      margin-bottom: 36px;
+    }
+    .featured-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--logo-gradient);
+      opacity: 0.055;
+      pointer-events: none;
+    }
+    .featured-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 48px -12px rgba(0,0,0,0.13);
+      border-color: transparent;
+    }
+    .featured-card:hover .featured-mark { transform: scale(1.06) rotate(-4deg); }
+    .featured-mark {
+      width: 88px;
+      height: 88px;
+      border-radius: 22px;
+      background: var(--logo-gradient);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      box-shadow: 0 16px 40px -16px var(--logo-shadow);
+      transition: transform 0.18s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .featured-mark::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.22), transparent 48%);
+      pointer-events: none;
+    }
+    .featured-mark svg { width: 52px; height: 52px; }
+    .featured-body { flex: 1; min-width: 0; }
+    .featured-eyebrow {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .featured-title {
+      font-size: 1.75rem;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      margin-bottom: 10px;
+      background: var(--logo-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .featured-desc {
+      font-size: 0.9rem;
+      color: var(--muted);
+      line-height: 1.55;
+      max-width: 500px;
+    }
+    .featured-btn {
+      margin-top: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--logo-gradient);
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      padding: 10px 20px;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px -8px var(--logo-shadow);
+    }
+
+    /* ── PICKS ROW ── */
+    .picks {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 48px;
+    }
+    .pick {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px;
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+    .pick:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px -8px rgba(0,0,0,0.1);
+      border-color: transparent;
+    }
+    .pick-mark {
+      width: 40px; height: 40px;
+      border-radius: 11px;
+      background: var(--logo-gradient);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      box-shadow: 0 6px 16px -8px var(--logo-shadow);
+    }
+    .pick-mark svg { width: 24px; height: 24px; }
+    .pick-name {
+      font-size: 0.88rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: var(--logo-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .pick-tag {
+      font-size: 0.68rem;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
     /* ── DIVIDER ── */
     .divider {
       height: 1px;
@@ -383,6 +527,9 @@
       header { padding: 52px 24px 36px; }
       main   { padding: 0 24px 64px; }
       .grid  { grid-template-columns: 1fr 1fr; gap: 12px; }
+      .featured-card { flex-direction: column; gap: 20px; padding: 24px 22px; }
+      .featured-title { font-size: 1.4rem; }
+      .picks { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 400px) {
@@ -428,7 +575,69 @@
   </header>
 
   <main>
-    <p class="section-label">Games</p>
+    <!-- Featured spotlight -->
+    <a class="featured-card logo-universe" href="/universe-clicker/">
+      <div class="featured-mark">
+        <svg viewBox="0 0 32 32" role="img" aria-hidden="true">
+          <circle cx="16" cy="16" r="3.7" fill="currentColor"/>
+          <ellipse cx="16" cy="16" rx="12" ry="5.4" fill="none" stroke="currentColor" stroke-width="2.2" transform="rotate(-18 16 16)"/>
+          <ellipse cx="16" cy="16" rx="12" ry="5.4" fill="none" stroke="currentColor" stroke-width="2.2" transform="rotate(24 16 16)" opacity=".72"/>
+          <circle cx="24.4" cy="8.2" r="2.1" fill="currentColor"/>
+          <path d="M6.3 7.5l1.1 2.1 2.3.4-1.7 1.6.3 2.2-2-1.1-2 1.1.4-2.2L3 10l2.3-.4 1-2.1Z" fill="currentColor" opacity=".9"/>
+        </svg>
+      </div>
+      <div class="featured-body">
+        <div class="featured-eyebrow">⭐ Most Played</div>
+        <div class="featured-title">Cosmic Clicker</div>
+        <div class="featured-desc">Crack open the cosmos, collect energy, and push through 7 cosmic eras. Unlock wild fun upgrades along the way.</div>
+        <div class="featured-btn">Play Now →</div>
+      </div>
+    </a>
+
+    <!-- Picks row -->
+    <div class="picks">
+      <a class="pick logo-scramble" href="/word-scramble/">
+        <div class="pick-mark">
+          <svg viewBox="0 0 32 32" aria-hidden="true">
+            <rect x="4.8" y="5.4" width="22.4" height="6.3" rx="2" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="1.7"/>
+            <rect x="6.5" y="13.1" width="19" height="6.3" rx="2" fill="currentColor" fill-opacity=".1" stroke="currentColor" stroke-width="1.7"/>
+            <rect x="4.8" y="20.8" width="22.4" height="6.3" rx="2" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="1.7"/>
+          </svg>
+        </div>
+        <div>
+          <div class="pick-name">Word Scramble</div>
+          <div class="pick-tag">Daily puzzle</div>
+        </div>
+      </a>
+      <a class="pick logo-emoji" href="/emoji-catcher/">
+        <div class="pick-mark">
+          <svg viewBox="0 0 32 32" aria-hidden="true">
+            <circle cx="16" cy="16.4" r="10.6" fill="currentColor" fill-opacity=".15" stroke="currentColor" stroke-width="2.1"/>
+            <path d="M11 13.4c.5-2 3.2-2 3.7 0M18.6 13.4c.5-2 3.2-2 3.7 0" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+            <path d="M10.5 18.9c1.7 4.2 9.8 4.4 11.3 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="pick-name">Emoji Pop</div>
+          <div class="pick-tag">63 to collect</div>
+        </div>
+      </a>
+      <a class="pick logo-sushi" href="/planet-stack/">
+        <div class="pick-mark">
+          <svg viewBox="0 0 32 32" aria-hidden="true">
+            <circle cx="16" cy="19" r="6" fill="currentColor" opacity=".9"/>
+            <circle cx="16" cy="10.5" r="4.2" fill="currentColor" opacity=".7"/>
+            <circle cx="16" cy="3.8" r="2.8" fill="currentColor" opacity=".45"/>
+          </svg>
+        </div>
+        <div>
+          <div class="pick-name">Sushi Stack</div>
+          <div class="pick-tag">12 tiers to merge</div>
+        </div>
+      </a>
+    </div>
+
+    <p class="section-label">All Games</p>
     <div class="grid">
 
       <!-- PopPlanet -->
