@@ -383,6 +383,19 @@
     [data-theme="light"] .result-screen,
     [data-theme="light"] .records { background: #ffffff; }
     [data-theme="light"] .tile { background: #f4f4f8; }
+
+    .next-puzzle-bar {
+      text-align: center;
+      color: var(--muted);
+      font-size: .82rem;
+      font-weight: 700;
+      padding-top: .3rem;
+      letter-spacing: .03em;
+    }
+    .next-puzzle-bar span {
+      color: var(--accent-2);
+      font-variant-numeric: tabular-nums;
+    }
   </style>
 </head>
 <body>
@@ -467,6 +480,10 @@
       <div class="result-actions">
         <button class="btn-share-big" id="resultShareBtn" type="button">Share Result</button>
         <button class="secondary" id="resultRestartBtn" type="button">Play Again</button>
+      </div>
+
+      <div class="next-puzzle-bar" id="nextPuzzleBar">
+        Next puzzle in <span id="countdownTimer">--:--:--</span>
       </div>
     </section>
 
@@ -738,6 +755,7 @@
     function showResultScreen() {
       gameSection.style.display = 'none';
       resultScreen.classList.add('visible');
+      startCountdown();
       document.title = `${score}/10 — Daily Scramble`;
 
       document.getElementById('resultScoreBig').textContent = `${score}/10`;
@@ -843,6 +861,25 @@
     document.getElementById('resultRestartBtn').addEventListener('click', start);
     shareBtn.addEventListener('click', () => doShare(feedback));
     document.getElementById('resultShareBtn').addEventListener('click', () => doShare(null));
+
+    // ── Countdown ─────────────────────────────────────────────────
+    let _cdInterval = null;
+    function getTimeUntilMidnightEastern() {
+      const now = new Date();
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
+        hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false
+      }).formatToParts(now);
+      const p = Object.fromEntries(parts.map(x => [x.type, x.value]));
+      const h = 23 - parseInt(p.hour), m = 59 - parseInt(p.minute), s = 59 - parseInt(p.second);
+      return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }
+    function startCountdown() {
+      const el = document.getElementById('countdownTimer');
+      clearInterval(_cdInterval);
+      el.textContent = getTimeUntilMidnightEastern();
+      _cdInterval = setInterval(() => { el.textContent = getTimeUntilMidnightEastern(); }, 1000);
+    }
 
     // ── Boot ──────────────────────────────────────────────────────
     start();

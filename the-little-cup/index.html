@@ -4,7 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script>document.documentElement.dataset.theme=localStorage.getItem('gf-theme')||'dark';</script>
-  <title>The Little Cup</title>
+  <title>The Little Cup — free browser mini-game | gamed.fun</title>
+  <meta name="description" content="Play The Little Cup — a free browser mini-game on gamed.fun. Quick to pick up, hard to put down. No download, no login.">
+  <meta property="og:title" content="The Little Cup — free browser mini-game | gamed.fun">
+  <meta property="og:description" content="Play The Little Cup — a free browser mini-game on gamed.fun. No download, no login.">
+  <meta property="og:url" content="https://gamed.fun/the-little-cup/">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="The Little Cup — free browser mini-game | gamed.fun">
+  <meta name="twitter:description" content="Play The Little Cup — a free browser mini-game on gamed.fun. No download, no login.">
 <link rel="icon" type="image/svg+xml" href="../logo.svg">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -152,11 +160,13 @@
       -webkit-tap-highlight-color: transparent;
       border: none; background: none;
       filter: drop-shadow(0 0 10px #fbbf24) drop-shadow(0 0 22px #fbbf24);
-      animation: goldenPop .38s cubic-bezier(.34,1.56,.64,1), goldenFade 13s linear forwards;
+      animation: goldenPop .38s cubic-bezier(.34,1.56,.64,1), goldenFade 13s linear forwards, goldenPulse 1.1s ease-in-out 0.4s infinite;
       z-index: 5;
     }
-    @keyframes goldenPop  { from { transform: scale(0) rotate(-30deg); } to { transform: scale(1) rotate(0); } }
-    @keyframes goldenFade { 0%,75% { opacity: 1; } 100% { opacity: 0; } }
+    @keyframes goldenPop   { from { transform: scale(0) rotate(-30deg); } to { transform: scale(1) rotate(0); } }
+    @keyframes goldenFade  { 0%,75% { opacity: 1; } 100% { opacity: 0; } }
+    @keyframes goldenPulse { 0%,100% { transform: scale(1); filter: drop-shadow(0 0 10px #fbbf24) drop-shadow(0 0 22px #fbbf24); }
+                             50%     { transform: scale(1.18); filter: drop-shadow(0 0 18px #fbbf24) drop-shadow(0 0 38px #fde68a); } }
 
     /* Ticker */
     .ticker {
@@ -799,6 +809,7 @@ function spawnGolden() {
     goldenEl?.remove(); goldenEl = null;
     scheduleGolden();
   }, 13_000);
+  ticker.textContent = '✨ A Golden Coffee appeared! Click it!';
   goldenEl.addEventListener('click', () => {
     clearTimeout(goldenAutoRemove);
     onGoldenClick();

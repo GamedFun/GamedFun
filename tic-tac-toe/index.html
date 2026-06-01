@@ -4,7 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script>document.documentElement.dataset.theme=localStorage.getItem('gf-theme')||'dark';</script>
-<title>Tic Tac Toe – gamed.fun</title>
+<title>Tic Tac Toe — play free online vs AI | gamed.fun</title>
+<meta name="description" content="Play Tic Tac Toe against a smart AI or a friend. Free browser game — no download, no login. Classic X's and O's fun.">
+<meta property="og:title" content="Tic Tac Toe — play free online vs AI | gamed.fun">
+<meta property="og:description" content="Play Tic Tac Toe against a smart AI or a friend. Free browser game — no download, no login.">
+<meta property="og:url" content="https://gamed.fun/tic-tac-toe/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Tic Tac Toe — play free online vs AI | gamed.fun">
+<meta name="twitter:description" content="Play Tic Tac Toe against a smart AI or a friend. Free browser game — no download, no login.">
 <link rel="icon" type="image/svg+xml" href="../logo.svg">
 <style>
   :root {
@@ -316,8 +324,20 @@ let difficulty = 'easy';
 let goFirst = true;
 let playerMark = 'X';
 let botMark = 'O';
-let scores = { you: 0, draw: 0, bot: 0 };
 let lastMove = -1;
+
+function loadScores() {
+  try { return JSON.parse(localStorage.getItem('ttt_scores') || '{}'); } catch { return {}; }
+}
+function saveScores() {
+  try { localStorage.setItem('ttt_scores', JSON.stringify(scores)); } catch {}
+}
+const _saved = loadScores();
+let scores = {
+  you:  _saved[`${difficulty}_you`]  || 0,
+  draw: _saved[`${difficulty}_draw`] || 0,
+  bot:  _saved[`${difficulty}_bot`]  || 0,
+};
 
 function checkWinner(b) {
   for (const [a, b2, c] of WINS)
@@ -392,6 +412,11 @@ function updateScores() {
   document.getElementById('scoreYou').textContent = scores.you;
   document.getElementById('scoreDraw').textContent = scores.draw;
   document.getElementById('scoreBot').textContent = scores.bot;
+  const saved = loadScores();
+  saved[`${difficulty}_you`]  = scores.you;
+  saved[`${difficulty}_draw`] = scores.draw;
+  saved[`${difficulty}_bot`]  = scores.bot;
+  try { localStorage.setItem('ttt_scores', JSON.stringify(saved)); } catch {}
 }
 
 // Bot logic
@@ -530,7 +555,12 @@ document.querySelectorAll('[data-diff]').forEach(btn => {
     document.querySelectorAll('[data-diff]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     difficulty = btn.dataset.diff;
-    scores = { you: 0, draw: 0, bot: 0 };
+    const saved = loadScores();
+    scores = {
+      you:  saved[`${difficulty}_you`]  || 0,
+      draw: saved[`${difficulty}_draw`] || 0,
+      bot:  saved[`${difficulty}_bot`]  || 0,
+    };
     updateScores();
     newGame();
   });

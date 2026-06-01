@@ -4,7 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script>document.documentElement.dataset.theme=localStorage.getItem('gf-theme')||'light';</script>
-  <title>Trade Alley</title>
+  <title>Trade Alley — free browser trading game | gamed.fun</title>
+  <meta name="description" content="Buy low, sell high in Trade Alley. A free browser trading simulation game — no download, no login. Can you build a fortune?">
+  <meta property="og:title" content="Trade Alley — free browser trading game | gamed.fun">
+  <meta property="og:description" content="Buy low, sell high in Trade Alley. A free browser trading simulation game — no download, no login.">
+  <meta property="og:url" content="https://gamed.fun/trade-alley/">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Trade Alley — free browser trading game | gamed.fun">
+  <meta name="twitter:description" content="Buy low, sell high in Trade Alley. A free browser trading simulation game — no download, no login.">
 <link rel="icon" type="image/svg+xml" href="../logo.svg">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -92,6 +100,18 @@
     @keyframes worthUp   { 0%,100%{color:var(--gold)} 50%{color:#4ade80;transform:scale(1.12)} }
     @keyframes worthDown { 0%,100%{color:var(--gold)} 50%{color:#fb7185;transform:scale(0.96)} }
     @keyframes stealPulse { 0%,100%{opacity:1} 50%{opacity:.45} }
+    .profit-pop {
+      position: fixed;
+      font-weight: 900;
+      font-size: 1.1rem;
+      pointer-events: none;
+      z-index: 9999;
+      animation: profitFloat .9s ease forwards;
+    }
+    @keyframes profitFloat {
+      0%   { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-52px) scale(1.15); }
+    }
     button.flipping { animation: stealPulse .45s ease-in-out infinite; pointer-events:none; }
     button:active:not(:disabled):not(.flipping) { transform: scale(0.96); transition: transform .08s; }
     .grid {
@@ -693,6 +713,19 @@
       void el.offsetWidth;
       el.classList.add(cls);
       el.addEventListener('animationend', () => el.classList.remove(cls), { once: true });
+
+      const delta = current - prevWorth;
+      if (delta !== 0) {
+        const rect = el.getBoundingClientRect();
+        const pop = document.createElement('div');
+        pop.className = 'profit-pop';
+        pop.textContent = (delta > 0 ? '+' : '') + formatValue(delta);
+        pop.style.color = delta > 0 ? '#4ade80' : '#fb7185';
+        pop.style.left = `${rect.left + rect.width / 2}px`;
+        pop.style.top  = `${rect.top}px`;
+        document.body.appendChild(pop);
+        pop.addEventListener('animationend', () => pop.remove());
+      }
     }
 
     newRunBtn.addEventListener('click', startRun);

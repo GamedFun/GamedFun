@@ -3,7 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
-  <title>PopPlanet — gamed.fun</title>
+  <title>PopPlanet — free planet popping game | gamed.fun</title>
+  <meta name="description" content="Pop falling planets before they hit the ground. Fast-paced free browser arcade game — no download, no login required.">
+  <meta property="og:title" content="PopPlanet — free planet popping game | gamed.fun">
+  <meta property="og:description" content="Pop falling planets before they hit the ground. Fast-paced free browser arcade game — no download, no login required.">
+  <meta property="og:url" content="https://gamed.fun/popplanet/">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="PopPlanet — free planet popping game | gamed.fun">
+  <meta name="twitter:description" content="Pop falling planets before they hit the ground. Fast-paced free browser arcade game — no download, no login required.">
   <link rel="icon" type="image/svg+xml" href="/logo.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -207,6 +215,7 @@
       <div class="final">
         <div>Level<b id="finalLevel">1</b></div>
         <div>Score<b id="finalScore">0</b></div>
+        <div id="bestScoreRow" style="display:none">Best<b id="finalBest">0</b></div>
       </div>
       <button id="againBtn" class="big-btn">Play Again</button>
       <br><a class="text-link" href="/">&larr; back to gamed.fun</a>
@@ -698,12 +707,14 @@
   /* ── GAME FLOW ──
      The game is always in one "mode": 'menu', 'play', 'ship', or 'over'.
      startGame resets everything, nextLevel adds more planets, gameOver ends it. */
+  let popBest = Number(localStorage.getItem('popplanet_best') || 0);
   let mode = 'menu', level = 1, score = 0, charge = 0;
   let picks = [], resolving = false, shakeAmt = 0;
 
   function startGame() {
     planets.forEach(disposePlanet); planets = [];
     level = 1; score = 0; charge = 0; mode = 'play';
+    document.querySelector('.over-title').textContent = '💥 Boom!';
     updateHUD(); updateChargeUI();
     hud.classList.remove('hidden'); chargeWrap.classList.remove('hidden');
     startOverlay.classList.add('hidden'); overOverlay.classList.add('hidden');
@@ -716,6 +727,15 @@
     bigExplosion(mx, my); shakeAmt = reduceMotion ? 0.15 : 0.7; playBoom(); vibrate([40, 40, 80]);
     disposePlanet(a); disposePlanet(b);
     finalLevel.textContent = level; finalScore.textContent = score;
+    const isNewBest = score > popBest;
+    if (isNewBest) { popBest = score; localStorage.setItem('popplanet_best', String(popBest)); }
+    const bestRow = document.getElementById('bestScoreRow');
+    const finalBestEl = document.getElementById('finalBest');
+    if (popBest > 0) {
+      bestRow.style.display = '';
+      finalBestEl.textContent = popBest;
+    }
+    document.querySelector('.over-title').textContent = isNewBest ? '🏆 New Best!' : '💥 Boom!';
     setTimeout(() => overOverlay.classList.remove('hidden'), 750);
   }
 

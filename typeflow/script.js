@@ -664,6 +664,11 @@ function finish() {
   if (personalBest.isBest && !shareStatus.textContent) {
     shareStatus.textContent = 'New personal best';
   }
+  if (!personalBestsOpen) {
+    personalBestsOpen = true;
+    personalBestList.classList.remove('hidden');
+    personalBestBtn.textContent = 'Hide personal bests';
+  }
   renderPersonalBests();
 
   applyProgressionResults(wpm, acc, consistency, elapsed);

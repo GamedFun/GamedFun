@@ -4,7 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script>document.documentElement.dataset.theme=localStorage.getItem('gf-theme')||'dark';</script>
-  <title>Neon Cat Dash</title>
+  <title>Neon Cat Dash — free endless runner game | gamed.fun</title>
+  <meta name="description" content="Guide a glowing neon cat through an endless obstacle course. Free browser endless runner — no download, no login. How far can you go?">
+  <meta property="og:title" content="Neon Cat Dash — free endless runner game | gamed.fun">
+  <meta property="og:description" content="Guide a glowing neon cat through an endless obstacle course. Free browser endless runner — no download, no login.">
+  <meta property="og:url" content="https://gamed.fun/neon-cat/">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Neon Cat Dash — free endless runner game | gamed.fun">
+  <meta name="twitter:description" content="Guide a glowing neon cat through an endless obstacle course. Free browser endless runner — no download, no login.">
 <link rel="icon" type="image/svg+xml" href="../logo.svg">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -173,6 +181,37 @@
       padding: .78rem 1rem;
     }
     .hidden { display: none; }
+    #milestone {
+      position: absolute;
+      left: 50%;
+      top: 22%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, var(--pink), var(--cyan));
+      color: #020617;
+      font-weight: 1000;
+      font-size: 1rem;
+      padding: .45rem 1.1rem;
+      border-radius: 999px;
+      pointer-events: none;
+      z-index: 6;
+      opacity: 0;
+      transition: opacity .18s;
+      white-space: nowrap;
+    }
+    #milestone.show { opacity: 1; }
+    .coin-pop {
+      position: absolute;
+      font-size: .82rem;
+      font-weight: 1000;
+      color: var(--yellow);
+      pointer-events: none;
+      z-index: 6;
+      animation: coinPop .7s ease forwards;
+    }
+    @keyframes coinPop {
+      0%   { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-38px) scale(1.2); }
+    }
     @media (max-width: 640px) {
       main { padding: .55rem; }
       .cat { width: 76px; }
@@ -241,6 +280,7 @@
     <section class="game" id="game">
       <div class="stars"></div>
       <img class="cat" id="cat" src="https://media.tenor.com/8lR3_1m-i94AAAAj/cat.gif" alt="Neon flying cat">
+      <div id="milestone"></div>
       <div class="center" id="overlay">
         <div class="modal">
           <h1>Neon Cat Dash</h1>
@@ -273,6 +313,28 @@
     let orbs = [];
     let lastGap = null;
     let best = Number(localStorage.getItem('neon_cat_best') || 0);
+    let milestoneEl = document.getElementById('milestone');
+    let milestoneTimer = null;
+    let nextMilestone = 200;
+    const MILESTONES = [200, 500, 1000, 2000, 5000];
+    const MILESTONE_MSGS = { 200: '200m 🚀', 500: '500m 🌙', 1000: '1km 🌟', 2000: '2km ⚡', 5000: '5km 🏆' };
+
+    function showMilestone(msg) {
+      milestoneEl.textContent = msg;
+      milestoneEl.classList.add('show');
+      clearTimeout(milestoneTimer);
+      milestoneTimer = setTimeout(() => milestoneEl.classList.remove('show'), 1800);
+    }
+
+    function spawnCoinPop(px, py) {
+      const el = document.createElement('div');
+      el.className = 'coin-pop';
+      el.textContent = '+1';
+      el.style.left = `${px}px`;
+      el.style.top = `${py}px`;
+      game.appendChild(el);
+      el.addEventListener('animationend', () => el.remove());
+    }
     const GRAVITY = 1120;
     const BOOST_FORCE = -450;
     const BASE_MOVE_SPEED = 205;
@@ -294,6 +356,8 @@
       speed = 1;
       spawnTimer = 0;
       lastGap = null;
+      nextMilestone = MILESTONES[0];
+      milestoneEl.classList.remove('show');
       running = true;
       lastTime = performance.now();
       overlay.classList.add('hidden');
@@ -351,6 +415,11 @@
       velocity += GRAVITY * dt;
       y += velocity * dt;
       score += SCORE_RATE * speed * dt;
+      if (score >= nextMilestone) {
+        showMilestone(MILESTONE_MSGS[nextMilestone] || `${Math.floor(nextMilestone)}m`);
+        const idx = MILESTONES.indexOf(nextMilestone);
+        nextMilestone = MILESTONES[idx + 1] || Infinity;
+      }
       spawnTimer -= dt;
       if (spawnTimer <= 0) {
         spawnObstacle();
@@ -420,6 +489,7 @@
         if (overlaps(box, { left: item.x, top: item.top, width: item.size, height: item.size })) {
           coins++;
           score += 100;
+          spawnCoinPop(item.x, item.top);
           item.el.remove();
           return false;
         }

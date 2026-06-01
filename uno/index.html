@@ -4,7 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script>document.documentElement.dataset.theme=localStorage.getItem('gf-theme')||'dark';</script>
-  <title>UNO Duel</title>
+  <title>UNO Duel — free card game online | gamed.fun</title>
+  <meta name="description" content="Play UNO against a computer opponent right in your browser. Free online card game — no download, no login. Draw 4!">
+  <meta property="og:title" content="UNO Duel — free card game online | gamed.fun">
+  <meta property="og:description" content="Play UNO against a computer opponent right in your browser. Free online card game — no download, no login.">
+  <meta property="og:url" content="https://gamed.fun/uno/">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="UNO Duel — free card game online | gamed.fun">
+  <meta name="twitter:description" content="Play UNO against a computer opponent right in your browser. Free online card game — no download, no login.">
 <link rel="icon" type="image/svg+xml" href="../logo.svg">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -248,6 +256,12 @@
       from { transform: scale(1); filter: brightness(1); }
       to { transform: scale(1.07); filter: brightness(1.14); }
     }
+    @keyframes cardPlay {
+      0%   { transform: scale(1.22) rotate(-6deg); opacity: .7; }
+      60%  { transform: scale(1.08) rotate(2deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+    .card-played { animation: cardPlay .28s cubic-bezier(.34,1.56,.64,1); }
     button:disabled {
       cursor: not-allowed;
       opacity: .5;
@@ -690,7 +704,9 @@
         npcHandEl.appendChild(back);
       });
       discardEl.innerHTML = '';
-      discardEl.appendChild(renderCard(topCard(), false, () => {}));
+      const discardCard = renderCard(topCard(), false, () => {});
+      discardCard.classList.add('card-played');
+      discardEl.appendChild(discardCard);
       playerCountEl.textContent = player.length;
       npcCountEl.textContent = npc.length;
       deckCountEl.textContent = `${deck.length} cards left in deck`;
