@@ -129,7 +129,7 @@ document.getElementById('themeBtn').textContent =
   document.documentElement.dataset.theme === 'dark' ? '☀️' : '🌙';
 
 // ── FOOD DATA ─────────────────────────────────────────────────────────────────
-const PLANETS = [
+const FOODS = [
   { name:'Rice',     emoji:'🍚', hex:'#f0ede0', r:14,  pts:1  },
   { name:'Edamame',  emoji:'🫛', hex:'#3db832', r:19,  pts:2  },
   { name:'Cracker',  emoji:'🍘', hex:'#d4a96a', r:26,  pts:4  },
@@ -185,27 +185,27 @@ World.add(world, [
   Bodies.rectangle(CX,             FLOOR + WALL/2, CTRW + WALL*2,  WALL, { isStatic:true }),
 ]);
 
-// ── PLANET POOL ───────────────────────────────────────────────────────────────
-const planets = [];
+// ── FOOD POOL ─────────────────────────────────────────────────────────────────
+const foods = [];
 const bodyMap = new Map();
 
-function createPlanet(mx, my, tier) {
-  const pd   = PLANETS[tier];
-  const body = Bodies.circle(mx, my, pd.r, {
-    restitution: 0.22, friction: 0.55, frictionAir: 0.01, density: 0.002, label:'planet',
+function createFood(mx, my, tier) {
+  const fd   = FOODS[tier];
+  const body = Bodies.circle(mx, my, fd.r, {
+    restitution: 0.22, friction: 0.55, frictionAir: 0.01, density: 0.002, label:'food',
   });
   World.add(world, body);
   const p = { body, tier, merging:false, born:performance.now(), scale:1 };
-  planets.push(p);
+  foods.push(p);
   bodyMap.set(body.id, p);
   return p;
 }
 
-function removePlanet(p) {
+function removeFood(p) {
   World.remove(world, p.body);
   bodyMap.delete(p.body.id);
-  const i = planets.indexOf(p);
-  if (i !== -1) planets.splice(i, 1);
+  const i = foods.indexOf(p);
+  if (i !== -1) foods.splice(i, 1);
 }
 
 function punchScale(p) {
@@ -229,7 +229,7 @@ Events.on(engine, 'collisionStart', ({ pairs }) => {
     if (!pa || !pb)                     continue;
     if (pa.tier !== pb.tier)            continue;
     if (pa.merging || pb.merging)       continue;
-    if (pa.tier >= PLANETS.length - 1) continue;
+    if (pa.tier >= FOODS.length - 1) continue;
 
     pa.merging = pb.merging = true;
     const key = `${Math.min(bodyA.id,bodyB.id)},${Math.max(bodyA.id,bodyB.id)}`;
@@ -242,11 +242,11 @@ Events.on(engine, 'collisionStart', ({ pairs }) => {
 
     setTimeout(() => {
       pending.delete(key);
-      if (!planets.includes(pa) || !planets.includes(pb) || gameOver) return;
-      removePlanet(pa); removePlanet(pb);
-      const np = createPlanet(mx, my, nt);
+      if (!foods.includes(pa) || !foods.includes(pb) || gameOver) return;
+      removeFood(pa); removeFood(pb);
+      const np = createFood(mx, my, nt);
       punchScale(np);
-      score += PLANETS[nt].pts;
+      score += FOODS[nt].pts;
       scoreEl.textContent = score.toLocaleString();
       playMerge(nt);
     }, 16);
@@ -272,21 +272,21 @@ bestEl.textContent = best.toLocaleString();
 
 function rndTier() { return Math.floor(Math.random() * (MAX_SPAWN + 1)); }
 function refreshNext() {
-  nextDotEl.style.background = PLANETS[nextTier].hex;
-  nextNameEl.textContent     = PLANETS[nextTier].name;
+  nextDotEl.style.background = FOODS[nextTier].hex;
+  nextNameEl.textContent     = FOODS[nextTier].name;
 }
 refreshNext();
 
 // ── DROP ──────────────────────────────────────────────────────────────────────
 function clampX() {
-  const r = PLANETS[currentTier].r;
+  const r = FOODS[currentTier].r;
   return Math.max(LEFT + r + 2, Math.min(RIGHT - r - 2, aimX));
 }
 
-function dropPlanet() {
+function dropFood() {
   if (!canDrop || gameOver) return;
   canDrop = false;
-  createPlanet(clampX(), DROP_Y, currentTier);
+  createFood(clampX(), DROP_Y, currentTier);
   playDrop(currentTier);
   currentTier = nextTier;
   nextTier    = rndTier();
@@ -295,15 +295,15 @@ function dropPlanet() {
 }
 
 cvs.addEventListener('mousemove', e => { aimX = e.clientX; });
-cvs.addEventListener('click', dropPlanet);
+cvs.addEventListener('click', dropFood);
 cvs.addEventListener('touchmove', e => { aimX = e.touches[0].clientX; }, { passive:true });
-cvs.addEventListener('touchend', e => { aimX = e.changedTouches[0].clientX; dropPlanet(); }, { passive:true });
+cvs.addEventListener('touchend', e => { aimX = e.changedTouches[0].clientX; dropFood(); }, { passive:true });
 
 // ── GAME OVER ─────────────────────────────────────────────────────────────────
 function checkOverflow() {
   if (gameOver) return;
   const now  = performance.now();
-  const over = planets.some(p =>
+  const over = foods.some(p =>
     !p.merging &&
     now - p.born > 1800 &&
     p.body.position.y < DANGER_Y &&
@@ -333,7 +333,7 @@ function doGameOver() {
 }
 
 document.getElementById('restart-btn').addEventListener('click', () => {
-  [...planets].forEach(removePlanet);
+  [...foods].forEach(removeFood);
   bodyMap.clear(); pending.clear();
   score = 0; scoreEl.textContent = '0';
   gameOver = false; dangerTicks = 0; canDrop = true;
@@ -346,8 +346,8 @@ document.getElementById('restart-btn').addEventListener('click', () => {
 });
 
 // ── DRAW ──────────────────────────────────────────────────────────────────────
-function drawPlanet(x, y, r, tier, alpha) {
-  const pd = PLANETS[tier];
+function drawFood(x, y, r, tier, alpha) {
+  const fd = FOODS[tier];
   const a  = alpha ?? 1;
   ctx.save();
   ctx.globalAlpha = a;
@@ -357,9 +357,9 @@ function drawPlanet(x, y, r, tier, alpha) {
     x - r * 0.28, y - r * 0.32, r * 0.05,
     x,            y,             r
   );
-  grad.addColorStop(0,    lighten(pd.hex, 0.55));
-  grad.addColorStop(0.5,  pd.hex);
-  grad.addColorStop(1,    darken(pd.hex, 0.38));
+  grad.addColorStop(0,    lighten(fd.hex, 0.55));
+  grad.addColorStop(0.5,  fd.hex);
+  grad.addColorStop(1,    darken(fd.hex, 0.38));
 
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -373,7 +373,7 @@ function drawPlanet(x, y, r, tier, alpha) {
   ctx.font        = `${Math.round(r * 1.25)}px serif`;
   ctx.textAlign   = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(pd.emoji, x, y + r * 0.06);
+  ctx.fillText(fd.emoji, x, y + r * 0.06);
   ctx.restore();
 }
 
@@ -405,17 +405,17 @@ function draw() {
   ctx.restore();
 
   // Planets
-  for (const p of planets) {
+  for (const p of foods) {
     if (p.merging) continue;
     const { x, y } = p.body.position;
-    const r = PLANETS[p.tier].r * p.scale;
-    drawPlanet(x, y, r, p.tier);
+    const r = FOODS[p.tier].r * p.scale;
+    drawFood(x, y, r, p.tier);
   }
 
   // Aim guide
   if (!gameOver) {
     const ax = clampX();
-    const r  = PLANETS[currentTier].r;
+    const r  = FOODS[currentTier].r;
 
     // Vertical guide line
     ctx.save();
@@ -429,7 +429,7 @@ function draw() {
     ctx.restore();
 
     // Ghost planet
-    drawPlanet(ax, DROP_Y, r, currentTier, 0.28);
+    drawFood(ax, DROP_Y, r, currentTier, 0.28);
   }
 }
 
