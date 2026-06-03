@@ -383,12 +383,27 @@ function draw() {
   ctx.clearRect(0, 0, W, H);
 
   // Walls
-  const wallColor = dark ? '#1a1a36' : '#9090c0';
-  ctx.fillStyle = wallColor;
+  const wallColor = dark ? '#1a1a36' : '#8888bb';
   const playH = FLOOR - DANGER_Y;
-  ctx.fillRect(LEFT - WALL, DANGER_Y, WALL, playH + WALL); // left
-  ctx.fillRect(RIGHT,       DANGER_Y, WALL, playH + WALL); // right
-  ctx.fillRect(LEFT - WALL, FLOOR,    CTRW + WALL * 2, WALL); // floor
+  ctx.fillStyle = wallColor;
+  ctx.fillRect(LEFT - WALL, DANGER_Y, WALL, playH); // left wall
+  ctx.fillRect(RIGHT,       DANGER_Y, WALL, playH); // right wall
+
+  // Solid floor — thick slab with gradient and highlight
+  const FLOOR_H = 28;
+  const floorGrad = ctx.createLinearGradient(0, FLOOR, 0, FLOOR + FLOOR_H);
+  if (dark) {
+    floorGrad.addColorStop(0, '#2a2a50');
+    floorGrad.addColorStop(1, '#12122a');
+  } else {
+    floorGrad.addColorStop(0, '#b0b0d8');
+    floorGrad.addColorStop(1, '#8888bb');
+  }
+  ctx.fillStyle = floorGrad;
+  ctx.fillRect(LEFT - WALL, FLOOR, CTRW + WALL * 2, FLOOR_H);
+  // top highlight line
+  ctx.fillStyle = dark ? 'rgba(140,120,255,0.55)' : 'rgba(255,255,255,0.55)';
+  ctx.fillRect(LEFT - WALL, FLOOR, CTRW + WALL * 2, 3);
 
   // Danger line
   const dangerAlpha = dangerTicks > 0
