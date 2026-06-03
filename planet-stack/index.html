@@ -443,24 +443,34 @@ function getAC() {
 }
 function playDrop(tier) {
   try {
-    const c = getAC(), o = c.createOscillator(), g = c.createGain();
-    o.type = 'sine'; o.frequency.value = 180 + tier * 28;
-    g.gain.setValueAtTime(0.09, c.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.18);
-    o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime + 0.18);
+    const c = getAC();
+    // Soft "plop" — pitch-descending sine with lowpass
+    const o = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter();
+    f.type = 'lowpass'; f.frequency.value = 500 + tier * 60;
+    o.type = 'sine';
+    const base = 130 + tier * 14;
+    o.frequency.setValueAtTime(base * 1.5, c.currentTime);
+    o.frequency.exponentialRampToValueAtTime(base, c.currentTime + 0.07);
+    g.gain.setValueAtTime(0.13, c.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.14);
+    o.connect(f); f.connect(g); g.connect(c.destination);
+    o.start(); o.stop(c.currentTime + 0.16);
   } catch {}
 }
 function playMerge(tier) {
   try {
-    const c = getAC(), base = 260 + tier * 55;
-    [1, 1.26, 1.5].forEach((ratio, i) => {
+    const c = getAC();
+    // Bell-like chime with natural harmonics
+    const root = [261.63,293.66,329.63,349.23,392,440,493.88,523.25][tier % 8] * (tier > 7 ? 2 : 1);
+    [1, 2, 3.02].forEach((h, i) => {
       const o = c.createOscillator(), g = c.createGain();
-      o.type = 'triangle'; o.frequency.value = base * ratio;
-      const t = c.currentTime + i * 0.07;
+      const t = c.currentTime;
+      o.type = 'sine'; o.frequency.value = root * h;
       g.gain.setValueAtTime(0, t);
-      g.gain.linearRampToValueAtTime(0.09, t + 0.04);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
-      o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.45);
+      g.gain.linearRampToValueAtTime([0.13, 0.06, 0.025][i], t + 0.006);
+      g.gain.exponentialRampToValueAtTime(0.001, t + [0.55, 0.38, 0.22][i]);
+      o.connect(g); g.connect(c.destination);
+      o.start(t); o.stop(t + 0.6);
     });
   } catch {}
 }

@@ -678,24 +678,30 @@
     // ── Sound effects ─────────────────────────────────────────────
     function beep(type) {
       try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const o = ctx.createOscillator();
-        const g = ctx.createGain();
-        o.connect(g); g.connect(ctx.destination);
+        const ac = new (window.AudioContext || window.webkitAudioContext)();
         if (type === 'correct') {
-          o.type = 'triangle';
-          o.frequency.setValueAtTime(523, ctx.currentTime);
-          o.frequency.setValueAtTime(784, ctx.currentTime + 0.1);
-          g.gain.setValueAtTime(0.12, ctx.currentTime);
-          g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.32);
-          o.start(); o.stop(ctx.currentTime + 0.32);
+          // Rising xylophone arpeggio — C5, E5, G5
+          [523.25, 659.25, 783.99].forEach((freq, i) => {
+            const o = ac.createOscillator(), g = ac.createGain();
+            const t = ac.currentTime + i * 0.06;
+            o.type = 'triangle'; o.frequency.value = freq;
+            g.gain.setValueAtTime(0, t);
+            g.gain.linearRampToValueAtTime(0.12, t + 0.009);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+            o.connect(g); g.connect(ac.destination);
+            o.start(t); o.stop(t + 0.32);
+          });
         } else {
-          o.type = 'sawtooth';
-          o.frequency.setValueAtTime(180, ctx.currentTime);
-          o.frequency.setValueAtTime(140, ctx.currentTime + 0.06);
-          g.gain.setValueAtTime(0.08, ctx.currentTime);
-          g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
-          o.start(); o.stop(ctx.currentTime + 0.2);
+          // Soft muffled thud — no harsh sawtooth
+          const o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+          f.type = 'lowpass'; f.frequency.value = 320;
+          o.type = 'sine';
+          o.frequency.setValueAtTime(210, ac.currentTime);
+          o.frequency.exponentialRampToValueAtTime(95, ac.currentTime + 0.16);
+          g.gain.setValueAtTime(0.2, ac.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.2);
+          o.connect(f); f.connect(g); g.connect(ac.destination);
+          o.start(); o.stop(ac.currentTime + 0.22);
         }
       } catch {}
     }

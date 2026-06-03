@@ -534,6 +534,7 @@
       if (!played || !canPlay(played) || gameOver) return false;
       hand.splice(index, 1);
       discard.push(played);
+      playCardPlay();
       currentColor = played.color === 'wild' ? currentColor : played.color;
       if (played.color === 'wild' && owner === 'player') {
         pendingWild = played;
@@ -812,9 +813,23 @@
     }
 
     function playUnoAlert() {
-      playTone(660, 0, 0.12);
-      playTone(880, 0.13, 0.14);
-      playTone(1046, 0.28, 0.18);
+      // Musical ascending fanfare — sounds like an actual alert, not a beep
+      playTone(392, 0,    0.1,  'triangle', 0.12);
+      playTone(523, 0.1,  0.1,  'triangle', 0.12);
+      playTone(659, 0.2,  0.16, 'triangle', 0.14);
+    }
+    function playCardPlay() {
+      // Soft card "swoosh" — filtered noise burst
+      try {
+        const ctx = ensureAudio(); if (!ctx) return;
+        const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.08), ctx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+        const s = ctx.createBufferSource();
+        const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 2800; f.Q.value = 0.8;
+        const g = ctx.createGain(); g.gain.value = 0.12;
+        s.buffer = buf; s.connect(f); f.connect(g); g.connect(ctx.destination); s.start();
+      } catch {}
     }
 
     unoBtn.addEventListener('click', () => {
