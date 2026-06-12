@@ -295,7 +295,6 @@ uniform vec3  uColA, uColB, uFog;
 uniform vec4  uObs[${W.MAX_OBS}];
 uniform vec4  uRings[${W.MAX_RINGS}];
 uniform vec3  uAim;        // 3D cursor: world position of the arrow
-uniform float uCurA;       // cursor heading angle in the screen plane
 uniform vec3  uTrail[8];   // recent cursor positions, oldest last
 
 vec2 pathXY(float z){
@@ -351,13 +350,10 @@ void main(){
   vec3 ro = uCamPos;
   vec3 rd = normalize(uCam * normalize(vec3(uv, 1.55)));
 
-  // point the arrow along its heading (screen plane), plus a fixed slight
-  // tilt so its 3D thickness shows — no spinning
-  float cr = cos(uCurA), sr = sin(uCurA);
-  mat3 RZ = mat3(cr, sr, 0., -sr, cr, 0., 0., 0., 1.);
+  // upright arrow, fixed slight tilt for 3D thickness — never turns
   float ca = cos(0.35), sa = sin(0.35);
   float cb = cos(0.15), sb = sin(0.15);
-  mat3 RA = (mat3(1.,0.,0., 0.,cb,sb, 0.,-sb,cb) * mat3(ca,0.,-sa, 0.,1.,0., sa,0.,ca)) * RZ;
+  mat3 RA = mat3(1.,0.,0., 0.,cb,sb, 0.,-sb,cb) * mat3(ca,0.,-sa, 0.,1.,0., sa,0.,ca);
   float curScale = 1.0 + 0.06*sin(uT*3.0);
 
   float t = 0.0, glow = 0.0, ringGlow = 0.0, aimGlow = 0.0;
@@ -468,7 +464,7 @@ if (gl) {
   TEST.linked = gl.getProgramParameter(prog, gl.LINK_STATUS);
   if (!TEST.linked) TEST.log += gl.getProgramInfoLog(prog);
   gl.useProgram(prog);
-  for (const n of ['uRes','uT','uCamPos','uCam','uRadBase','uGyAmp','uSpeed','uHurt','uColA','uColB','uFog','uObs','uRings','uAim','uCurA','uTrail'])
+  for (const n of ['uRes','uT','uCamPos','uCam','uRadBase','uGyAmp','uSpeed','uHurt','uColA','uColB','uFog','uObs','uRings','uAim','uTrail'])
     U[n] = gl.getUniformLocation(prog, n);
   const vb = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, vb);
@@ -632,7 +628,6 @@ function startRun() {
   Object.assign(G, { state:'run', z:0, x:pathX(0), y:pathY(0), vx:0, vy:0,
     speed:16, boost:0, topSpeed:0, rings:0, combo:0, hurt:0, dieT:0, shake:0, zone:-1, time:0, nearCool:0 });
   particles.length = 0; streaks.length = 0; trailHist.length = 0;
-  curAngle = 0; aimPrevX = null; aimPrevY = null;
   document.getElementById('intro').classList.remove('on');
   document.getElementById('death').classList.remove('on');
   document.getElementById('hud').classList.add('on');
@@ -895,7 +890,6 @@ const TRAIL_KEEP = 28;                      // frames of aim history retained
 const trailHist = [];                       // flat x,y,z samples, newest last
 const trailBuf = new Float32Array(24);
 const trailPark = new Float32Array(24).fill(-9999);
-let curAngle = 0, aimPrevX = null, aimPrevY = null;
 function render() {
   if (!gl || !TEST.linked) return;
   const zp = zoneParams(G.z);
@@ -927,17 +921,6 @@ function render() {
   if (G.state === 'run' || G.state === 'paused') {
     const ax = G.x + input.x * 5.5, ay = G.y - input.y * 5.5, az = G.z + 16;
     gl.uniform3f(U.uAim, ax, ay, az);
-    // heading: point the arrow along the cursor's lateral motion (smoothed)
-    if (aimPrevX !== null) {
-      const dx = ax - aimPrevX, dy = ay - aimPrevY;
-      if (Math.hypot(dx, dy) > 0.03) {
-        const target = Math.atan2(dx, dy);
-        const da = ((target - curAngle + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
-        curAngle += da * 0.16;
-      }
-    }
-    aimPrevX = ax; aimPrevY = ay;
-    gl.uniform1f(U.uCurA, curAngle);
     // tail: echoes of where the cursor just was
     trailHist.push(ax, ay, az);
     if (trailHist.length > TRAIL_KEEP * 3) trailHist.splice(0, trailHist.length - TRAIL_KEEP * 3);
@@ -949,7 +932,6 @@ function render() {
     gl.uniform3fv(U.uTrail, trailBuf);
   } else {
     gl.uniform3f(U.uAim, 0, -9999, 0);      // parked out of the world
-    gl.uniform1f(U.uCurA, 0);
     gl.uniform3fv(U.uTrail, trailPark);
   }
 
