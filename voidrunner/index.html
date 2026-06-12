@@ -19,7 +19,7 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { height: 100%; background: #02020a; color: #dfe6ff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; overflow: hidden; }
     canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
-    #gl { z-index: 0; }
+    #gl { z-index: 0; cursor: none; }   /* the aim reticle replaces the OS cursor in-game */
     #fx { z-index: 1; pointer-events: none; }
 
     /* HUD */
@@ -106,8 +106,8 @@
   <div class="vr-title">VOIDRUNNER</div>
   <div class="vr-sub">An endless flight through a collapsing wormhole, rendered in real time by <b>pure math</b> — every wall is a distance field, every note of the soundtrack is synthesized live. <b>No assets. No engine. One file.</b></div>
   <div class="vr-controls">
-    <div class="vr-ctl"><b>☝️</b>drag to steer</div>
-    <div class="vr-ctl"><b>⌨️</b>or WASD / arrows</div>
+    <div class="vr-ctl"><b>🖱️</b>aim with mouse</div>
+    <div class="vr-ctl"><b>☝️</b>drag on touch</div>
     <div class="vr-ctl"><b>◎</b>thread rings = boost</div>
   </div>
   <button class="vr-btn" id="start-btn">ENTER THE VOID</button>
@@ -596,12 +596,15 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 let dragId = null, dragX = 0, dragY = 0;
+let mouseX = null, mouseY = null;        // hover position (mouse steers without holding)
 addEventListener('pointerdown', e => {
   if (e.target.closest('button, a')) return;
   if (G.state === 'dead') { startRun(); return; }
+  if (e.pointerType === 'mouse') return; // mouse steers by hover, not drag
   dragId = e.pointerId; dragX = e.clientX; dragY = e.clientY;
 });
 addEventListener('pointermove', e => {
+  if (e.pointerType === 'mouse' && dragId === null) { mouseX = e.clientX; mouseY = e.clientY; return; }
   if (e.pointerId !== dragId) return;
   const s = Math.min(innerWidth, innerHeight) * 0.22;
   input.x = Math.max(-1, Math.min(1, (e.clientX - dragX) / s));
@@ -610,14 +613,21 @@ addEventListener('pointermove', e => {
 const endDrag = e => { if (e.pointerId === dragId) { dragId = null; input.x = 0; input.y = 0; } };
 addEventListener('pointerup', endDrag);
 addEventListener('pointercancel', endDrag);
+document.documentElement.addEventListener('mouseleave', () => { mouseX = null; mouseY = null; });
+const dz = v => Math.abs(v) < 0.08 ? 0 : Math.max(-1, Math.min(1, v));  // deadzone + clamp
 function pollKeys() {
   let kx = 0, ky = 0;
   if (keys['a'] || keys['arrowleft'])  kx -= 1;
   if (keys['d'] || keys['arrowright']) kx += 1;
   if (keys['w'] || keys['arrowup'])    ky -= 1;
   if (keys['s'] || keys['arrowdown'])  ky += 1;
-  if (kx || ky) { input.x = kx; input.y = ky; }
-  else if (dragId === null) { input.x = 0; input.y = 0; }
+  if (kx || ky) { input.x = kx; input.y = ky; return; }
+  if (dragId !== null) return;           // touch drag already wrote input
+  if (mouseX !== null) {                 // mouse hover: offset from screen center
+    const s = Math.min(innerWidth, innerHeight) * 0.30;
+    input.x = dz((mouseX - innerWidth  / 2) / s);
+    input.y = dz((mouseY - innerHeight / 2) / s);
+  } else { input.x = 0; input.y = 0; }
 }
 
 function togglePause() {
@@ -693,10 +703,51 @@ function step(dt) {
     }
   }
 }
-TEST.step = step; TEST.G = G; TEST.startRun = startRun;
+TEST.step = step; TEST.G = G; TEST.startRun = startRun; TEST.input = input;
 
-// ── overlay FX (2D canvas: ship, particles, streaks) ─────────────
+// ── overlay FX (2D canvas: ship, reticle, particles, streaks) ────
 const particles = [], streaks = [];
+const CAM = { ok: false };
+
+// 3D aim reticle: a glowing ring floating 16 m down-tunnel at the point
+// you're steering toward, projected with the same camera as the shader
+function drawReticle() {
+  if (G.state !== 'run' || !CAM.ok) return;
+  const wx = G.x + input.x * 5.5;
+  const wy = G.y - input.y * 5.5;
+  const wz = G.z + 16;
+  const vx = wx - CAM.x, vy = wy - CAM.y, vz = wz - CAM.z;
+  const xc = vx*CAM.rx + vy*CAM.ry + vz*CAM.rz;
+  const yc = vx*CAM.ux + vy*CAM.uy + vz*CAM.uz;
+  const zc = vx*CAM.fwx + vy*CAM.fwy + vz*CAM.fwz;
+  if (zc < 2) return;
+  const w = innerWidth, h = innerHeight;
+  const sx = (1.55 * xc / zc * h + w) / 2;
+  const sy = h * (1 - 1.55 * yc / zc) / 2;
+  const scale = (1.55 * h / 2) / zc;            // screen px per world unit at that depth
+  const r = scale * 0.95;
+  const zcb = ZONES[zoneIdx(G.z)].colB;
+  const col = `rgb(${Math.round(zcb[0]*255)},${Math.round(zcb[1]*255)},${Math.round(zcb[2]*255)})`;
+  fx.save();
+  fx.translate(sx, sy);
+  fx.rotate(Math.max(-0.5, Math.min(0.5, G.vx * 0.02)));
+  fx.scale(1, 0.88);                            // slight tilt sells the depth
+  fx.shadowColor = col; fx.shadowBlur = 14;
+  fx.strokeStyle = col; fx.lineWidth = Math.max(1.5, r * 0.09);
+  // rotating segmented ring
+  const spin = G.time * 1.4;
+  for (let i = 0; i < 4; i++) {
+    const a = spin + i * Math.PI / 2;
+    fx.beginPath(); fx.arc(0, 0, r, a, a + Math.PI / 3.2); fx.stroke();
+  }
+  // faint outer halo + hot center dot
+  fx.globalAlpha = 0.3;
+  fx.beginPath(); fx.arc(0, 0, r * 1.22, 0, Math.PI * 2); fx.stroke();
+  fx.globalAlpha = 1;
+  fx.fillStyle = '#fff';
+  fx.beginPath(); fx.arc(0, 0, Math.max(1.2, r * 0.10), 0, Math.PI * 2); fx.fill();
+  fx.restore();
+}
 function shipPos() { return [innerWidth/2, innerHeight*0.62]; }
 function explode(x, y) {
   for (let i = 0; i < 60; i++) {
@@ -741,6 +792,8 @@ function drawFX(dt) {
     fx.stroke();
   }
   fx.restore();
+
+  drawReticle();
 
   // ship
   if (G.state === 'run' || G.state === 'paused') {
@@ -831,6 +884,13 @@ function render() {
   const cr = Math.cos(roll), sr = Math.sin(roll);
   const rx2 = rx*cr + ux*sr, ry2 = ry*cr + uy*sr, rz2 = rz*cr + uz*sr;
   const ux2 = ux*cr - rx*sr, uy2 = uy*cr - ry*sr, uz2 = uz*cr - rz*sr;
+
+  // publish camera for the 2D overlay's world→screen projection (3D reticle)
+  CAM.ok = true;
+  CAM.x = camX; CAM.y = camY; CAM.z = camZ;
+  CAM.rx = rx2; CAM.ry = ry2; CAM.rz = rz2;
+  CAM.ux = ux2; CAM.uy = uy2; CAM.uz = uz2;
+  CAM.fwx = fxd; CAM.fwy = fyd; CAM.fwz = fz;
 
   gl.uniform2f(U.uRes, glCanvas.width, glCanvas.height);
   gl.uniform1f(U.uT, G.time);
