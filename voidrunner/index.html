@@ -33,6 +33,7 @@
     #hud-best  { font-size: .68rem; color: rgba(223,230,255,.5); font-variant-numeric: tabular-nums; }
     #hud-rings { font-size: .92rem; font-weight: 800; margin-top: 3px; color: #ffd76a; text-shadow: 0 0 10px rgba(255,200,80,.7); font-variant-numeric: tabular-nums; }
     #speed-wrap { position: absolute; bottom: max(16px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); width: min(46vw, 260px); }
+    #beat-dot { text-align:center; font-size:1.05rem; color:#fa6bff; text-shadow:0 0 12px #fa6bff; margin-bottom:4px; line-height:1; }
     #speed-track { height: 4px; background: rgba(255,255,255,.12); border-radius: 3px; overflow: hidden; }
     #speed-fill { height: 100%; width: 0%; border-radius: 3px; background: linear-gradient(90deg,#2bd2ff,#fa6bff,#ffd76a); box-shadow: 0 0 12px rgba(160,120,255,.8); }
     #speed-lbl { text-align: center; font-size: .6rem; letter-spacing: .25em; color: rgba(223,230,255,.45); margin-top: 5px; font-variant-numeric: tabular-nums; }
@@ -91,6 +92,7 @@
     <div id="hud-rings">◎ 0</div>
   </div>
   <div id="speed-wrap">
+    <div id="beat-dot">♪</div>
     <div id="speed-track"><div id="speed-fill"></div></div>
     <div id="speed-lbl">0 M/S</div>
   </div>
@@ -108,10 +110,10 @@
   <div class="vr-controls">
     <div class="vr-ctl"><b>🖱️</b>aim with mouse</div>
     <div class="vr-ctl"><b>☝️</b>drag on touch</div>
-    <div class="vr-ctl"><b>◎</b>thread rings = boost</div>
+    <div class="vr-ctl"><b>♪</b>ring ON the beat = boost</div>
   </div>
   <button class="vr-btn" id="start-btn">ENTER THE VOID</button>
-  <div class="vr-note">Don't touch the walls. The deeper you go, the narrower it gets — and the music knows it.</div>
+  <div class="vr-note">Sound on. Thread rings on the kick drum for PERFECT boosts — chain them for a streak. Don't touch the walls.</div>
 </div>
 
 <div class="ov" id="death">
@@ -295,6 +297,7 @@ uniform vec3  uColA, uColB, uFog;
 uniform vec4  uObs[${W.MAX_OBS}];
 uniform vec4  uRings[${W.MAX_RINGS}];
 uniform vec3  uAim;        // 3D cursor: world position of the arrow
+uniform float uBeat;       // 1 on the kick, decaying to 0 — drives the pulse
 uniform vec3  uTrail[8];   // recent cursor positions, oldest last
 
 vec2 pathXY(float z){
@@ -310,7 +313,7 @@ float map(vec3 p){
   float d = radAt(p.z) - length(p.xy - pathXY(p.z)) + uGyAmp*gyr(p);
   for (int i = 0; i < ${W.MAX_OBS}; i++){
     vec4 o = uObs[i];
-    if (o.w > 0.0) d = min(d, length(p - o.xyz) - o.w);
+    if (o.w > 0.0) d = min(d, length(p - o.xyz) - o.w*(1.0 + uBeat*0.07));
   }
   return d;
 }
@@ -354,7 +357,7 @@ void main(){
   float ca = cos(0.35), sa = sin(0.35);
   float cb = cos(0.15), sb = sin(0.15);
   mat3 RA = mat3(1.,0.,0., 0.,cb,sb, 0.,-sb,cb) * mat3(ca,0.,-sa, 0.,1.,0., sa,0.,ca);
-  float curScale = 1.0 + 0.06*sin(uT*3.0);
+  float curScale = (1.0 + 0.04*sin(uT*3.0)) * (1.0 + uBeat*0.14);
 
   float t = 0.0, glow = 0.0, ringGlow = 0.0, aimGlow = 0.0;
   vec3 ringCol = vec3(1.0, 0.84, 0.42);
@@ -401,7 +404,7 @@ void main(){
     vec2 c = pathXY(p.z);
     float ang = atan(p.y - c.y, p.x - c.x);
     float stripe = pow(max(0.0, sin(p.z*0.85 + ang*5.0)), 22.0);         // neon veins
-    float pulse  = 0.6 + 0.4*sin(uT*2.2 - p.z*0.18);
+    float pulse  = (0.6 + 0.4*sin(uT*2.2 - p.z*0.18)) * (1.0 + uBeat*0.7);
     // light the walls from the tunnel axis — grazing view angles make
     // camera-based lighting useless inside a tube
     vec3 L = normalize(vec3(c, p.z) - p);
@@ -413,8 +416,8 @@ void main(){
   }
   float fogF = 1.0 - exp(-t*0.030);
   col = mix(col, uFog*1.8, fogF);
-  col += uColB * glow * 0.0022;                         // wall glow accumulation
-  col += ringCol * ringGlow * 0.55;                     // ring halos
+  col += uColB * glow * 0.0022 * (1.0 + uBeat*0.35);    // wall glow, breathing on the kick
+  col += ringCol * ringGlow * (0.55 + uBeat*0.45);      // ring halos flash on the beat
   col += mix(uColB, vec3(1.0), 0.5) * aimGlow * 0.45;   // gem halo
 
   // cursor comet tail: closed-form glow along the ray for each echo,
@@ -464,7 +467,7 @@ if (gl) {
   TEST.linked = gl.getProgramParameter(prog, gl.LINK_STATUS);
   if (!TEST.linked) TEST.log += gl.getProgramInfoLog(prog);
   gl.useProgram(prog);
-  for (const n of ['uRes','uT','uCamPos','uCam','uRadBase','uGyAmp','uSpeed','uHurt','uColA','uColB','uFog','uObs','uRings','uAim','uTrail'])
+  for (const n of ['uRes','uT','uCamPos','uCam','uRadBase','uGyAmp','uSpeed','uHurt','uColA','uColB','uFog','uObs','uRings','uAim','uBeat','uTrail'])
     U[n] = gl.getUniformLocation(prog, n);
   const vb = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, vb);
@@ -591,6 +594,12 @@ const AUDIO = (() => {
       const t = ctx.currentTime;
       [0, 4, 7].forEach((s, i) => osc('triangle', midi(81 + Math.min(combo, 7) + s), t + i*0.05, 0.25, 0.12, sfxBus));
     },
+    perfect(streak) {
+      if (muted || !ctx) return;
+      const t = ctx.currentTime;
+      [0, 7, 12, 16].forEach((s, i) => osc('triangle', midi(84 + Math.min(streak, 10) + s), t + i*0.045, 0.3, 0.13, sfxBus));
+      osc('sine', midi(60), t, 0.25, 0.2, sfxBus);
+    },
     whoosh() { if (!muted && ctx) noise(ctx.currentTime, 0.18, 0.1, 2500, sfxBus); },
     death() {
       if (muted || !ctx) return;
@@ -614,11 +623,21 @@ const G = {
   state: 'intro',          // intro | run | dying | dead | paused
   z: 0, x: 0, y: 0, vx: 0, vy: 0,
   speed: 16, boost: 0, topSpeed: 0,
-  rings: 0, combo: 0,
+  rings: 0, combo: 0, beatStreak: 0, bestStreak: 0,
   hurt: 0, dieT: 0, shake: 0,
   zone: -1, time: 0,
   nearCool: 0,
 };
+
+// ── rhythm clock: mirrors the music's 112 BPM kick grid ──────────
+const BEAT_DUR = 60 / 112;
+let musicT0 = 0;                 // G.time when the soundtrack (re)started
+function beatTime() {
+  const bt = (G.time - musicT0) % BEAT_DUR;
+  return bt < 0 ? bt + BEAT_DUR : bt;
+}
+const beatPulse  = () => Math.exp(-(beatTime() / BEAT_DUR) * 5);          // 1 on the kick → 0
+const beatOffset = () => Math.min(beatTime(), BEAT_DUR - beatTime());     // seconds from nearest kick
 let best = { dist: 0, rings: 0 };
 try { best = { ...best, ...(JSON.parse(localStorage.getItem('vr_best') || '{}')) }; } catch {}
 
@@ -626,8 +645,10 @@ function startRun() {
   seed = (Math.random() * 0xffffffff) >>> 0;
   obsCache.clear(); ringCache.clear();
   Object.assign(G, { state:'run', z:0, x:pathX(0), y:pathY(0), vx:0, vy:0,
-    speed:16, boost:0, topSpeed:0, rings:0, combo:0, hurt:0, dieT:0, shake:0, zone:-1, time:0, nearCool:0 });
-  particles.length = 0; streaks.length = 0; trailHist.length = 0;
+    speed:16, boost:0, topSpeed:0, rings:0, combo:0, beatStreak:0, bestStreak:0,
+    hurt:0, dieT:0, shake:0, zone:-1, time:0, nearCool:0 });
+  musicT0 = 0;
+  particles.length = 0; streaks.length = 0; trailHist.length = 0; shipTrail.length = 0;
   document.getElementById('intro').classList.remove('on');
   document.getElementById('death').classList.remove('on');
   document.getElementById('hud').classList.add('on');
@@ -637,6 +658,7 @@ function startRun() {
 function die() {
   if (G.state !== 'run') return;
   G.state = 'dying'; G.dieT = 0; G.hurt = 1; G.shake = 1;
+  shipTrail.length = 0;
   AUDIO.death(); AUDIO.stop();
   explode(innerWidth/2, innerHeight*0.62);
   if (navigator.vibrate) try { navigator.vibrate([60, 40, 120]); } catch {}
@@ -703,7 +725,7 @@ function pollKeys() {
 
 function togglePause() {
   if (G.state === 'run') { G.state = 'paused'; AUDIO.stop(); document.getElementById('paused').classList.add('on'); }
-  else if (G.state === 'paused') { G.state = 'run'; AUDIO.start(); document.getElementById('paused').classList.remove('on'); lastT = performance.now(); }
+  else if (G.state === 'paused') { G.state = 'run'; AUDIO.start(); musicT0 = G.time; document.getElementById('paused').classList.remove('on'); lastT = performance.now(); }
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden && G.state === 'run') togglePause(); });
 
@@ -735,17 +757,32 @@ function step(dt) {
     G.y += G.vy * dt / sub;
     const prevZ = G.z;
     G.z += G.speed * dt / sub;
-    // ring crossings
+    // ring crossings — judged against the beat, rhythm-game style
     for (const r of ringsNear(prevZ)) {
       if (r.taken || !(prevZ < r.z && G.z >= r.z)) continue;
       const lat = Math.hypot(G.x - r.x, G.y - r.y);
       if (lat < r.rad - 0.45) {
         r.taken = true; G.rings++; G.combo++;
-        G.boost += 7; G.shake = Math.min(1, G.shake + 0.25);
-        AUDIO.ring(G.combo);
-        ringBurst();
+        const off = beatOffset();
+        if (off < 0.07) {           // PERFECT: right on the kick
+          G.beatStreak++;
+          G.bestStreak = Math.max(G.bestStreak, G.beatStreak);
+          G.boost += 12 + Math.min(G.beatStreak, 8);
+          AUDIO.perfect(G.beatStreak);
+          ringBurst('♪ PERFECT', '#7dffce');
+        } else if (off < 0.15) {    // GOOD: close enough
+          G.boost += 8;
+          AUDIO.ring(G.combo);
+          ringBurst('GOOD', '#ffd76a');
+        } else {                    // off the beat: weak boost, streak dies
+          G.beatStreak = 0;
+          G.boost += 4;
+          AUDIO.ring(1);
+          ringBurst('off-beat', '#8fa3c8');
+        }
+        G.shake = Math.min(1, G.shake + 0.25);
       } else if (lat < r.rad + 0.6) {
-        G.combo = 0; AUDIO.whoosh();
+        G.combo = 0; G.beatStreak = 0; AUDIO.whoosh();
       }
     }
     const d = mapJS(G.x, G.y, G.z, zp.rad, zp.gy, obs);
@@ -777,7 +814,7 @@ function step(dt) {
 TEST.step = step; TEST.G = G; TEST.startRun = startRun; TEST.input = input;
 
 // ── overlay FX (2D canvas: ship, reticle, particles, streaks) ────
-const particles = [], streaks = [];
+const particles = [], streaks = [], shipTrail = [];
 function shipPos() { return [innerWidth/2, innerHeight*0.62]; }
 function explode(x, y) {
   for (let i = 0; i < 60; i++) {
@@ -786,13 +823,15 @@ function explode(x, y) {
       t: 0, col: Math.random() < 0.5 ? '#ff5a7a' : (Math.random() < 0.5 ? '#ffd76a' : '#fa6bff'), r: 1.5 + Math.random()*3 });
   }
 }
-function ringBurst() {
+function ringBurst(judge = 'GOOD', col = '#ffd76a') {
   const [x, y] = shipPos();
-  for (let i = 0; i < 22; i++) {
-    const a = Math.random()*Math.PI*2, sp = 40 + Math.random()*220;
-    particles.push({ x, y, vx: Math.cos(a)*sp, vy: Math.sin(a)*sp - 60, life: 0.5 + Math.random()*0.4, t: 0, col: '#ffd76a', r: 1 + Math.random()*2.4 });
+  const n = judge === '♪ PERFECT' ? 36 : 22;
+  for (let i = 0; i < n; i++) {
+    const a = Math.random()*Math.PI*2, sp = 40 + Math.random()*(judge === '♪ PERFECT' ? 320 : 220);
+    particles.push({ x, y, vx: Math.cos(a)*sp, vy: Math.sin(a)*sp - 60, life: 0.5 + Math.random()*0.4, t: 0, col, r: 1 + Math.random()*2.4 });
   }
-  particles.push({ x, y: y - 30, vx: 0, vy: -70, life: 0.9, t: 0, txt: `◎ +${Math.min(G.combo,9)}× boost`, col: '#ffd76a' });
+  const streak = G.beatStreak > 1 ? `  ×${G.beatStreak}` : '';
+  particles.push({ x, y: y - 30, vx: 0, vy: -70, life: 0.95, t: 0, txt: judge + streak, col });
 }
 function sparks() {
   const [x, y] = shipPos();
@@ -828,8 +867,28 @@ function drawFX(dt) {
     const [sx, sy] = shipPos();
     const bank = Math.max(-0.6, Math.min(0.6, G.vx * 0.028));
     const shake = G.shake * 6;
+    const drawX = sx + (Math.random()-0.5)*shake - G.vx*0.55;
+    const drawY = sy + (Math.random()-0.5)*shake + G.vy*0.18;
+    // exhaust ribbon: recent ship positions, swept down-screen by age
+    shipTrail.push({ x: drawX, y: drawY });
+    if (shipTrail.length > 16) shipTrail.shift();
+    if (shipTrail.length > 1) {
+      fx.save();
+      fx.globalCompositeOperation = 'lighter';
+      fx.lineCap = 'round';
+      for (let i = 1; i < shipTrail.length; i++) {
+        const a = i / shipTrail.length;
+        fx.strokeStyle = `rgba(122,214,255,${(a*a*0.5).toFixed(3)})`;
+        fx.lineWidth = 1 + a*5.5;
+        fx.beginPath();
+        fx.moveTo(shipTrail[i-1].x, shipTrail[i-1].y + (shipTrail.length-(i-1))*9 + 12);
+        fx.lineTo(shipTrail[i].x,   shipTrail[i].y   + (shipTrail.length-i)*9 + 12);
+        fx.stroke();
+      }
+      fx.restore();
+    }
     fx.save();
-    fx.translate(sx + (Math.random()-0.5)*shake, sy + (Math.random()-0.5)*shake + G.vy*0.18);
+    fx.translate(drawX, drawY);
     fx.rotate(bank);
     // engine flame
     const fl = 16 + G.speed*0.45 + Math.random()*9;
@@ -874,13 +933,17 @@ const hudBest = document.getElementById('hud-best');
 const hudRings = document.getElementById('hud-rings');
 const speedFill = document.getElementById('speed-fill');
 const speedLbl = document.getElementById('speed-lbl');
+const beatDot = document.getElementById('beat-dot');
 function drawHUD() {
   hudDist.innerHTML = Math.floor(G.z).toLocaleString() + ' <small>m</small>';
   hudZone.textContent = ZONES[zoneIdx(G.z)].name;
   hudBest.textContent = 'best ' + best.dist.toLocaleString() + ' m';
-  hudRings.textContent = '◎ ' + G.rings + (G.combo > 1 ? '  ×' + G.combo : '');
+  hudRings.textContent = '◎ ' + G.rings + (G.beatStreak > 1 ? '  ♪×' + G.beatStreak : '');
   speedFill.style.width = ((G.speed - 17) / 47 * 100) + '%';
   speedLbl.textContent = Math.round(G.speed) + ' M/S';
+  const bp = beatPulse();
+  beatDot.style.transform = `scale(${(1 + bp*0.9).toFixed(3)})`;
+  beatDot.style.opacity = (0.3 + bp*0.7).toFixed(3);
 }
 
 // ── render ───────────────────────────────────────────────────────
@@ -935,6 +998,7 @@ function render() {
     gl.uniform3fv(U.uTrail, trailPark);
   }
 
+  gl.uniform1f(U.uBeat, G.state === 'run' ? beatPulse() : 0);
   gl.uniform2f(U.uRes, glCanvas.width, glCanvas.height);
   gl.uniform1f(U.uT, G.time);
   gl.uniform3f(U.uCamPos, camX, camY, camZ);
@@ -982,6 +1046,7 @@ document.getElementById('resume-btn').addEventListener('click', togglePause);
 document.getElementById('sfx-btn').textContent = AUDIO.on ? '🔊' : '🔇';
 document.getElementById('sfx-btn').addEventListener('click', () => {
   document.getElementById('sfx-btn').textContent = AUDIO.toggle() ? '🔊' : '🔇';
+  if (AUDIO.on && G.state === 'run') musicT0 = G.time;   // re-sync the beat grid
 });
 document.getElementById('hud-best').textContent = 'best ' + best.dist.toLocaleString() + ' m';
 resize();
