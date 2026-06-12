@@ -284,6 +284,7 @@ uniform float uRadBase, uGyAmp, uSpeed, uHurt;
 uniform vec3  uColA, uColB, uFog;
 uniform vec4  uObs[${W.MAX_OBS}];
 uniform vec4  uRings[${W.MAX_RINGS}];
+uniform vec3  uAim;        // 3D cursor: world position of the aim gem
 
 vec2 pathXY(float z){
   return vec2(${f(W.PX1)}*sin(z*${f(W.PF1)}) + ${f(W.PX2)}*cos(z*${f(W.PF2)}),
@@ -306,6 +307,10 @@ float ringDist(vec3 p, vec4 r){
   vec2 q = vec2(length(p.xy - r.xy) - r.w, p.z - r.z);
   return length(q) - 0.14;
 }
+float sdOct(vec3 p, float s){
+  p = abs(p);
+  return (p.x + p.y + p.z - s) * 0.57735;
+}
 vec3 normal(vec3 p){
   const vec2 e = vec2(0.04, -0.04);
   return normalize( e.xyy*map(p+e.xyy) + e.yyx*map(p+e.yyx) + e.yxy*map(p+e.yxy) + e.xxx*map(p+e.xxx) );
@@ -315,10 +320,16 @@ void main(){
   vec3 ro = uCamPos;
   vec3 rd = normalize(uCam * normalize(vec3(uv, 1.55)));
 
-  float t = 0.0, glow = 0.0, ringGlow = 0.0;
+  // tumbling rotation for the aim gem (built once per frame)
+  float ca = cos(uT*1.7), sa = sin(uT*1.7);
+  float cb = cos(uT*1.1), sb = sin(uT*1.1);
+  mat3 RA = mat3(1.,0.,0., 0.,cb,sb, 0.,-sb,cb) * mat3(ca,0.,-sa, 0.,1.,0., sa,0.,ca);
+  float gemSize = 0.6 + 0.05*sin(uT*3.0);
+
+  float t = 0.0, glow = 0.0, ringGlow = 0.0, aimGlow = 0.0;
   vec3 ringCol = vec3(1.0, 0.84, 0.42);
-  float d = 1e9; int steps = 0; vec3 p = ro;
-  bool hitRing = false;
+  float d = 1e9; int steps = 0; vec3 p = ro; vec3 qa = vec3(0.0);
+  bool hitRing = false, hitAim = false;
   for (int i = 0; i < 96; i++){
     steps = i;
     p = ro + rd*t;
@@ -328,7 +339,11 @@ void main(){
       if (uRings[j].w > 0.0) dr = min(dr, ringDist(p, uRings[j]));
     }
     ringGlow += exp(-dr*dr*4.0) * 0.09;
-    if (dr < d) { d = dr; hitRing = dr < 0.004*max(t,1.0); }
+    if (dr < d) { d = dr; hitRing = dr < 0.004*max(t,1.0); hitAim = false; }
+    qa = RA * (p - uAim);
+    float dA = sdOct(qa, gemSize);
+    aimGlow += exp(-dA*dA*5.0) * 0.08;
+    if (dA < d) { d = dA; hitAim = dA < 0.004*max(t,1.0); hitRing = false; }
     if (d < 0.004*max(t, 1.0) || t > 150.0) break;
     glow += exp(-abs(d)*3.0);
     t += d*0.82;
@@ -337,6 +352,13 @@ void main(){
   vec3 col;
   if (t > 150.0){
     col = uFog * 2.0;                                   // escaped — deep fog
+  } else if (hitAim){
+    // faceted gem cursor: flat octahedron normals give it a hard 3D read
+    vec3 nl = normalize(sign(qa) + vec3(1e-4));
+    vec3 nw = nl * RA;                                  // rotate normal back to world
+    float lt = 0.40 + 0.60*abs(dot(nw, normalize(vec3(0.5, 0.8, -0.35))));
+    float rim = pow(1.0 - abs(dot(nw, rd)), 2.0);
+    col = mix(uColB, vec3(1.0), 0.6) * lt * 2.4 + vec3(rim) * 0.8;
   } else if (hitRing){
     col = ringCol * 2.6;                                // ring core, white-hot
   } else {
@@ -359,6 +381,7 @@ void main(){
   col = mix(col, uFog*1.8, fogF);
   col += uColB * glow * 0.0022;                         // wall glow accumulation
   col += ringCol * ringGlow * 0.55;                     // ring halos
+  col += mix(uColB, vec3(1.0), 0.5) * aimGlow * 0.45;   // gem halo
 
   // speed warp brightening at screen edge + vignette
   float r2 = dot(uv, uv);
@@ -393,7 +416,7 @@ if (gl) {
   TEST.linked = gl.getProgramParameter(prog, gl.LINK_STATUS);
   if (!TEST.linked) TEST.log += gl.getProgramInfoLog(prog);
   gl.useProgram(prog);
-  for (const n of ['uRes','uT','uCamPos','uCam','uRadBase','uGyAmp','uSpeed','uHurt','uColA','uColB','uFog','uObs','uRings'])
+  for (const n of ['uRes','uT','uCamPos','uCam','uRadBase','uGyAmp','uSpeed','uHurt','uColA','uColB','uFog','uObs','uRings','uAim'])
     U[n] = gl.getUniformLocation(prog, n);
   const vb = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, vb);
@@ -707,94 +730,6 @@ TEST.step = step; TEST.G = G; TEST.startRun = startRun; TEST.input = input;
 
 // ── overlay FX (2D canvas: ship, reticle, particles, streaks) ────
 const particles = [], streaks = [];
-const CAM = { ok: false };
-
-// 3D aim reticle: a perspective corridor of three rings receding toward
-// the point you're steering at. Each ring is a true 3D circle lying
-// perpendicular to the tunnel path, sampled in world space and projected
-// point-by-point with the shader's camera — so the rings foreshorten,
-// tilt with the tunnel's curve, and bank with the camera roll.
-function projPoint(wx, wy, wz) {
-  const vx = wx - CAM.x, vy = wy - CAM.y, vz = wz - CAM.z;
-  const zc = vx*CAM.fwx + vy*CAM.fwy + vz*CAM.fwz;
-  if (zc < 0.5) return null;
-  const xc = vx*CAM.rx + vy*CAM.ry + vz*CAM.rz;
-  const yc = vx*CAM.ux + vy*CAM.uy + vz*CAM.uz;
-  return [(1.55 * xc / zc * innerHeight + innerWidth) / 2,
-          innerHeight * (1 - 1.55 * yc / zc) / 2];
-}
-const RET_DEPTHS = [7, 11.5, 16], RET_RADII = [1.7, 1.3, 0.95];
-function drawReticle() {
-  if (G.state !== 'run' || !CAM.ok) return;
-  const aimX = G.x + input.x * 5.5;
-  const aimY = G.y - input.y * 5.5;
-  const zcb = ZONES[zoneIdx(G.z)].colB;
-  const col = `rgb(${Math.round(zcb[0]*255)},${Math.round(zcb[1]*255)},${Math.round(zcb[2]*255)})`;
-  // far ring leans white-hot so the target pops against the neon walls
-  const hot = `rgb(${Math.round(lerp(zcb[0],1,.65)*255)},${Math.round(lerp(zcb[1],1,.65)*255)},${Math.round(lerp(zcb[2],1,.65)*255)})`;
-  const rails = [[], [], [], []];
-  fx.save();
-  fx.shadowColor = col;
-  for (let ri = 0; ri < 3; ri++) {
-    const dep = RET_DEPTHS[ri], rad = RET_RADII[ri], t = dep / 16;
-    const cx = G.x + (aimX - G.x) * t;           // corridor bends toward the aim
-    const cy = G.y + (aimY - G.y) * t;
-    const cz = G.z + dep;
-    // ring plane ⊥ tunnel tangent so the corridor leans into curves
-    let tx = pathDX(cz), ty = pathDY(cz), tz = 1;
-    const tl = Math.hypot(tx, ty, tz); tx /= tl; ty /= tl; tz /= tl;
-    let e1x = tz, e1z = -tx;
-    const e1l = Math.hypot(e1x, e1z); e1x /= e1l; e1z /= e1l;
-    const e2x = ty*e1z, e2y = tz*e1x - tx*e1z, e2z = -ty*e1x;
-    const ringPt = a => projPoint(
-      cx + (Math.cos(a)*e1x + Math.sin(a)*e2x) * rad,
-      cy + Math.sin(a)*e2y * rad,
-      cz + (Math.cos(a)*e1z + Math.sin(a)*e2z) * rad);
-    // four spinning dash arcs per ring (alternate spin direction by depth)
-    const spin = G.time * (0.8 + ri * 0.5) * (ri % 2 ? -1 : 1);
-    fx.shadowBlur = 16;
-    fx.globalAlpha = 0.55 + 0.225 * ri;          // far ring (the target) is hottest
-    fx.lineWidth = 3.4 - ri * 0.6;
-    fx.strokeStyle = ri === 2 ? hot : col;
-    for (let seg = 0; seg < 4; seg++) {
-      fx.beginPath();
-      let pen = false;
-      for (let k = 0; k <= 7; k++) {
-        const p = ringPt(spin + (seg * 2 + k / 7) * Math.PI / 4);
-        if (!p) { pen = false; continue; }
-        if (pen) fx.lineTo(p[0], p[1]); else { fx.moveTo(p[0], p[1]); pen = true; }
-      }
-      fx.stroke();
-    }
-    // collect static rail anchors (fixed angles, no spin)
-    for (let j = 0; j < 4; j++) {
-      const p = ringPt(Math.PI / 4 + j * Math.PI / 2);
-      if (p) rails[j].push(p);
-    }
-  }
-  // corridor rails connecting the rings
-  fx.strokeStyle = col;
-  fx.shadowBlur = 0;
-  fx.globalAlpha = 0.30;
-  fx.lineWidth = 1.4;
-  for (const rail of rails) {
-    if (rail.length < 2) continue;
-    fx.beginPath();
-    fx.moveTo(rail[0][0], rail[0][1]);
-    for (let i = 1; i < rail.length; i++) fx.lineTo(rail[i][0], rail[i][1]);
-    fx.stroke();
-  }
-  // hot dot on the aim point itself
-  const dot = projPoint(aimX, aimY, G.z + 16);
-  if (dot) {
-    fx.globalAlpha = 1;
-    fx.fillStyle = '#fff';
-    fx.shadowColor = col; fx.shadowBlur = 10;
-    fx.beginPath(); fx.arc(dot[0], dot[1], 2.4, 0, Math.PI * 2); fx.fill();
-  }
-  fx.restore();
-  fx.globalAlpha = 1;
-}
 function shipPos() { return [innerWidth/2, innerHeight*0.62]; }
 function explode(x, y) {
   for (let i = 0; i < 60; i++) {
@@ -839,8 +774,6 @@ function drawFX(dt) {
     fx.stroke();
   }
   fx.restore();
-
-  drawReticle();
 
   // ship
   if (G.state === 'run' || G.state === 'paused') {
@@ -932,12 +865,11 @@ function render() {
   const rx2 = rx*cr + ux*sr, ry2 = ry*cr + uy*sr, rz2 = rz*cr + uz*sr;
   const ux2 = ux*cr - rx*sr, uy2 = uy*cr - ry*sr, uz2 = uz*cr - rz*sr;
 
-  // publish camera for the 2D overlay's world→screen projection (3D reticle)
-  CAM.ok = true;
-  CAM.x = camX; CAM.y = camY; CAM.z = camZ;
-  CAM.rx = rx2; CAM.ry = ry2; CAM.rz = rz2;
-  CAM.ux = ux2; CAM.uy = uy2; CAM.uz = uz2;
-  CAM.fwx = fxd; CAM.fwy = fyd; CAM.fwz = fz;
+  // 3D cursor: a gem floating at the aim point, rendered by the raymarcher
+  if (G.state === 'run' || G.state === 'paused')
+    gl.uniform3f(U.uAim, G.x + input.x * 5.5, G.y - input.y * 5.5, G.z + 16);
+  else
+    gl.uniform3f(U.uAim, 0, -9999, 0);    // parked out of the world
 
   gl.uniform2f(U.uRes, glCanvas.width, glCanvas.height);
   gl.uniform1f(U.uT, G.time);
