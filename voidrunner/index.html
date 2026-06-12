@@ -113,7 +113,7 @@
     <div class="vr-ctl"><b>♪</b>ring ON the beat = boost</div>
   </div>
   <button class="vr-btn" id="start-btn">ENTER THE VOID</button>
-  <div class="vr-note">Sound on. Thread rings on the kick drum for PERFECT boosts — chain them for a streak. Don't touch the walls.</div>
+  <div class="vr-note">Sound on. Rings land on the kick drum — thread the hole for PERFECT boosts and chain a streak. Touch anything — walls, rocks, even the ring itself — and you're gone.</div>
 </div>
 
 <div class="ov" id="death">
@@ -259,25 +259,28 @@ function obstaclesNear(z, behind, ahead) {
   out.sort((a, b) => a[2] - b[2]);
   return out;
 }
-const ringCache = new Map();
-function ringAt(k) {
-  if (ringCache.has(k)) return ringCache.get(k);
-  const r = rng((k * 7349 + 13) >>> 0);
-  const zr = k * W.RING_EVERY + 60;
-  const ang = r() * Math.PI * 2;
-  const off = r() * 1.8;
-  const ring = { k, z: zr, x: pathX(zr) + Math.cos(ang)*off, y: pathY(zr) + Math.sin(ang)*off, rad: 2.1, taken: false };
-  ringCache.set(k, ring);
-  return ring;
-}
+// rings spawn ON the beat: each one is placed where the ship will be when
+// a kick lands (integrating the decaying boost), so steady flight crosses
+// them right on the drum — every 2nd kick gets a ring
+const rings = [];
+let nextRingBeat = 2;
 function ringsNear(z) {
-  const out = [];
-  for (let k = Math.max(1, Math.floor((z - 5) / W.RING_EVERY)); out.length < W.MAX_RINGS; k++) {
-    const r = ringAt(k);
-    if (r.z > z + 220) break;
-    if (!r.taken && r.z > z - 4) out.push(r);
+  return rings.filter(r => !r.taken && r.z > z - 4).slice(0, W.MAX_RINGS);
+}
+function spawnRingsOnBeat() {
+  const curBeat = (G.time - musicT0) / BEAT_DUR;
+  while (nextRingBeat < curBeat + 5) {
+    const dtb = (nextRingBeat * BEAT_DUR + musicT0) - G.time;
+    nextRingBeat += 2;
+    if (dtb < 0.6) continue;                 // too close to place fairly
+    const base = G.speed - G.boost;
+    const bi = G.boost > 4.5 * dtb ? G.boost * dtb - 2.25 * dtb * dtb : G.boost * G.boost / 9;
+    const zr = G.z + base * dtb + bi;
+    if (zr < 30) continue;                   // spawn grace
+    const ang = Math.random() * Math.PI * 2, off = Math.random() * 1.9;
+    rings.push({ z: zr, x: pathX(zr) + Math.cos(ang)*off, y: pathY(zr) + Math.sin(ang)*off, rad: 2.1, taken: false });
   }
-  return out;
+  while (rings.length && rings[0].z < G.z - 12) rings.shift();
 }
 
 // ── GLSL (generated from the same constants) ─────────────────────
@@ -643,12 +646,12 @@ try { best = { ...best, ...(JSON.parse(localStorage.getItem('vr_best') || '{}'))
 
 function startRun() {
   seed = (Math.random() * 0xffffffff) >>> 0;
-  obsCache.clear(); ringCache.clear();
+  obsCache.clear();
   Object.assign(G, { state:'run', z:0, x:pathX(0), y:pathY(0), vx:0, vy:0,
     speed:16, boost:0, topSpeed:0, rings:0, combo:0, beatStreak:0, bestStreak:0,
     hurt:0, dieT:0, shake:0, zone:-1, time:0, nearCool:0 });
-  musicT0 = 0;
-  particles.length = 0; streaks.length = 0; trailHist.length = 0; shipTrail.length = 0;
+  musicT0 = 0; rings.length = 0; nextRingBeat = 2;
+  particles.length = 0; streaks.length = 0; trailHist.length = 0; shipTrail.length = 0; curTrail.length = 0;
   document.getElementById('intro').classList.remove('on');
   document.getElementById('death').classList.remove('on');
   document.getElementById('hud').classList.add('on');
@@ -658,7 +661,7 @@ function startRun() {
 function die() {
   if (G.state !== 'run') return;
   G.state = 'dying'; G.dieT = 0; G.hurt = 1; G.shake = 1;
-  shipTrail.length = 0;
+  shipTrail.length = 0; curTrail.length = 0;
   AUDIO.death(); AUDIO.stop();
   explode(innerWidth/2, innerHeight*0.62);
   if (navigator.vibrate) try { navigator.vibrate([60, 40, 120]); } catch {}
@@ -749,6 +752,7 @@ function step(dt) {
   G.vx += (cx - G.x) * 1.9 * dt * (1 - Math.abs(input.x));
   G.vy += (cy - G.y) * 1.9 * dt * (1 - Math.abs(input.y));
 
+  spawnRingsOnBeat();
   const sub = 2;                       // substep collision at speed
   const zp = zoneParams(G.z);
   const obs = obstaclesNear(G.z, 4, 12);
@@ -757,10 +761,11 @@ function step(dt) {
     G.y += G.vy * dt / sub;
     const prevZ = G.z;
     G.z += G.speed * dt / sub;
-    // ring crossings — judged against the beat, rhythm-game style
+    // ring crossings — judged against the beat; the torus itself is lethal
     for (const r of ringsNear(prevZ)) {
       if (r.taken || !(prevZ < r.z && G.z >= r.z)) continue;
       const lat = Math.hypot(G.x - r.x, G.y - r.y);
+      if (lat >= r.rad - 0.45 && lat < r.rad + 0.45) { die(); return; }
       if (lat < r.rad - 0.45) {
         r.taken = true; G.rings++; G.combo++;
         const off = beatOffset();
@@ -781,8 +786,8 @@ function step(dt) {
           ringBurst('off-beat', '#8fa3c8');
         }
         G.shake = Math.min(1, G.shake + 0.25);
-      } else if (lat < r.rad + 0.6) {
-        G.combo = 0; G.beatStreak = 0; AUDIO.whoosh();
+      } else if (lat < r.rad + 1.1) {
+        G.combo = 0; G.beatStreak = 0; AUDIO.whoosh();   // close shave outside the torus
       }
     }
     const d = mapJS(G.x, G.y, G.z, zp.rad, zp.gy, obs);
@@ -814,7 +819,17 @@ function step(dt) {
 TEST.step = step; TEST.G = G; TEST.startRun = startRun; TEST.input = input;
 
 // ── overlay FX (2D canvas: ship, reticle, particles, streaks) ────
-const particles = [], streaks = [], shipTrail = [];
+const particles = [], streaks = [], shipTrail = [], curTrail = [];
+const CAM = { ok: false };
+function projPoint(wx, wy, wz) {
+  const vx = wx - CAM.x, vy = wy - CAM.y, vz = wz - CAM.z;
+  const zc = vx*CAM.fwx + vy*CAM.fwy + vz*CAM.fwz;
+  if (zc < 0.5) return null;
+  const xc = vx*CAM.rx + vy*CAM.ry + vz*CAM.rz;
+  const yc = vx*CAM.ux + vy*CAM.uy + vz*CAM.uz;
+  return [(1.55 * xc / zc * innerHeight + innerWidth) / 2,
+          innerHeight * (1 - 1.55 * yc / zc) / 2];
+}
 function shipPos() { return [innerWidth/2, innerHeight*0.62]; }
 function explode(x, y) {
   for (let i = 0; i < 60; i++) {
@@ -861,6 +876,28 @@ function drawFX(dt) {
     fx.stroke();
   }
   fx.restore();
+
+  // cursor ribbon: glowing 2D trail through the cursor's recent screen positions
+  if (G.state === 'run' && CAM.ok) {
+    const p = projPoint(G.x + input.x * 5.5, G.y - input.y * 5.5, G.z + 16);
+    if (p) { curTrail.push(p); if (curTrail.length > 14) curTrail.shift(); }
+    if (curTrail.length > 1) {
+      const zcb = ZONES[zoneIdx(G.z)].colB;
+      fx.save();
+      fx.globalCompositeOperation = 'lighter';
+      fx.lineCap = 'round';
+      for (let i = 1; i < curTrail.length; i++) {
+        const a = i / curTrail.length;
+        fx.strokeStyle = `rgba(${Math.round(zcb[0]*255)},${Math.round(zcb[1]*255)},${Math.round(zcb[2]*255)},${(a*a*0.55).toFixed(3)})`;
+        fx.lineWidth = 0.5 + a*4.5;
+        fx.beginPath();
+        fx.moveTo(curTrail[i-1][0], curTrail[i-1][1]);
+        fx.lineTo(curTrail[i][0], curTrail[i][1]);
+        fx.stroke();
+      }
+      fx.restore();
+    }
+  } else curTrail.length = 0;
 
   // ship
   if (G.state === 'run' || G.state === 'paused') {
@@ -997,6 +1034,12 @@ function render() {
     gl.uniform3f(U.uAim, 0, -9999, 0);      // parked out of the world
     gl.uniform3fv(U.uTrail, trailPark);
   }
+
+  CAM.ok = true;
+  CAM.x = camX; CAM.y = camY; CAM.z = camZ;
+  CAM.rx = rx2; CAM.ry = ry2; CAM.rz = rz2;
+  CAM.ux = ux2; CAM.uy = uy2; CAM.uz = uz2;
+  CAM.fwx = fxd; CAM.fwy = fyd; CAM.fwz = fz;
 
   gl.uniform1f(U.uBeat, G.state === 'run' ? beatPulse() : 0);
   gl.uniform2f(U.uRes, glCanvas.width, glCanvas.height);
