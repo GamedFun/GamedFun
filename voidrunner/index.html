@@ -186,12 +186,12 @@ function mapJS(x, y, z, radBase, gyAmp, obs) {
 
 // ── zones ────────────────────────────────────────────────────────
 const ZONES = [
-  { name:'Neon Reef',       colA:[.05,.13,.22], colB:[.10,.92,1.0], fog:[.012,.03,.07],  gy:.45, rad:6.3, dens:.5  },
-  { name:'Ember Rift',      colA:[.20,.07,.04], colB:[1.0,.45,.08], fog:[.05,.012,.006], gy:.55, rad:6.1, dens:.8  },
-  { name:'Viridian Maw',    colA:[.04,.15,.08], colB:[.30,1.0,.45], fog:[.008,.04,.02],  gy:.65, rad:5.9, dens:1.0 },
-  { name:'Amethyst Throat', colA:[.13,.06,.20], colB:[.76,.42,1.0], fog:[.03,.012,.06],  gy:.72, rad:5.7, dens:1.25},
-  { name:'Aurora Vault',    colA:[.04,.12,.14], colB:[1.0,.31,.85], fog:[.015,.04,.05],  gy:.78, rad:5.6, dens:1.5 },
-  { name:'Event Horizon',   colA:[.07,.09,.16], colB:[.55,.70,1.0], fog:[.02,.025,.06],  gy:.85, rad:5.5, dens:1.8 },
+  { name:'Neon Reef',       colA:[.05,.13,.22], colB:[.10,.92,1.0], fog:[.012,.03,.07],  gy:.50, rad:6.2, dens:.8  },
+  { name:'Ember Rift',      colA:[.20,.07,.04], colB:[1.0,.45,.08], fog:[.05,.012,.006], gy:.60, rad:6.0, dens:1.2 },
+  { name:'Viridian Maw',    colA:[.04,.15,.08], colB:[.30,1.0,.45], fog:[.008,.04,.02],  gy:.70, rad:5.8, dens:1.5 },
+  { name:'Amethyst Throat', colA:[.13,.06,.20], colB:[.76,.42,1.0], fog:[.03,.012,.06],  gy:.78, rad:5.6, dens:1.9 },
+  { name:'Aurora Vault',    colA:[.04,.12,.14], colB:[1.0,.31,.85], fog:[.015,.04,.05],  gy:.86, rad:5.4, dens:2.3 },
+  { name:'Event Horizon',   colA:[.07,.09,.16], colB:[.55,.70,1.0], fog:[.02,.025,.06],  gy:.95, rad:5.2, dens:2.8 },
 ];
 const zoneIdx = z => Math.floor(Math.max(0, z) / W.ZONE_LEN) % ZONES.length;
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -225,7 +225,7 @@ function segObstacles(n) {
   if (obsCache.has(n)) return obsCache.get(n);
   const out = [];
   const z0 = n * W.SEG;
-  if (z0 > 140) {
+  if (z0 > 100) {
     const r = rng(n * 2654435761 >>> 0);
     const dens = zoneParams(z0).dens;
     let count = Math.floor(dens) + (r() < dens % 1 ? 1 : 0);
@@ -285,6 +285,7 @@ uniform vec3  uColA, uColB, uFog;
 uniform vec4  uObs[${W.MAX_OBS}];
 uniform vec4  uRings[${W.MAX_RINGS}];
 uniform vec3  uAim;        // 3D cursor: world position of the aim gem
+uniform vec3  uTrail[6];   // recent gem positions, oldest last
 
 vec2 pathXY(float z){
   return vec2(${f(W.PX1)}*sin(z*${f(W.PF1)}) + ${f(W.PX2)}*cos(z*${f(W.PF2)}),
@@ -324,7 +325,7 @@ void main(){
   float ca = cos(uT*1.7), sa = sin(uT*1.7);
   float cb = cos(uT*1.1), sb = sin(uT*1.1);
   mat3 RA = mat3(1.,0.,0., 0.,cb,sb, 0.,-sb,cb) * mat3(ca,0.,-sa, 0.,1.,0., sa,0.,ca);
-  float gemSize = 0.6 + 0.05*sin(uT*3.0);
+  float gemSize = 1.0 + 0.09*sin(uT*3.0);
 
   float t = 0.0, glow = 0.0, ringGlow = 0.0, aimGlow = 0.0;
   vec3 ringCol = vec3(1.0, 0.84, 0.42);
@@ -383,6 +384,20 @@ void main(){
   col += ringCol * ringGlow * 0.55;                     // ring halos
   col += mix(uColB, vec3(1.0), 0.5) * aimGlow * 0.45;   // gem halo
 
+  // cursor comet trail: closed-form glow along the ray for each echo,
+  // occluded by anything the march hit in front of it
+  float trailGlow = 0.0;
+  for (int i = 0; i < 6; i++){
+    vec3 tp = uTrail[i] - ro;
+    float tproj = dot(tp, rd);
+    if (tproj > 0.5 && tproj < t + 0.5){
+      float dmin = length(tp - rd*tproj);
+      float w = 1.0 - float(i)/6.5;
+      trailGlow += exp(-dmin*dmin*(3.5 + float(i)*1.5)) * w;
+    }
+  }
+  col += mix(uColB, vec3(1.0), 0.55) * trailGlow * 0.55;
+
   // speed warp brightening at screen edge + vignette
   float r2 = dot(uv, uv);
   col += uColB * r2 * uSpeed * 0.0012;
@@ -416,7 +431,7 @@ if (gl) {
   TEST.linked = gl.getProgramParameter(prog, gl.LINK_STATUS);
   if (!TEST.linked) TEST.log += gl.getProgramInfoLog(prog);
   gl.useProgram(prog);
-  for (const n of ['uRes','uT','uCamPos','uCam','uRadBase','uGyAmp','uSpeed','uHurt','uColA','uColB','uFog','uObs','uRings','uAim'])
+  for (const n of ['uRes','uT','uCamPos','uCam','uRadBase','uGyAmp','uSpeed','uHurt','uColA','uColB','uFog','uObs','uRings','uAim','uTrail'])
     U[n] = gl.getUniformLocation(prog, n);
   const vb = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, vb);
@@ -579,7 +594,7 @@ function startRun() {
   obsCache.clear(); ringCache.clear();
   Object.assign(G, { state:'run', z:0, x:pathX(0), y:pathY(0), vx:0, vy:0,
     speed:16, boost:0, topSpeed:0, rings:0, combo:0, hurt:0, dieT:0, shake:0, zone:-1, time:0, nearCool:0 });
-  particles.length = 0; streaks.length = 0;
+  particles.length = 0; streaks.length = 0; trailHist.length = 0;
   document.getElementById('intro').classList.remove('on');
   document.getElementById('death').classList.remove('on');
   document.getElementById('hud').classList.add('on');
@@ -668,7 +683,7 @@ function step(dt) {
 
   // speed: base ramp + ring boost (decaying)
   G.boost = Math.max(0, G.boost - 4.5*dt);
-  G.speed = Math.min(58, 16 + G.z * 0.0045 + G.boost);
+  G.speed = Math.min(64, 17 + G.z * 0.006 + G.boost);
   G.topSpeed = Math.max(G.topSpeed, G.speed);
 
   // steering physics + gentle path-follow assist
@@ -711,7 +726,7 @@ function step(dt) {
   G.nearCool -= dt;
   G.hurt = Math.max(0, G.hurt - 2.2*dt);
   G.shake = Math.max(0, G.shake - 2.4*dt);
-  AUDIO.setIntensity((G.speed - 16) / 42);
+  AUDIO.setIntensity((G.speed - 17) / 47);
 
   // zone change
   const zi = zoneIdx(G.z);
@@ -756,7 +771,7 @@ function sparks() {
 function drawFX(dt) {
   fx.clearRect(0, 0, innerWidth, innerHeight);
   // speed streaks
-  if (G.state === 'run' && Math.random() < G.speed/58 * 0.9) {
+  if (G.state === 'run' && Math.random() < G.speed/64 * 0.9) {
     const a = Math.random()*Math.PI*2;
     streaks.push({ a, r: 60 + Math.random()*80, sp: 900 + G.speed*14, life: 0.5, t: 0 });
   }
@@ -765,7 +780,7 @@ function drawFX(dt) {
   for (let i = streaks.length - 1; i >= 0; i--) {
     const s = streaks[i]; s.t += dt; s.r += s.sp*dt;
     if (s.t > s.life || s.r > Math.max(innerWidth, innerHeight)) { streaks.splice(i, 1); continue; }
-    const al = (1 - s.t/s.life) * 0.25 * (G.speed/58);
+    const al = (1 - s.t/s.life) * 0.25 * (G.speed/64);
     fx.strokeStyle = `rgba(190,210,255,${al})`;
     fx.lineWidth = 1.3;
     fx.beginPath();
@@ -831,13 +846,17 @@ function drawHUD() {
   hudZone.textContent = ZONES[zoneIdx(G.z)].name;
   hudBest.textContent = 'best ' + best.dist.toLocaleString() + ' m';
   hudRings.textContent = '◎ ' + G.rings + (G.combo > 1 ? '  ×' + G.combo : '');
-  speedFill.style.width = ((G.speed - 16) / 42 * 100) + '%';
+  speedFill.style.width = ((G.speed - 17) / 47 * 100) + '%';
   speedLbl.textContent = Math.round(G.speed) + ' M/S';
 }
 
 // ── render ───────────────────────────────────────────────────────
 const obsBuf = new Float32Array(W.MAX_OBS * 4);
 const ringBuf = new Float32Array(W.MAX_RINGS * 4);
+const TRAIL_KEEP = 30;                      // frames of aim history retained
+const trailHist = [];                       // flat x,y,z samples, newest last
+const trailBuf = new Float32Array(18);
+const trailPark = new Float32Array(18).fill(-9999);
 function render() {
   if (!gl || !TEST.linked) return;
   const zp = zoneParams(G.z);
@@ -866,10 +885,22 @@ function render() {
   const ux2 = ux*cr - rx*sr, uy2 = uy*cr - ry*sr, uz2 = uz*cr - rz*sr;
 
   // 3D cursor: a gem floating at the aim point, rendered by the raymarcher
-  if (G.state === 'run' || G.state === 'paused')
-    gl.uniform3f(U.uAim, G.x + input.x * 5.5, G.y - input.y * 5.5, G.z + 16);
-  else
-    gl.uniform3f(U.uAim, 0, -9999, 0);    // parked out of the world
+  if (G.state === 'run' || G.state === 'paused') {
+    const ax = G.x + input.x * 5.5, ay = G.y - input.y * 5.5, az = G.z + 16;
+    gl.uniform3f(U.uAim, ax, ay, az);
+    // trail: echoes of where the gem just was
+    trailHist.push(ax, ay, az);
+    if (trailHist.length > TRAIL_KEEP * 3) trailHist.splice(0, trailHist.length - TRAIL_KEEP * 3);
+    for (let i = 0; i < 6; i++) {
+      const back = (i + 1) * 4 * 3;           // every 4th frame, older → later slot
+      const j = Math.max(0, trailHist.length - 3 - back);
+      trailBuf[i*3] = trailHist[j]; trailBuf[i*3+1] = trailHist[j+1]; trailBuf[i*3+2] = trailHist[j+2];
+    }
+    gl.uniform3fv(U.uTrail, trailBuf);
+  } else {
+    gl.uniform3f(U.uAim, 0, -9999, 0);      // parked out of the world
+    gl.uniform3fv(U.uTrail, trailPark);
+  }
 
   gl.uniform2f(U.uRes, glCanvas.width, glCanvas.height);
   gl.uniform1f(U.uT, G.time);
