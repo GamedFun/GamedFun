@@ -160,10 +160,15 @@ const W = {
 };
 const f = n => n.toFixed(6);  // embed constants into GLSL
 
-// the classic arrow-pointer outline (7 verts), centered and scaled for the
-// 3D cursor — extruded into a solid in the shader
+// the classic arrow-pointer outline (7 verts), centered, scaled, and
+// rotated so the tip points exactly along local +Y — the shader then spins
+// it in the screen plane to face wherever it's heading
 const CURSOR_RAW = [[0,0],[0,1.375],[0.375,1.042],[0.625,1.583],[0.833,1.5],[0.583,0.958],[1.042,0.958]];
-const CURSOR_PTS = CURSOR_RAW.map(([x, y]) => `vec2(${f((x - 0.52) * 1.5)}, ${f((0.79 - y) * 1.5)})`).join(', ');
+const CURSOR_PTS = CURSOR_RAW.map(([x, y]) => {
+  const cx = (x - 0.52) * 1.5, cy = (0.79 - y) * 1.5;
+  const B = -0.582, cB = Math.cos(B), sB = Math.sin(B);   // tip → +Y
+  return `vec2(${f(cx*cB - cy*sB)}, ${f(cx*sB + cy*cB)})`;
+}).join(', ');
 
 // shared formulas — JS side
 const pathX = z => W.PX1 * Math.sin(z * W.PF1) + W.PX2 * Math.cos(z * W.PF2);
@@ -289,8 +294,9 @@ uniform float uRadBase, uGyAmp, uSpeed, uHurt;
 uniform vec3  uColA, uColB, uFog;
 uniform vec4  uObs[${W.MAX_OBS}];
 uniform vec4  uRings[${W.MAX_RINGS}];
-uniform vec3  uAim;        // 3D cursor: world position of the aim gem
-uniform vec3  uTrail[6];   // recent gem positions, oldest last
+uniform vec3  uAim;        // 3D cursor: world position of the arrow
+uniform float uCurA;       // cursor heading angle in the screen plane
+uniform vec3  uTrail[8];   // recent cursor positions, oldest last
 
 vec2 pathXY(float z){
   return vec2(${f(W.PX1)}*sin(z*${f(W.PF1)}) + ${f(W.PX2)}*cos(z*${f(W.PF2)}),
@@ -345,10 +351,13 @@ void main(){
   vec3 ro = uCamPos;
   vec3 rd = normalize(uCam * normalize(vec3(uv, 1.55)));
 
-  // fixed slight tilt: the cursor shows its 3D thickness but never spins
-  float ca = cos(0.5), sa = sin(0.5);
-  float cb = cos(0.18), sb = sin(0.18);
-  mat3 RA = mat3(1.,0.,0., 0.,cb,sb, 0.,-sb,cb) * mat3(ca,0.,-sa, 0.,1.,0., sa,0.,ca);
+  // point the arrow along its heading (screen plane), plus a fixed slight
+  // tilt so its 3D thickness shows — no spinning
+  float cr = cos(uCurA), sr = sin(uCurA);
+  mat3 RZ = mat3(cr, sr, 0., -sr, cr, 0., 0., 0., 1.);
+  float ca = cos(0.35), sa = sin(0.35);
+  float cb = cos(0.15), sb = sin(0.15);
+  mat3 RA = (mat3(1.,0.,0., 0.,cb,sb, 0.,-sb,cb) * mat3(ca,0.,-sa, 0.,1.,0., sa,0.,ca)) * RZ;
   float curScale = 1.0 + 0.06*sin(uT*3.0);
 
   float t = 0.0, glow = 0.0, ringGlow = 0.0, aimGlow = 0.0;
@@ -412,19 +421,19 @@ void main(){
   col += ringCol * ringGlow * 0.55;                     // ring halos
   col += mix(uColB, vec3(1.0), 0.5) * aimGlow * 0.45;   // gem halo
 
-  // cursor comet trail: closed-form glow along the ray for each echo,
+  // cursor comet tail: closed-form glow along the ray for each echo,
   // occluded by anything the march hit in front of it
   float trailGlow = 0.0;
-  for (int i = 0; i < 6; i++){
+  for (int i = 0; i < 8; i++){
     vec3 tp = uTrail[i] - ro;
     float tproj = dot(tp, rd);
     if (tproj > 0.5 && tproj < t + 0.5){
       float dmin = length(tp - rd*tproj);
-      float w = 1.0 - float(i)/6.5;
-      trailGlow += exp(-dmin*dmin*(3.5 + float(i)*1.5)) * w;
+      float w = 1.0 - float(i)/8.5;
+      trailGlow += exp(-dmin*dmin*(2.6 + float(i)*1.1)) * w;
     }
   }
-  col += mix(uColB, vec3(1.0), 0.55) * trailGlow * 0.55;
+  col += mix(uColB, vec3(1.0), 0.55) * trailGlow * 0.8;
 
   // speed warp brightening at screen edge + vignette
   float r2 = dot(uv, uv);
@@ -459,7 +468,7 @@ if (gl) {
   TEST.linked = gl.getProgramParameter(prog, gl.LINK_STATUS);
   if (!TEST.linked) TEST.log += gl.getProgramInfoLog(prog);
   gl.useProgram(prog);
-  for (const n of ['uRes','uT','uCamPos','uCam','uRadBase','uGyAmp','uSpeed','uHurt','uColA','uColB','uFog','uObs','uRings','uAim','uTrail'])
+  for (const n of ['uRes','uT','uCamPos','uCam','uRadBase','uGyAmp','uSpeed','uHurt','uColA','uColB','uFog','uObs','uRings','uAim','uCurA','uTrail'])
     U[n] = gl.getUniformLocation(prog, n);
   const vb = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, vb);
@@ -623,6 +632,7 @@ function startRun() {
   Object.assign(G, { state:'run', z:0, x:pathX(0), y:pathY(0), vx:0, vy:0,
     speed:16, boost:0, topSpeed:0, rings:0, combo:0, hurt:0, dieT:0, shake:0, zone:-1, time:0, nearCool:0 });
   particles.length = 0; streaks.length = 0; trailHist.length = 0;
+  curAngle = 0; aimPrevX = null; aimPrevY = null;
   document.getElementById('intro').classList.remove('on');
   document.getElementById('death').classList.remove('on');
   document.getElementById('hud').classList.add('on');
@@ -881,10 +891,11 @@ function drawHUD() {
 // ── render ───────────────────────────────────────────────────────
 const obsBuf = new Float32Array(W.MAX_OBS * 4);
 const ringBuf = new Float32Array(W.MAX_RINGS * 4);
-const TRAIL_KEEP = 30;                      // frames of aim history retained
+const TRAIL_KEEP = 28;                      // frames of aim history retained
 const trailHist = [];                       // flat x,y,z samples, newest last
-const trailBuf = new Float32Array(18);
-const trailPark = new Float32Array(18).fill(-9999);
+const trailBuf = new Float32Array(24);
+const trailPark = new Float32Array(24).fill(-9999);
+let curAngle = 0, aimPrevX = null, aimPrevY = null;
 function render() {
   if (!gl || !TEST.linked) return;
   const zp = zoneParams(G.z);
@@ -916,17 +927,29 @@ function render() {
   if (G.state === 'run' || G.state === 'paused') {
     const ax = G.x + input.x * 5.5, ay = G.y - input.y * 5.5, az = G.z + 16;
     gl.uniform3f(U.uAim, ax, ay, az);
-    // trail: echoes of where the gem just was
+    // heading: point the arrow along the cursor's lateral motion (smoothed)
+    if (aimPrevX !== null) {
+      const dx = ax - aimPrevX, dy = ay - aimPrevY;
+      if (Math.hypot(dx, dy) > 0.03) {
+        const target = Math.atan2(dx, dy);
+        const da = ((target - curAngle + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+        curAngle += da * 0.16;
+      }
+    }
+    aimPrevX = ax; aimPrevY = ay;
+    gl.uniform1f(U.uCurA, curAngle);
+    // tail: echoes of where the cursor just was
     trailHist.push(ax, ay, az);
     if (trailHist.length > TRAIL_KEEP * 3) trailHist.splice(0, trailHist.length - TRAIL_KEEP * 3);
-    for (let i = 0; i < 6; i++) {
-      const back = (i + 1) * 4 * 3;           // every 4th frame, older → later slot
+    for (let i = 0; i < 8; i++) {
+      const back = (i + 1) * 3 * 3;           // every 3rd frame, older → later slot
       const j = Math.max(0, trailHist.length - 3 - back);
       trailBuf[i*3] = trailHist[j]; trailBuf[i*3+1] = trailHist[j+1]; trailBuf[i*3+2] = trailHist[j+2];
     }
     gl.uniform3fv(U.uTrail, trailBuf);
   } else {
     gl.uniform3f(U.uAim, 0, -9999, 0);      // parked out of the world
+    gl.uniform1f(U.uCurA, 0);
     gl.uniform3fv(U.uTrail, trailPark);
   }
 
