@@ -345,10 +345,9 @@ void main(){
   vec3 ro = uCamPos;
   vec3 rd = normalize(uCam * normalize(vec3(uv, 1.55)));
 
-  // 3D-logo spin for the cursor: turn on the vertical axis + a slow wobble
-  float ca = cos(uT*1.6), sa = sin(uT*1.6);
-  float wob = 0.35*sin(uT*0.9);
-  float cb = cos(wob), sb = sin(wob);
+  // fixed slight tilt: the cursor shows its 3D thickness but never spins
+  float ca = cos(0.5), sa = sin(0.5);
+  float cb = cos(0.18), sb = sin(0.18);
   mat3 RA = mat3(1.,0.,0., 0.,cb,sb, 0.,-sb,cb) * mat3(ca,0.,-sa, 0.,1.,0., sa,0.,ca);
   float curScale = 1.0 + 0.06*sin(uT*3.0);
 
