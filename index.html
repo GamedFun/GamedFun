@@ -297,6 +297,7 @@
 
     .logo-popplanet { --logo-gradient: linear-gradient(135deg, #3b82f6 0%, #06b6d4 50%, #6366f1 100%); --logo-shadow: rgba(59, 130, 246, 0.72); }
     .logo-universe { --logo-gradient: linear-gradient(135deg, #7c3aed 0%, #ec4899 48%, #f97316 100%); --logo-shadow: rgba(124, 58, 237, 0.72); }
+    .logo-void { --logo-gradient: linear-gradient(135deg, #2bd2ff 0%, #fa6bff 55%, #ffd76a 100%); --logo-shadow: rgba(43, 180, 255, 0.72); }
     .logo-scramble { --logo-gradient: linear-gradient(135deg, #16a34a 0%, #14b8a6 100%); --logo-shadow: rgba(34, 197, 94, 0.7); }
     .logo-uno { --logo-gradient: linear-gradient(135deg, #ef4444 0%, #3b82f6 52%, #22c55e 100%); --logo-shadow: rgba(239, 68, 68, 0.7); }
     .logo-trade { --logo-gradient: linear-gradient(135deg, #ec4899 0%, #f97316 100%); --logo-shadow: rgba(236, 72, 153, 0.65); }
@@ -563,8 +564,9 @@
     </a>
     <p class="site-tagline">a collection of games &amp; interactive things</p>
     <div class="quick-actions" aria-label="Quick game links">
+      <a class="quick-action" href="/voidrunner/">Play VOIDRUNNER</a>
       <a class="quick-action" href="/popplanet/">Play PopPlanet</a>
-      <a class="quick-action" href="/universe-clicker/">Play Cosmic Clicker</a>
+      <a class="quick-action" href="/cosmic-rush/">Play Cosmic Rush</a>
       <a class="quick-action" href="/word-scramble/">Play Word Scramble</a>
       <a class="quick-action" href="/uno/">Play UNO Duel</a>
       <a class="quick-action" href="/trade-alley/">Play Trade Alley</a>
@@ -577,21 +579,20 @@
 
   <main>
     <!-- Featured spotlight -->
-    <a class="featured-card logo-universe" href="/universe-clicker/">
+    <a class="featured-card logo-void" href="/voidrunner/">
       <div class="featured-mark">
         <svg viewBox="0 0 32 32" role="img" aria-hidden="true">
-          <circle cx="16" cy="16" r="3.7" fill="currentColor"/>
-          <ellipse cx="16" cy="16" rx="12" ry="5.4" fill="none" stroke="currentColor" stroke-width="2.2" transform="rotate(-18 16 16)"/>
-          <ellipse cx="16" cy="16" rx="12" ry="5.4" fill="none" stroke="currentColor" stroke-width="2.2" transform="rotate(24 16 16)" opacity=".72"/>
-          <circle cx="24.4" cy="8.2" r="2.1" fill="currentColor"/>
-          <path d="M6.3 7.5l1.1 2.1 2.3.4-1.7 1.6.3 2.2-2-1.1-2 1.1.4-2.2L3 10l2.3-.4 1-2.1Z" fill="currentColor" opacity=".9"/>
+          <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".35"/>
+          <circle cx="16" cy="16" r="9" fill="none" stroke="currentColor" stroke-width="1.8" opacity=".6"/>
+          <circle cx="16" cy="16" r="5.2" fill="none" stroke="currentColor" stroke-width="2" opacity=".85"/>
+          <path d="M16 9.5l4.6 12-4.6-3-4.6 3Z" fill="currentColor"/>
         </svg>
       </div>
       <div class="featured-body">
-        <div class="featured-eyebrow">⭐ Most Played</div>
-        <div class="featured-title">Cosmic Clicker</div>
-        <div class="featured-desc">Crack open the cosmos, collect energy, and push through 7 cosmic eras. Unlock wild fun upgrades along the way.</div>
-        <div class="featured-btn">Play Now →</div>
+        <div class="featured-eyebrow">🌀 Tech Showcase</div>
+        <div class="featured-title">VOIDRUNNER</div>
+        <div class="featured-desc">Fly through a collapsing wormhole rendered in real time by pure math — raymarched walls, procedural soundtrack, no assets, no engine, one file.</div>
+        <div class="featured-btn">Enter the Void →</div>
       </div>
     </a>
 
@@ -660,9 +661,27 @@
         <span class="card-arrow">↗</span>
       </a>
 
-      <!-- Cosmic Clicker -->
-      <a class="card card--violet" href="/universe-clicker/">
-        <div class="game-logo logo-universe" aria-label="Cosmic Clicker">
+      <!-- VOIDRUNNER -->
+      <a class="card card--blue" href="/voidrunner/">
+        <div class="game-logo logo-void" aria-label="VOIDRUNNER">
+          <div class="game-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" role="img">
+              <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".35"/>
+              <circle cx="16" cy="16" r="9" fill="none" stroke="currentColor" stroke-width="1.8" opacity=".6"/>
+              <circle cx="16" cy="16" r="5.2" fill="none" stroke="currentColor" stroke-width="2" opacity=".85"/>
+              <path d="M16 9.5l4.6 12-4.6-3-4.6 3Z" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="game-word"><span>VOIDRUNNER</span> <span class="badge">new</span></div>
+        </div>
+        <div class="card-desc">An endless flyer through a raymarched wormhole — the whole world is one math formula, the soundtrack is synthesized live.</div>
+        <div class="card-cta">Play VOIDRUNNER</div>
+        <span class="card-arrow">↗</span>
+      </a>
+
+      <!-- Cosmic Rush -->
+      <a class="card card--violet" href="/cosmic-rush/">
+        <div class="game-logo logo-universe" aria-label="Cosmic Rush">
           <div class="game-mark" aria-hidden="true">
             <svg viewBox="0 0 32 32" role="img">
               <circle cx="16" cy="16" r="3.7" fill="currentColor"/>
@@ -672,10 +691,10 @@
               <path d="M6.3 7.5l1.1 2.1 2.3.4-1.7 1.6.3 2.2-2-1.1-2 1.1.4-2.2L3 10l2.3-.4 1-2.1Z" fill="currentColor" opacity=".9"/>
             </svg>
           </div>
-          <div class="game-word"><span>Cosmic Clicker</span></div>
+          <div class="game-word"><span>Cosmic Rush</span> <span class="badge">new</span></div>
         </div>
-        <div class="card-desc">Crack open the cosmos, collect energy, and push through cosmic eras.</div>
-        <div class="card-cta">Play Cosmic Clicker</div>
+        <div class="card-desc">A timed clicker — beat each era's energy goal before entropy wins. Fast, hard, and replayable.</div>
+        <div class="card-cta">Play Cosmic Rush</div>
         <span class="card-arrow">↗</span>
       </a>
 
