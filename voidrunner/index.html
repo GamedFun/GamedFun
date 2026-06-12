@@ -709,44 +709,91 @@ TEST.step = step; TEST.G = G; TEST.startRun = startRun; TEST.input = input;
 const particles = [], streaks = [];
 const CAM = { ok: false };
 
-// 3D aim reticle: a glowing ring floating 16 m down-tunnel at the point
-// you're steering toward, projected with the same camera as the shader
-function drawReticle() {
-  if (G.state !== 'run' || !CAM.ok) return;
-  const wx = G.x + input.x * 5.5;
-  const wy = G.y - input.y * 5.5;
-  const wz = G.z + 16;
+// 3D aim reticle: a perspective corridor of three rings receding toward
+// the point you're steering at. Each ring is a true 3D circle lying
+// perpendicular to the tunnel path, sampled in world space and projected
+// point-by-point with the shader's camera — so the rings foreshorten,
+// tilt with the tunnel's curve, and bank with the camera roll.
+function projPoint(wx, wy, wz) {
   const vx = wx - CAM.x, vy = wy - CAM.y, vz = wz - CAM.z;
+  const zc = vx*CAM.fwx + vy*CAM.fwy + vz*CAM.fwz;
+  if (zc < 0.5) return null;
   const xc = vx*CAM.rx + vy*CAM.ry + vz*CAM.rz;
   const yc = vx*CAM.ux + vy*CAM.uy + vz*CAM.uz;
-  const zc = vx*CAM.fwx + vy*CAM.fwy + vz*CAM.fwz;
-  if (zc < 2) return;
-  const w = innerWidth, h = innerHeight;
-  const sx = (1.55 * xc / zc * h + w) / 2;
-  const sy = h * (1 - 1.55 * yc / zc) / 2;
-  const scale = (1.55 * h / 2) / zc;            // screen px per world unit at that depth
-  const r = scale * 0.95;
+  return [(1.55 * xc / zc * innerHeight + innerWidth) / 2,
+          innerHeight * (1 - 1.55 * yc / zc) / 2];
+}
+const RET_DEPTHS = [7, 11.5, 16], RET_RADII = [1.7, 1.3, 0.95];
+function drawReticle() {
+  if (G.state !== 'run' || !CAM.ok) return;
+  const aimX = G.x + input.x * 5.5;
+  const aimY = G.y - input.y * 5.5;
   const zcb = ZONES[zoneIdx(G.z)].colB;
   const col = `rgb(${Math.round(zcb[0]*255)},${Math.round(zcb[1]*255)},${Math.round(zcb[2]*255)})`;
+  // far ring leans white-hot so the target pops against the neon walls
+  const hot = `rgb(${Math.round(lerp(zcb[0],1,.65)*255)},${Math.round(lerp(zcb[1],1,.65)*255)},${Math.round(lerp(zcb[2],1,.65)*255)})`;
+  const rails = [[], [], [], []];
   fx.save();
-  fx.translate(sx, sy);
-  fx.rotate(Math.max(-0.5, Math.min(0.5, G.vx * 0.02)));
-  fx.scale(1, 0.88);                            // slight tilt sells the depth
-  fx.shadowColor = col; fx.shadowBlur = 14;
-  fx.strokeStyle = col; fx.lineWidth = Math.max(1.5, r * 0.09);
-  // rotating segmented ring
-  const spin = G.time * 1.4;
-  for (let i = 0; i < 4; i++) {
-    const a = spin + i * Math.PI / 2;
-    fx.beginPath(); fx.arc(0, 0, r, a, a + Math.PI / 3.2); fx.stroke();
+  fx.shadowColor = col;
+  for (let ri = 0; ri < 3; ri++) {
+    const dep = RET_DEPTHS[ri], rad = RET_RADII[ri], t = dep / 16;
+    const cx = G.x + (aimX - G.x) * t;           // corridor bends toward the aim
+    const cy = G.y + (aimY - G.y) * t;
+    const cz = G.z + dep;
+    // ring plane ⊥ tunnel tangent so the corridor leans into curves
+    let tx = pathDX(cz), ty = pathDY(cz), tz = 1;
+    const tl = Math.hypot(tx, ty, tz); tx /= tl; ty /= tl; tz /= tl;
+    let e1x = tz, e1z = -tx;
+    const e1l = Math.hypot(e1x, e1z); e1x /= e1l; e1z /= e1l;
+    const e2x = ty*e1z, e2y = tz*e1x - tx*e1z, e2z = -ty*e1x;
+    const ringPt = a => projPoint(
+      cx + (Math.cos(a)*e1x + Math.sin(a)*e2x) * rad,
+      cy + Math.sin(a)*e2y * rad,
+      cz + (Math.cos(a)*e1z + Math.sin(a)*e2z) * rad);
+    // four spinning dash arcs per ring (alternate spin direction by depth)
+    const spin = G.time * (0.8 + ri * 0.5) * (ri % 2 ? -1 : 1);
+    fx.shadowBlur = 16;
+    fx.globalAlpha = 0.55 + 0.225 * ri;          // far ring (the target) is hottest
+    fx.lineWidth = 3.4 - ri * 0.6;
+    fx.strokeStyle = ri === 2 ? hot : col;
+    for (let seg = 0; seg < 4; seg++) {
+      fx.beginPath();
+      let pen = false;
+      for (let k = 0; k <= 7; k++) {
+        const p = ringPt(spin + (seg * 2 + k / 7) * Math.PI / 4);
+        if (!p) { pen = false; continue; }
+        if (pen) fx.lineTo(p[0], p[1]); else { fx.moveTo(p[0], p[1]); pen = true; }
+      }
+      fx.stroke();
+    }
+    // collect static rail anchors (fixed angles, no spin)
+    for (let j = 0; j < 4; j++) {
+      const p = ringPt(Math.PI / 4 + j * Math.PI / 2);
+      if (p) rails[j].push(p);
+    }
   }
-  // faint outer halo + hot center dot
-  fx.globalAlpha = 0.3;
-  fx.beginPath(); fx.arc(0, 0, r * 1.22, 0, Math.PI * 2); fx.stroke();
-  fx.globalAlpha = 1;
-  fx.fillStyle = '#fff';
-  fx.beginPath(); fx.arc(0, 0, Math.max(1.2, r * 0.10), 0, Math.PI * 2); fx.fill();
+  // corridor rails connecting the rings
+  fx.strokeStyle = col;
+  fx.shadowBlur = 0;
+  fx.globalAlpha = 0.30;
+  fx.lineWidth = 1.4;
+  for (const rail of rails) {
+    if (rail.length < 2) continue;
+    fx.beginPath();
+    fx.moveTo(rail[0][0], rail[0][1]);
+    for (let i = 1; i < rail.length; i++) fx.lineTo(rail[i][0], rail[i][1]);
+    fx.stroke();
+  }
+  // hot dot on the aim point itself
+  const dot = projPoint(aimX, aimY, G.z + 16);
+  if (dot) {
+    fx.globalAlpha = 1;
+    fx.fillStyle = '#fff';
+    fx.shadowColor = col; fx.shadowBlur = 10;
+    fx.beginPath(); fx.arc(dot[0], dot[1], 2.4, 0, Math.PI * 2); fx.fill();
+  }
   fx.restore();
+  fx.globalAlpha = 1;
 }
 function shipPos() { return [innerWidth/2, innerHeight*0.62]; }
 function explode(x, y) {
