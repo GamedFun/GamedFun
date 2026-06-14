@@ -368,42 +368,85 @@
   }
 
   // ── asteroids ───────────────────────────────────────────────────
+  // one shared procedural rock texture (grain + craters) reused as both the
+  // color map and the bump map, so every rock has real cratered surface detail
+  let _rockTex = null;
+  function rockTexture() {
+    if (_rockTex) return _rockTex;
+    const c = document.createElement('canvas'); c.width = c.height = 512;
+    const x = c.getContext('2d');
+    x.fillStyle = '#8a8076'; x.fillRect(0, 0, 512, 512);
+    // fine grain
+    const img = x.getImageData(0, 0, 512, 512), d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const n = (Math.random() - 0.5) * 70;
+      d[i] += n; d[i+1] += n; d[i+2] += n;
+    }
+    x.putImageData(img, 0, 0);
+    // craters — dark bowl with a faint sunlit rim
+    for (let i = 0; i < 46; i++) {
+      const cx = Math.random()*512, cy = Math.random()*512, r = 6 + Math.random()*36;
+      const g = x.createRadialGradient(cx, cy, 0, cx, cy, r);
+      g.addColorStop(0, 'rgba(38,33,28,0.75)');
+      g.addColorStop(0.65, 'rgba(60,54,47,0.3)');
+      g.addColorStop(0.82, 'rgba(205,194,180,0.28)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      x.fillStyle = g; x.beginPath(); x.arc(cx, cy, r, 0, 6.28); x.fill();
+    }
+    _rockTex = new THREE.CanvasTexture(c);
+    _rockTex.wrapS = _rockTex.wrapT = THREE.RepeatWrapping;
+    return _rockTex;
+  }
+
   function astAppearance() {
     const skin = SAVE.equip.ast;
-    if (skin === 'neon') { const col = new THREE.Color().setHSL(Math.random(), 1, 0.6); return { color: col, emissive: col.clone().multiplyScalar(0.55), shininess: 60 }; }
-    if (skin === 'lava') { const col = new THREE.Color(0x3a1208); return { color: col, emissive: new THREE.Color(0xff4a10).multiplyScalar(0.5), shininess: 8 }; }
-    if (skin === 'ice')  { const col = new THREE.Color(0xbfe0ff); return { color: col, emissive: new THREE.Color(0x224466).multiplyScalar(0.4), shininess: 90 }; }
-    const g = 0.42 + Math.random() * 0.2;                        // gray rock
-    return { color: new THREE.Color(g, g, g*0.95), emissive: new THREE.Color(0x0a0a12), shininess: 6 };
+    if (skin === 'neon') { const col = new THREE.Color().setHSL(Math.random(), 1, 0.62); return { color: col, emissive: col.clone().multiplyScalar(0.5), shininess: 50 }; }
+    if (skin === 'lava') { return { color: new THREE.Color(0x7a4030), emissive: new THREE.Color(0xff4a10).multiplyScalar(0.45), shininess: 10 }; }
+    if (skin === 'ice')  { return { color: new THREE.Color(0xcfe6ff), emissive: new THREE.Color(0x1c3854).multiplyScalar(0.4), shininess: 90 }; }
+    return { color: new THREE.Color(0xffffff), emissive: new THREE.Color(0x0a0a10), shininess: 6 };  // natural brown-gray rock
   }
 
   function makeAsteroid(boss = false) {
-    const radius = boss ? 8 : 2 + Math.random() * 2.8;
-    let geo = boss
-      ? new THREE.IcosahedronGeometry(radius, 1)
-      : (Math.random() < 0.5 ? new THREE.DodecahedronGeometry(radius, 0) : new THREE.IcosahedronGeometry(radius, 0));
-    // rough it up
-    const pos = geo.attributes.position;
-    for (let i = 0; i < pos.count; i++) {
-      const f = 1 + (Math.random() - 0.5) * (boss ? 0.18 : 0.34);
-      pos.setXYZ(i, pos.getX(i)*f, pos.getY(i)*f, pos.getZ(i)*f);
+    const radius = boss ? 13 : 4 + Math.random() * 3.5;
+    // finely subdivided sphere, then displaced by a few smooth plane-waves so
+    // it's an irregular potato (not a chunky low-poly chunk)
+    const detail = boss ? 4 : 3;
+    const geo = new THREE.IcosahedronGeometry(radius, detail);
+    const waves = [];
+    const W = boss ? 6 : 6;
+    for (let k = 0; k < W; k++) {
+      const a = new THREE.Vector3(Math.random()*2-1, Math.random()*2-1, Math.random()*2-1).normalize();
+      waves.push({ a, f: 1.6 + Math.random()*3.4, amp: (boss ? 0.14 : 0.24) / (1 + k*0.55), ph: Math.random()*6.28 });
     }
-    geo.computeVertexNormals();
-    const ap = boss ? { color: new THREE.Color(0x401015), emissive: new THREE.Color(0xff2a40).multiplyScalar(0.4), shininess: 20 } : astAppearance();
-    const mat = new THREE.MeshPhongMaterial({ color: ap.color, emissive: ap.emissive, shininess: ap.shininess, flatShading: true });
+    const pos = geo.attributes.position, v = new THREE.Vector3();
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i).normalize();
+      let dsp = 0; for (const w of waves) dsp += w.amp * Math.sin(w.f * v.dot(w.a) + w.ph);
+      const s = radius * (1 + dsp);
+      pos.setXYZ(i, v.x*s, v.y*s, v.z*s);
+    }
+    geo.computeVertexNormals();                    // smooth shading — no choppy facets
+
+    const ap = boss
+      ? { color: new THREE.Color(0xc06050), emissive: new THREE.Color(0xff2a40).multiplyScalar(0.4), shininess: 18 }
+      : astAppearance();
+    const mat = new THREE.MeshPhongMaterial({
+      map: rockTexture(), bumpMap: rockTexture(), bumpScale: 0.55,
+      color: ap.color, emissive: ap.emissive, shininess: ap.shininess, flatShading: false,
+    });
     const mesh = new THREE.Mesh(geo, mat);
 
-    // spawn spread WIDE across the view (not behind Earth) so rocks sweep in
-    // from the edges toward the planet — visible and clickable the whole way
-    const ang = Math.random() * 6.28, spread = boss ? 14 : 34 + Math.random() * 64;
-    mesh.position.set(Math.cos(ang) * spread, Math.sin(ang) * spread * 0.62, (boss ? -120 : -100) - Math.random() * 40);
+    // spawn FAR out and spread wide, then fly in toward Earth — rocks grow as
+    // they approach instead of just appearing nearby
+    const ang = Math.random() * 6.28, spread = boss ? 30 : 60 + Math.random() * 110;
+    mesh.position.set(Math.cos(ang) * spread, Math.sin(ang) * spread * 0.6, (boss ? -320 : -300) - Math.random() * 160);
     const obj = {
       mesh, boss, radius,
-      hp: boss ? 60 + G.wave * 10 : Math.ceil(radius * 1.2),
+      hp: boss ? 60 + G.wave * 10 : Math.max(2, Math.round(radius * 0.8)),
       maxHp: 0,
-      speed: boss ? 7 : 11 + Math.random() * 9 + G.wave * 0.4,
-      spin: new THREE.Vector3((Math.random()-0.5)*2, (Math.random()-0.5)*2, (Math.random()-0.5)*2),
-      hitFlash: 0,
+      speed: boss ? 12 : 18 + Math.random() * 12 + G.wave * 0.5,
+      spin: new THREE.Vector3((Math.random()-0.5)*1.4, (Math.random()-0.5)*1.4, (Math.random()-0.5)*1.4),
+      hitFlash: 0, baseEmissive: ap.emissive.clone(),
     };
     obj.maxHp = obj.hp;
     scene.add(mesh);
@@ -587,7 +630,7 @@
     // night-side dimming: rocks crossing the dark side get harder to see
     if (obj.hitFlash > 0) {
       obj.hitFlash = Math.max(0, obj.hitFlash - dt * 4);
-      m.material.emissive.setRGB(obj.hitFlash, obj.hitFlash, obj.hitFlash);
+      m.material.emissive.copy(obj.baseEmissive).addScalar(obj.hitFlash * 0.9);
     }
     return m.position.length() < 14;     // reached Earth surface
   }
