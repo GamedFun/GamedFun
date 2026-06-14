@@ -65,7 +65,9 @@
     .shop-bal { color: #ffd76a; font-weight: 900; font-variant-numeric: tabular-nums; }
     .shop-close { pointer-events: auto; background: rgba(255,255,255,.08); border: 1px solid rgba(160,180,255,.2); color: #e6ecff; width: 32px; height: 32px; border-radius: 9px; font-size: 1.1rem; cursor: pointer; margin-left: 12px; }
     .shop-section { margin-top: 18px; }
-    .shop-section h3 { font-size: .68rem; letter-spacing: .2em; text-transform: uppercase; color: rgba(230,236,255,.5); margin-bottom: 10px; }
+    .shop-section h3 { font-size: .68rem; letter-spacing: .2em; text-transform: uppercase; color: rgba(230,236,255,.5); margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+    .mini { pointer-events: auto; background: rgba(120,200,255,.12); border: 1px solid rgba(120,200,255,.35); color: #bfe0ff; font-size: .62rem; letter-spacing: .08em; text-transform: none; padding: 3px 9px; border-radius: 8px; cursor: pointer; font-weight: 700; }
+    .mini:hover { background: rgba(120,200,255,.22); }
     .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 10px; }
     .item { background: rgba(255,255,255,.04); border: 1px solid rgba(160,180,255,.16); border-radius: 12px; padding: 12px; cursor: pointer; transition: transform .12s, border-color .12s, background .12s; pointer-events: auto; position: relative; }
     .item:hover { transform: translateY(-2px); border-color: rgba(120,200,255,.5); }
@@ -134,11 +136,11 @@
         </div>
       </div>
       <div class="shop-section">
-        <h3>⚡ Power — repeatable</h3>
+        <h3>⚡ Power — rotating offers <button class="mini" id="power-reroll">🎲 reroll</button></h3>
         <div class="shop-grid" id="grid-power"></div>
       </div>
       <div class="shop-section">
-        <h3>🖱 Cursors — equip one (perk + look)</h3>
+        <h3>🖱 Cursors — equip one (perk + look) <button class="mini" id="cursor-all">show all</button></h3>
         <div class="shop-grid" id="grid-cursor"></div>
       </div>
       <div class="shop-section">
@@ -180,7 +182,7 @@
   // ── persistent progression ──────────────────────────────────────
   const DEFAULT_SAVE = {
     coins: 0,
-    power: { dmg: 0, coins: 0, mult: 0 },          // upgrade levels
+    power: { dmg: 0, coins: 0, mult: 0, slow: 0, splash: 0, lucky: 0, shield: 0 },   // upgrade levels
     owned: { cursor: ['classic'], bg: ['void'], ast: ['rock'] },
     equip: { cursor: 'classic', bg: 'void', ast: 'rock' },
     bestWave: 1,
@@ -203,34 +205,55 @@
   function save() { localStorage.setItem('asteroidDefense', JSON.stringify(SAVE)); }
 
   // ── catalogs ────────────────────────────────────────────────────
-  // Power upgrades: repeatable, cost scales with level.
+  // Power upgrades: a pool the shop draws a rotating selection from. Repeatable,
+  // cost scales with level.
   const POWER = {
-    dmg:   { name: 'Sharper Aim', desc: '+1 damage per click. Needed to crack big rocks & bosses.', base: 40,  step: 1.7, max: 20 },
-    coins: { name: 'Bounty Boost', desc: '+3 coins on every asteroid you destroy.',              base: 60,  step: 1.6, max: 25 },
-    mult:  { name: 'Coin Magnet',  desc: '×1.5 coin multiplier per level. Stacks fast.',          base: 250, step: 2.3, max: 6 },
+    dmg:    { name: 'Sharper Aim',   desc: '+1 damage per click.',                          base: 35,  step: 1.6, max: 20 },
+    coins:  { name: 'Bounty Boost',  desc: '+3 coins on every asteroid collected.',         base: 50,  step: 1.55, max: 30 },
+    mult:   { name: 'Coin Magnet',   desc: '×1.5 coin multiplier per level. Stacks.',       base: 220, step: 2.2, max: 6 },
+    slow:   { name: 'Time Dilation', desc: 'Asteroids drift 10% slower per level.',          base: 80,  step: 1.7, max: 6 },
+    splash: { name: 'Shockwave',     desc: 'Each click also pops nearby rocks — bigger radius each level.', base: 120, step: 1.8, max: 6 },
+    lucky:  { name: 'Lucky Star',    desc: '+12% chance a rock drops DOUBLE coins.',         base: 100, step: 1.7, max: 8 },
+    shield: { name: 'Planet Shield', desc: '+30 max Earth integrity.',                       base: 70,  step: 1.5, max: 10 },
   };
   const powerCost = (k) => Math.round(POWER[k].base * Math.pow(POWER[k].step, SAVE.power[k]));
 
-  // Cursors: each is a cosmetic AND carries a gameplay perk.
+  // Cursors: each is a cosmetic (parametric SVG) AND carries a gameplay perk.
+  // perk types: dmg (+N dmg/click), flat (+N coins/kill), mult (×N coins).
   const CURSORS = {
-    classic: { name: 'Standard Reticle', desc: 'No bonus. The starter sight.',          price: 0,    perk: '' },
-    plasma:  { name: 'Plasma Lance',     desc: '+5 coins on every kill. Glowing pink.',  price: 300,  perk: '+5 coins/kill' },
-    gold:    { name: 'Midas Sight',      desc: '×2 ALL coins earned. Pure gold.',        price: 1500, perk: '×2 coins' },
-    twin:    { name: 'Twin Fang',        desc: '+2 damage per click. Razor crosshair.',  price: 900,  perk: '+2 dmg/click' },
+    classic: { name: 'Standard Reticle', color: '#7db4ff', style: 'ring',      price: 0,    perk: null },
+    plasma:  { name: 'Plasma Lance',     color: '#fa6bff', style: 'ringPlus',  price: 300,  perk: { t:'flat', v:5 } },
+    emerald: { name: 'Emerald Sight',    color: '#3affa0', style: 'diamond',   price: 700,  perk: { t:'flat', v:7 } },
+    twin:    { name: 'Twin Fang',        color: '#7dffce', style: 'crossX',    price: 900,  perk: { t:'dmg',  v:2 } },
+    ember:   { name: 'Ember Tip',        color: '#ff7a2b', style: 'triangle',  price: 600,  perk: { t:'flat', v:6 } },
+    frost:   { name: 'Frost Point',      color: '#8fe0ff', style: 'snow',      price: 1100, perk: { t:'dmg',  v:3 } },
+    voideye: { name: 'Void Eye',         color: '#b06bff', style: 'dotRings',  price: 1000, perk: { t:'mult', v:1.5 } },
+    laser:   { name: 'Laser Sight',      color: '#ff3b5a', style: 'crosshair', price: 1800, perk: { t:'dmg',  v:4 } },
+    gold:    { name: 'Midas Sight',      color: '#ffd76a', style: 'diamond',   price: 1500, perk: { t:'mult', v:2 } },
+    prism:   { name: 'Prism',            color: '#ff6bd0', style: 'ringPlus',  price: 2600, perk: { t:'flat', v:14 }, rainbow: true },
   };
-  // Backgrounds: pure cosmetic. [deep space tint, star tint]
+  function perkLabel(p) { return !p ? '' : p.t === 'dmg' ? `+${p.v} dmg/click` : p.t === 'flat' ? `+${p.v} coins/kill` : `×${p.v} coins`; }
+
+  // Backgrounds: pure cosmetic. neb/neb2 = two-tone nebula colors.
   const BGS = {
-    void:   { name: 'The Void',     price: 0,    sky: 0x03030a, star: 0xaab4ff, neb: null },
-    nebula: { name: 'Rose Nebula',  price: 200,  sky: 0x140816, star: 0xffc8e6, neb: 0xff5aa0 },
-    deep:   { name: 'Deep Blue',    price: 200,  sky: 0x040a18, star: 0x9fd0ff, neb: 0x2b6bff },
-    ember:  { name: 'Ember Field',  price: 450,  sky: 0x140a04, star: 0xffd9a0, neb: 0xff7a2b },
+    void:    { name: 'The Void',      price: 0,    sky: 0x03030a, star: 0xaab4ff, neb: null,     neb2: null },
+    nebula:  { name: 'Rose Nebula',   price: 200,  sky: 0x140816, star: 0xffc8e6, neb: 0xff5aa0, neb2: 0x9a4bff },
+    deep:    { name: 'Deep Blue',     price: 200,  sky: 0x040a18, star: 0x9fd0ff, neb: 0x2b6bff, neb2: 0x16d6e0 },
+    ember:   { name: 'Ember Field',   price: 450,  sky: 0x140a04, star: 0xffd9a0, neb: 0xff7a2b, neb2: 0xff2b5a },
+    emerald: { name: 'Emerald Drift', price: 450,  sky: 0x04140c, star: 0xb8ffd0, neb: 0x2bff9a, neb2: 0x16b0e0 },
+    violet:  { name: 'Violet Storm',  price: 700,  sky: 0x0a0418, star: 0xd8b8ff, neb: 0x9a4bff, neb2: 0xff5af0 },
+    aurora:  { name: 'Aurora',        price: 900,  sky: 0x02100e, star: 0xc8ffe6, neb: 0x16e0a0, neb2: 0x6b8bff },
+    crimson: { name: 'Crimson Deep',  price: 900,  sky: 0x120208, star: 0xffb0c0, neb: 0xff2b5a, neb2: 0xff8a2b },
   };
   // Asteroid skins: pure cosmetic. Color logic handled in makeAsteroid.
   const ASTS = {
-    rock:    { name: 'Gray Rock',   price: 0,    desc: 'Honest space gravel.' },
-    neon:    { name: 'Neon Crystal',price: 250,  desc: 'Rainbow glowing shards.' },
-    lava:    { name: 'Molten',      price: 350,  desc: 'Cracked, red-hot cores.' },
-    ice:     { name: 'Ice Comet',   price: 350,  desc: 'Pale frozen chunks.' },
+    rock:    { name: 'Gray Rock',     price: 0,    desc: 'Honest space gravel.' },
+    neon:    { name: 'Neon Crystal',  price: 250,  desc: 'Rainbow glowing shards.' },
+    lava:    { name: 'Molten',        price: 350,  desc: 'Cracked, red-hot cores.' },
+    ice:     { name: 'Ice Comet',     price: 350,  desc: 'Pale frozen chunks.' },
+    gold:    { name: 'Gold Nugget',   price: 800,  desc: 'Glittering treasure rocks.' },
+    emerald: { name: 'Emerald Shard', price: 800,  desc: 'Deep green gemstone.' },
+    obsidian:{ name: 'Obsidian',      price: 600,  desc: 'Glossy volcanic glass.' },
   };
 
   // ── runtime game state ──────────────────────────────────────────
@@ -244,19 +267,26 @@
     sunAngle: 0,
   };
 
-  // derived bonuses from upgrades + equipped cursor
+  // derived bonuses from upgrades + equipped cursor's perk
+  function curPerk() { return (CURSORS[SAVE.equip.cursor] || {}).perk || null; }
   function dmgPerClick() {
-    let d = 1 + SAVE.power.dmg * 1;
-    if (SAVE.equip.cursor === 'twin') d += 2;
+    let d = 1 + SAVE.power.dmg;
+    const p = curPerk(); if (p && p.t === 'dmg') d += p.v;
     return d;
   }
   function coinsForKill(base) {
+    const p = curPerk();
     let c = base + SAVE.power.coins * 3;
-    if (SAVE.equip.cursor === 'plasma') c += 5;
+    if (p && p.t === 'flat') c += p.v;
     let mult = Math.pow(1.5, SAVE.power.mult);
-    if (SAVE.equip.cursor === 'gold') mult *= 2;
+    if (p && p.t === 'mult') mult *= p.v;
     return Math.round(c * mult);
   }
+  // new power effects
+  const speedFactor  = () => Math.max(0.35, 1 - SAVE.power.slow * 0.1);   // asteroids slower
+  const splashRadius = () => SAVE.power.splash * 8;                       // click pops nearby rocks
+  const luckyChance  = () => SAVE.power.lucky * 0.12;                     // double-coin drops
+  const maxHealthVal = () => 150 + SAVE.power.shield * 30;                // tougher Earth
 
   // ════════════════════════════════════════════════════════════════
   //  THREE.JS SCENE
@@ -285,7 +315,7 @@
   // ── Earth — same realistic treatment as the asteroids: a smooth procedural
   //    height field drives both a grainy color map and a bump map for relief
   function earthTextures() {
-    const W = 768, H = 384;
+    const W = 1024, H = 512;
     // smooth height field: low-freq random grid (big continents) upscaled with
     // smoothing, plus a faint finer octave for coastline texture
     function octave(gw, gh) {
@@ -297,9 +327,9 @@
       const bxc = b.getContext('2d'); bxc.imageSmoothingEnabled = true; bxc.drawImage(s, 0, 0, W, H);
       return bxc.getImageData(0, 0, W, H).data;
     }
-    const o1 = octave(22, 12), o2 = octave(54, 28);   // big landmasses + detail
+    const o1 = octave(26, 13), o2 = octave(70, 35), o3 = octave(170, 85);   // continents → detail
     const hd = new Float32Array(W*H);
-    for (let p = 0; p < W*H; p++) hd[p] = (o1[p*4]*0.72 + o2[p*4]*0.28);
+    for (let p = 0; p < W*H; p++) hd[p] = (o1[p*4]*0.62 + o2[p*4]*0.26 + o3[p*4]*0.12);
 
     const colC = document.createElement('canvas'); colC.width = W; colC.height = H;
     const cc = colC.getContext('2d'), cimg = cc.createImageData(W, H);
@@ -326,11 +356,31 @@
     return { map: new THREE.CanvasTexture(colC), bump: new THREE.CanvasTexture(bumpC) };
   }
   const earthTex = earthTextures();
+  earthTex.map.anisotropy = 4;
   const earth = new THREE.Mesh(
     new THREE.SphereGeometry(13, 96, 64),
-    new THREE.MeshPhongMaterial({ map: earthTex.map, bumpMap: earthTex.bump, bumpScale: 0.7, shininess: 6, emissive: 0x010308, emissiveIntensity: 0.35 })
+    new THREE.MeshPhongMaterial({ map: earthTex.map, bumpMap: earthTex.bump, bumpScale: 0.6, shininess: 14, specular: 0x223355, emissive: 0x010308, emissiveIntensity: 0.32 })
   );
   scene.add(earth);
+  // drifting cloud layer for realism
+  function cloudTexture() {
+    const W = 1024, H = 512, c = document.createElement('canvas'); c.width = W; c.height = H;
+    const x = c.getContext('2d');
+    const sm = document.createElement('canvas'); sm.width = 64; sm.height = 32;
+    const sx = sm.getContext('2d'), sd = sx.createImageData(64, 32);
+    for (let i = 0; i < sd.data.length; i += 4) { const v = Math.random()*255; sd.data[i]=sd.data[i+1]=sd.data[i+2]=v; sd.data[i+3]=255; }
+    sx.putImageData(sd, 0, 0);
+    x.imageSmoothingEnabled = true; x.drawImage(sm, 0, 0, W, H);
+    const im = x.getImageData(0, 0, W, H), d = im.data;
+    for (let p = 0; p < W*H; p++) { const v = d[p*4]; const a = v > 150 ? (v-150)/105 * 235 : 0; d[p*4]=d[p*4+1]=d[p*4+2]=255; d[p*4+3]=a; }
+    x.putImageData(im, 0, 0);
+    return new THREE.CanvasTexture(c);
+  }
+  const clouds = new THREE.Mesh(
+    new THREE.SphereGeometry(13.35, 96, 64),
+    new THREE.MeshPhongMaterial({ map: cloudTexture(), transparent: true, opacity: 0.55, depthWrite: false })
+  );
+  scene.add(clouds);
   // soft atmosphere shell
   const atmo = new THREE.Mesh(
     new THREE.SphereGeometry(13.7, 48, 32),
@@ -355,24 +405,37 @@
     stars = new THREE.Points(geo, new THREE.PointsMaterial({ color: starColor, size: 2.2, sizeAttenuation: false }));
     scene.add(stars);
   }
-  function buildNebula(col) {
+  // soft puffy cloud sprite, reused for all nebulae
+  let _nebTex = null;
+  function nebTexture() {
+    if (_nebTex) return _nebTex;
+    const c = document.createElement('canvas'); c.width = c.height = 256;
+    const ctx = c.getContext('2d');
+    // build a wispy cloud by stacking offset soft blobs
+    for (let i = 0; i < 14; i++) {
+      const cx = 128 + (Math.random()-0.5)*120, cy = 128 + (Math.random()-0.5)*120, r = 30 + Math.random()*70;
+      const gr = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      gr.addColorStop(0, 'rgba(255,255,255,0.5)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 6.28); ctx.fill();
+    }
+    _nebTex = new THREE.CanvasTexture(c);
+    return _nebTex;
+  }
+  function buildNebula(col, col2) {
     if (nebula) { scene.remove(nebula); nebula = null; }
     if (col == null) return;
-    // a few big soft additive sprites
-    const tex = (() => {
-      const c = document.createElement('canvas'); c.width = c.height = 128;
-      const ctx = c.getContext('2d');
-      const gr = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
-      gr.addColorStop(0, 'rgba(255,255,255,0.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = gr; ctx.fillRect(0, 0, 128, 128);
-      return new THREE.CanvasTexture(c);
-    })();
+    const tex = nebTexture();
     nebula = new THREE.Group();
-    for (let i = 0; i < 5; i++) {
-      const m = new THREE.SpriteMaterial({ map: tex, color: col, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false });
+    const cols = [new THREE.Color(col), new THREE.Color(col2 != null ? col2 : col)];
+    // a soft cloud band plus scattered tufts, two-tone for depth
+    for (let i = 0; i < 14; i++) {
+      const c = cols[i % 2].clone().lerp(cols[(i+1)%2], Math.random()*0.5);
+      const m = new THREE.SpriteMaterial({ map: tex, color: c, transparent: true, opacity: 0.1 + Math.random()*0.12, blending: THREE.AdditiveBlending, depthWrite: false });
       const s = new THREE.Sprite(m);
-      s.position.set((Math.random()-0.5)*700, (Math.random()-0.5)*500, -300 - Math.random()*300);
-      const sc = 200 + Math.random()*260; s.scale.set(sc, sc, 1);
+      // cluster along a tilted band so it reads as a galaxy/nebula cloud
+      const band = (Math.random()-0.5);
+      s.position.set(band*900 + (Math.random()-0.5)*260, band*420 + (Math.random()-0.5)*260, -340 - Math.random()*360);
+      const sc = 240 + Math.random()*340; s.scale.set(sc, sc, 1);
       nebula.add(s);
     }
     scene.add(nebula);
@@ -383,7 +446,7 @@
     scene.background = new THREE.Color(b.sky);
     renderer.setClearColor(b.sky);
     buildStars(b.star);
-    buildNebula(b.neb);
+    buildNebula(b.neb, b.neb2);
   }
 
   // ── asteroids ───────────────────────────────────────────────────
@@ -392,28 +455,34 @@
   let _rockTex = null;
   function rockTexture() {
     if (_rockTex) return _rockTex;
-    const c = document.createElement('canvas'); c.width = c.height = 512;
+    const S = 768, c = document.createElement('canvas'); c.width = c.height = S;
     const x = c.getContext('2d');
-    x.fillStyle = '#8a8076'; x.fillRect(0, 0, 512, 512);
-    // fine grain
-    const img = x.getImageData(0, 0, 512, 512), d = img.data;
-    for (let i = 0; i < d.length; i += 4) {
-      const n = (Math.random() - 0.5) * 70;
-      d[i] += n; d[i+1] += n; d[i+2] += n;
+    // base tone with broad mottling so it isn't a flat gray
+    x.fillStyle = '#8a8076'; x.fillRect(0, 0, S, S);
+    for (let i = 0; i < 60; i++) {
+      const cx = Math.random()*S, cy = Math.random()*S, r = 60 + Math.random()*160;
+      const g = x.createRadialGradient(cx, cy, 0, cx, cy, r);
+      const sh = Math.random() < 0.5 ? 22 : -18;
+      g.addColorStop(0, `rgba(${138+sh},${128+sh},${118+sh},0.18)`); g.addColorStop(1, 'rgba(0,0,0,0)');
+      x.fillStyle = g; x.beginPath(); x.arc(cx, cy, r, 0, 6.28); x.fill();
     }
+    // fine grain
+    const img = x.getImageData(0, 0, S, S), d = img.data;
+    for (let i = 0; i < d.length; i += 4) { const n = (Math.random()-0.5)*66; d[i]+=n; d[i+1]+=n; d[i+2]+=n; }
     x.putImageData(img, 0, 0);
     // craters — dark bowl with a faint sunlit rim
-    for (let i = 0; i < 46; i++) {
-      const cx = Math.random()*512, cy = Math.random()*512, r = 6 + Math.random()*36;
+    for (let i = 0; i < 90; i++) {
+      const cx = Math.random()*S, cy = Math.random()*S, r = 7 + Math.random()*52;
       const g = x.createRadialGradient(cx, cy, 0, cx, cy, r);
-      g.addColorStop(0, 'rgba(38,33,28,0.75)');
-      g.addColorStop(0.65, 'rgba(60,54,47,0.3)');
-      g.addColorStop(0.82, 'rgba(205,194,180,0.28)');
+      g.addColorStop(0, 'rgba(36,31,26,0.8)');
+      g.addColorStop(0.62, 'rgba(58,52,45,0.34)');
+      g.addColorStop(0.8, 'rgba(208,196,182,0.3)');
       g.addColorStop(1, 'rgba(0,0,0,0)');
       x.fillStyle = g; x.beginPath(); x.arc(cx, cy, r, 0, 6.28); x.fill();
     }
     _rockTex = new THREE.CanvasTexture(c);
     _rockTex.wrapS = _rockTex.wrapT = THREE.RepeatWrapping;
+    _rockTex.anisotropy = 4;
     return _rockTex;
   }
 
@@ -422,6 +491,9 @@
     if (skin === 'neon') { const col = new THREE.Color().setHSL(Math.random(), 1, 0.62); return { color: col, emissive: col.clone().multiplyScalar(0.5), shininess: 50 }; }
     if (skin === 'lava') { return { color: new THREE.Color(0x7a4030), emissive: new THREE.Color(0xff4a10).multiplyScalar(0.45), shininess: 10 }; }
     if (skin === 'ice')  { return { color: new THREE.Color(0xcfe6ff), emissive: new THREE.Color(0x1c3854).multiplyScalar(0.4), shininess: 90 }; }
+    if (skin === 'gold') { return { color: new THREE.Color(0xffcf5a), emissive: new THREE.Color(0x6a4a08).multiplyScalar(0.5), shininess: 110 }; }
+    if (skin === 'emerald') { return { color: new THREE.Color(0x2bcf7a), emissive: new THREE.Color(0x0a4a2a).multiplyScalar(0.5), shininess: 100 }; }
+    if (skin === 'obsidian') { return { color: new THREE.Color(0x2a2630), emissive: new THREE.Color(0x14101a).multiplyScalar(0.5), shininess: 130 }; }
     return { color: new THREE.Color(0xffffff), emissive: new THREE.Color(0x0a0a10), shininess: 6 };  // natural brown-gray rock
   }
 
@@ -450,20 +522,20 @@
       ? { color: new THREE.Color(0xc06050), emissive: new THREE.Color(0xff2a40).multiplyScalar(0.4), shininess: 18 }
       : astAppearance();
     const mat = new THREE.MeshPhongMaterial({
-      map: rockTexture(), bumpMap: rockTexture(), bumpScale: 0.55,
+      map: rockTexture(), bumpMap: rockTexture(), bumpScale: 0.7,
       color: ap.color, emissive: ap.emissive, shininess: ap.shininess, flatShading: false,
     });
     const mesh = new THREE.Mesh(geo, mat);
 
-    // spawn OFF-SCREEN, well beyond the visible edges, then fly inward toward
-    // Earth — rocks enter from off the screen and grow as they approach
-    const ang = Math.random() * 6.28, spread = boss ? 260 : 320 + Math.random() * 180;
-    mesh.position.set(Math.cos(ang) * spread, Math.sin(ang) * spread * 0.62, (boss ? -220 : -200) - Math.random() * 120);
+    // spawn OFF-SCREEN beyond the edges, then drift slowly inward — relaxed,
+    // collect-everything pacing rather than a frantic defense
+    const ang = Math.random() * 6.28, spread = boss ? 230 : 250 + Math.random() * 130;
+    mesh.position.set(Math.cos(ang) * spread, Math.sin(ang) * spread * 0.6, (boss ? -200 : -180) - Math.random() * 90);
     const obj = {
       mesh, boss, radius,
-      hp: boss ? 60 + G.wave * 10 : Math.max(2, Math.round(radius * 0.65)),
+      hp: boss ? 40 + G.wave * 6 : (radius > 8 ? 2 : 1),     // most pop in one click
       maxHp: 0,
-      speed: boss ? 18 : 30 + Math.random() * 14 + G.wave * 0.7,
+      speed: boss ? 9 : 11 + Math.random() * 5 + G.wave * 0.3,   // much slower
       spin: new THREE.Vector3((Math.random()-0.5)*1.4, (Math.random()-0.5)*1.4, (Math.random()-0.5)*1.4),
       hitFlash: 0, baseEmissive: ap.emissive.clone(),
     };
@@ -507,13 +579,23 @@
     blip(obj.boss ? 90 : 320 + Math.random()*120, 0.05, 'triangle', 0.05);
     if (obj.hp <= 0) { destroy(obj); }
     else if (obj.boss) updateBossBar();
+    // Shockwave: the click also pops nearby rocks within the splash radius
+    const R = splashRadius();
+    if (R > 0 && point) {
+      for (const a of G.asteroids.slice()) {
+        if (a === obj || a.hp <= 0) continue;
+        if (a.mesh.position.distanceTo(point) < R + a.radius) { a.hp -= dmg; a.hitFlash = 1; if (a.hp <= 0) destroy(a); }
+      }
+    }
   }
 
   function destroy(obj) {
-    const reward = coinsForKill(obj.boss ? 200 + G.wave * 20 : 8 + Math.round(obj.radius * 2));
+    let reward = coinsForKill(obj.boss ? 200 + G.wave * 20 : 8 + Math.round(obj.radius * 2));
+    const lucky = !obj.boss && Math.random() < luckyChance();
+    if (lucky) reward *= 2;
     G.coins += reward; G.destroyed++;
     explode(obj.mesh.position, obj.boss);
-    floater(obj.mesh.position, '+' + reward, obj.boss ? '#ffd76a' : '#7dffce', obj.boss ? 1.6 : 1);
+    floater(obj.mesh.position, (lucky ? '★ +' : '+') + reward, lucky ? '#ffd76a' : obj.boss ? '#ffd76a' : '#7dffce', obj.boss ? 1.6 : lucky ? 1.3 : 1);
     scene.remove(obj.mesh);
     obj.mesh.geometry.dispose(); obj.mesh.material.dispose();
     blip(obj.boss ? 140 : 520, 0.18, 'sawtooth', 0.06);
@@ -578,6 +660,7 @@
     if ($('shop').classList.contains('on')) { renderer.render(scene, camera); return; }
 
     earth.rotation.y += dt * 0.12;
+    clouds.rotation.y += dt * 0.16;
     atmo.rotation.y += dt * 0.05;
     if (stars) stars.rotation.y += dt * 0.005;
 
@@ -610,12 +693,12 @@
     G.wave = 1 + Math.floor(G.destroyed / 12);
     $('wave').textContent = 'WAVE ' + G.wave;
 
-    // spawn cadence ramps with wave
+    // spawn cadence — plenty of slow rocks on screen to collect
     G.spawnTimer -= dt;
-    const interval = Math.max(0.5, 1.7 - G.wave * 0.08);
-    const cap = 5 + G.wave;
+    const interval = Math.max(0.45, 1.3 - G.wave * 0.05);
+    const cap = 10 + G.wave;
     if (G.spawnTimer <= 0 && G.asteroids.length < cap) {
-      G.spawnTimer = interval * (0.6 + Math.random() * 0.8);
+      G.spawnTimer = interval * (0.6 + Math.random() * 0.7);
       G.asteroids.push(makeAsteroid(false));
     }
 
@@ -630,24 +713,24 @@
     // update asteroids
     for (let i = G.asteroids.length - 1; i >= 0; i--) {
       if (stepAsteroid(G.asteroids[i], dt, daylight)) {
-        // hit Earth
-        hurtEarth(14 + G.asteroids[i].radius * 2);
+        // hit Earth — gentle, forgiving damage
+        hurtEarth(5 + G.asteroids[i].radius * 0.5);
         scene.remove(G.asteroids[i].mesh);
         G.asteroids.splice(i, 1);
       }
     }
     if (G.boss) {
       if (stepAsteroid(G.boss, dt, daylight)) {
-        hurtEarth(45); scene.remove(G.boss.mesh); G.boss = null; $('boss-bar').classList.remove('on');
+        hurtEarth(22); scene.remove(G.boss.mesh); G.boss = null; $('boss-bar').classList.remove('on');
       }
     }
   }
 
   function stepAsteroid(obj, dt, daylight) {
     const m = obj.mesh;
-    // move toward Earth (origin)
+    // move toward Earth (origin), slowed by the Time Dilation upgrade
     const dir = m.position.clone().multiplyScalar(-1).normalize();
-    m.position.addScaledVector(dir, obj.speed * dt);
+    m.position.addScaledVector(dir, obj.speed * speedFactor() * dt);
     m.rotation.x += obj.spin.x * dt; m.rotation.y += obj.spin.y * dt; m.rotation.z += obj.spin.z * dt;
     // night-side dimming: rocks crossing the dark side get harder to see
     if (obj.hitFlash > 0) {
@@ -685,57 +768,89 @@
   // ════════════════════════════════════════════════════════════════
   //  SHOP
   // ════════════════════════════════════════════════════════════════
+  // rotating shop state
+  let powerOffers = [];                 // ids currently offered (refresh on buy)
+  let cursorFeatured = [];              // random featured cursors (refresh on open)
+  const showAll = { cursor: false };
+  function rerollPower() {
+    const pool = Object.keys(POWER).filter(k => SAVE.power[k] < POWER[k].max);
+    powerOffers = pool.sort(() => Math.random() - 0.5).slice(0, Math.min(4, pool.length));
+  }
+  function refreshFeatured() {
+    const ids = Object.keys(CURSORS).sort(() => Math.random() - 0.5).slice(0, 4);
+    if (!ids.includes(SAVE.equip.cursor)) ids[0] = SAVE.equip.cursor;   // always show what you have on
+    cursorFeatured = ids;
+  }
+
   function renderShop() {
     $('shop-bal').textContent = G.coins.toLocaleString() + ' 💰';
 
-    // Power
+    // Power — only the rotating offer set
+    if (!powerOffers.length) rerollPower();
     const gp = $('grid-power'); gp.innerHTML = '';
-    for (const k in POWER) {
-      const p = POWER[k], lvl = SAVE.power[k], maxed = lvl >= p.max, cost = powerCost(k);
-      const afford = G.coins >= cost;
+    if (!powerOffers.length) gp.innerHTML = '<div class="ds" style="opacity:.6">All power-ups maxed out. 🏆</div>';
+    for (const k of powerOffers) {
+      const p = POWER[k], lvl = SAVE.power[k], cost = powerCost(k), afford = G.coins >= cost;
       const el = document.createElement('div');
-      el.className = 'item' + (maxed ? ' owned' : afford ? '' : ' locked-broke');
-      el.innerHTML = `<div class="lvl">Lv ${lvl}/${p.max}</div><div class="nm">${p.name}</div><div class="ds">${p.desc}</div><div class="pr ${maxed?'have':''}">${maxed ? 'MAXED' : cost.toLocaleString() + ' 💰'}</div>`;
-      if (!maxed) el.onclick = () => buyPower(k);
+      el.className = 'item' + (afford ? '' : ' locked-broke');
+      el.innerHTML = `<div class="lvl">Lv ${lvl}/${p.max}</div><div class="nm">${p.name}</div><div class="ds">${p.desc}</div><div class="pr">${cost.toLocaleString()} 💰</div>`;
+      el.onclick = () => buyPower(k);
       gp.appendChild(el);
     }
-    // Cursors / Backgrounds / Asteroids
-    renderCosmetic('cursor', CURSORS, $('grid-cursor'), true);
-    renderCosmetic('bg', BGS, $('grid-bg'), false);
-    renderCosmetic('ast', ASTS, $('grid-ast'), false);
+
+    // Cursors — featured set, or all when expanded
+    if (!showAll.cursor && !cursorFeatured.length) refreshFeatured();
+    const cg = $('grid-cursor'); cg.innerHTML = '';
+    const curList = showAll.cursor ? Object.keys(CURSORS) : cursorFeatured;
+    for (const id of curList) cosmeticItem('cursor', CURSORS, id, cg);
+    $('cursor-all').textContent = showAll.cursor ? 'show less' : `show all (${Object.keys(CURSORS).length})`;
+
+    renderCosmetic('bg', BGS, $('grid-bg'));
+    renderCosmetic('ast', ASTS, $('grid-ast'));
   }
 
-  function renderCosmetic(kind, catalog, grid, showPerk) {
-    grid.innerHTML = '';
-    for (const id in catalog) {
-      const it = catalog[id];
-      const owned = SAVE.owned[kind].includes(id);
-      const equipped = SAVE.equip[kind] === id;
-      const afford = G.coins >= it.price;
-      const el = document.createElement('div');
-      el.className = 'item' + (equipped ? ' equipped' : owned ? ' owned' : afford ? '' : ' locked-broke');
-      let swatch = '';
-      if (kind === 'bg') swatch = `<div class="swatch" style="background:radial-gradient(circle at 60% 40%, #${(it.neb||it.star).toString(16).padStart(6,'0')}55, #${it.sky.toString(16).padStart(6,'0')})"></div>`;
-      if (kind === 'ast') swatch = `<div class="swatch" style="background:${astSwatch(id)}"></div>`;
-      if (kind === 'cursor') swatch = `<div class="swatch" style="display:grid;place-items:center;background:#0a0e1e">${cursorSVG(id, 22)}</div>`;
-      const sub = showPerk ? (it.perk ? `<b style="color:#7dffce">${it.perk}</b> · ${it.desc}` : it.desc) : (it.desc || '');
-      const priceHtml = owned ? (equipped ? '<span class="pr have">EQUIPPED</span>' : '<span class="pr have">tap to equip</span>') : `<span class="pr">${it.price.toLocaleString()} 💰</span>`;
-      el.innerHTML = `${swatch}<div class="nm">${it.name}</div><div class="ds">${sub}</div>${priceHtml}`;
-      el.onclick = () => owned ? equip(kind, id) : buyCosmetic(kind, id);
-      grid.appendChild(el);
-    }
+  function cosmeticItem(kind, catalog, id, grid) {
+    const it = catalog[id];
+    const owned = SAVE.owned[kind].includes(id);
+    const equipped = SAVE.equip[kind] === id;
+    const afford = G.coins >= it.price;
+    const el = document.createElement('div');
+    el.className = 'item' + (equipped ? ' equipped' : owned ? ' owned' : afford ? '' : ' locked-broke');
+    let swatch = '';
+    if (kind === 'bg') swatch = bgSwatch(it);
+    if (kind === 'ast') swatch = `<div class="swatch" style="background:${astSwatch(id)}"></div>`;
+    if (kind === 'cursor') swatch = `<div class="swatch" style="display:grid;place-items:center;background:#0a0e1e">${cursorSVG(id, 24)}</div>`;
+    const sub = kind === 'cursor'
+      ? (it.perk ? `<b style="color:#7dffce">${perkLabel(it.perk)}</b>` : 'cosmetic only')
+      : (it.desc || '');
+    const priceHtml = owned ? (equipped ? '<span class="pr have">EQUIPPED</span>' : '<span class="pr have">tap to equip</span>') : `<span class="pr">${it.price.toLocaleString()} 💰</span>`;
+    el.innerHTML = `${swatch}<div class="nm">${it.name}</div><div class="ds">${sub}</div>${priceHtml}`;
+    el.onclick = () => owned ? equip(kind, id) : buyCosmetic(kind, id);
+    grid.appendChild(el);
+  }
+  function renderCosmetic(kind, catalog, grid) { grid.innerHTML = ''; for (const id in catalog) cosmeticItem(kind, catalog, id, grid); }
+
+  const hx = n => '#' + n.toString(16).padStart(6, '0');
+  function bgSwatch(it) {
+    const a = it.neb != null ? hx(it.neb) : hx(it.star), b = it.neb2 != null ? hx(it.neb2) : hx(it.star);
+    return `<div class="swatch" style="background:radial-gradient(circle at 30% 35%, ${a}cc, transparent 62%), radial-gradient(circle at 72% 68%, ${b}cc, transparent 62%), ${hx(it.sky)}"></div>`;
   }
   function astSwatch(id) {
     if (id === 'neon') return 'linear-gradient(90deg,#ff5af0,#5affc8,#5a9bff)';
     if (id === 'lava') return 'radial-gradient(circle,#ff6a20,#3a1208)';
     if (id === 'ice')  return 'linear-gradient(135deg,#dff0ff,#6fa8d8)';
-    return 'linear-gradient(135deg,#6a6a6a,#3a3a3a)';
+    if (id === 'gold') return 'radial-gradient(circle,#ffe488,#a9760f)';
+    if (id === 'emerald') return 'radial-gradient(circle,#5fffa6,#0a5a32)';
+    if (id === 'obsidian') return 'linear-gradient(135deg,#4a4458,#15121c)';
+    return 'linear-gradient(135deg,#9a8c7a,#3a342c)';
   }
 
   function buyPower(k) {
     const cost = powerCost(k);
     if (G.coins < cost || SAVE.power[k] >= POWER[k].max) return;
-    G.coins -= cost; SAVE.power[k]++; syncHud(); renderShop();
+    G.coins -= cost; SAVE.power[k]++;
+    rerollPower();                 // offers change every time you buy
+    syncHud(); renderShop();
     blip(660, 0.12, 'triangle', 0.06);
   }
   function buyCosmetic(kind, id) {
@@ -754,14 +869,24 @@
     blip(520, 0.08, 'sine', 0.05);
   }
 
-  // ── cursor cosmetic SVGs ────────────────────────────────────────
+  // ── cursor cosmetic SVGs (parametric by color + style) ──────────
+  const CUR_STYLE = {
+    ring:      (c,f) => `<circle cx="19" cy="19" r="5.5" fill="none" stroke="${c}" stroke-width="2"/><path d="M19 4v8M19 26v8M4 19h8M26 19h8" stroke="${c}" stroke-width="2" stroke-linecap="round"/><circle cx="19" cy="19" r="1.8" fill="${f}"/>`,
+    ringPlus:  (c,f) => `<circle cx="19" cy="19" r="6" fill="none" stroke="${c}" stroke-width="2"/><circle cx="19" cy="19" r="9" fill="none" stroke="${c}" stroke-width="1" stroke-dasharray="2 3"/><path d="M19 2v6M19 30v6M2 19h6M30 19h6" stroke="${c}" stroke-width="2" stroke-linecap="round"/><circle cx="19" cy="19" r="2.4" fill="${f}"/>`,
+    diamond:   (c,f) => `<polygon points="19,4 30,19 19,34 8,19" fill="none" stroke="${c}" stroke-width="2"/><path d="M19 8v4M19 26v4" stroke="${c}" stroke-width="2" stroke-linecap="round"/><circle cx="19" cy="19" r="3" fill="${f}"/>`,
+    crossX:    (c,f) => `<path d="M8 8l8 8M30 8l-8 8M8 30l8-8M30 30l-8-8" fill="none" stroke="${c}" stroke-width="2.2" stroke-linecap="round"/><circle cx="19" cy="19" r="2.2" fill="${f}"/>`,
+    triangle:  (c,f) => `<polygon points="19,4 32,31 6,31" fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round"/><circle cx="19" cy="22" r="2.4" fill="${f}"/>`,
+    snow:      (c,f) => `<path d="M19 3v32M7.3 10.5l23.4 16M30.7 10.5l-23.4 16" stroke="${c}" stroke-width="1.7" stroke-linecap="round"/><circle cx="19" cy="19" r="2.2" fill="${f}"/>`,
+    dotRings:  (c,f) => `<circle cx="19" cy="19" r="8.5" fill="none" stroke="${c}" stroke-width="1.2"/><circle cx="19" cy="19" r="4.6" fill="none" stroke="${c}" stroke-width="1.8"/><circle cx="19" cy="19" r="2" fill="${f}"/>`,
+    crosshair: (c,f) => `<circle cx="19" cy="19" r="9" fill="none" stroke="${c}" stroke-width="1.6"/><path d="M19 1v9M19 28v9M1 19h9M28 19h9" stroke="${c}" stroke-width="2" stroke-linecap="round"/><circle cx="19" cy="19" r="1.6" fill="${f}"/>`,
+  };
   function cursorSVG(id, size = 38) {
+    const cur = CURSORS[id] || CURSORS.classic;
     const s = `width="${size}" height="${size}" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg"`;
-    if (id === 'plasma') return `<svg ${s}><g fill="none" stroke="#fa6bff" stroke-width="2" stroke-linecap="round" filter="drop-shadow(0 0 5px #fa6bff)"><circle cx="19" cy="19" r="6"/><path d="M19 3v7M19 28v7M3 19h7M28 19h7"/></g><circle cx="19" cy="19" r="2.4" fill="#fa6bff"/></svg>`;
-    if (id === 'gold') return `<svg ${s}><g filter="drop-shadow(0 0 5px #ffd76a)"><polygon points="19,3 25,8 25,30 19,35 13,30 13,8" fill="none" stroke="#ffd76a" stroke-width="2"/><circle cx="19" cy="19" r="3.4" fill="#ffd76a"/><path d="M19 6v5M19 27v5" stroke="#ffd76a" stroke-width="2" stroke-linecap="round"/></g></svg>`;
-    if (id === 'twin') return `<svg ${s}><g fill="none" stroke="#7dffce" stroke-width="2" stroke-linecap="round" filter="drop-shadow(0 0 4px #7dffce)"><path d="M8 8l8 8M30 8l-8 8M8 30l8-8M30 30l-8-8"/><circle cx="19" cy="19" r="2.2" fill="#7dffce"/></g></svg>`;
-    // classic
-    return `<svg ${s}><g fill="none" stroke="#7db4ff" stroke-width="2" stroke-linecap="round" filter="drop-shadow(0 0 4px rgba(120,160,255,.8))"><circle cx="19" cy="19" r="5.5"/><path d="M19 4v8M19 26v8M4 19h8M26 19h8"/></g><circle cx="19" cy="19" r="1.8" fill="#7db4ff"/></svg>`;
+    let defs = '', c = cur.color, f = cur.color;
+    if (cur.rainbow) { defs = `<defs><linearGradient id="rb_${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff5a7a"/><stop offset=".5" stop-color="#7dffce"/><stop offset="1" stop-color="#6b9bff"/></linearGradient></defs>`; c = f = `url(#rb_${id})`; }
+    const body = (CUR_STYLE[cur.style] || CUR_STYLE.ring)(c, f);
+    return `<svg ${s}>${defs}<g filter="drop-shadow(0 0 4px ${cur.color})">${body}</g></svg>`;
   }
   function applyCursor() { $('cursor').innerHTML = cursorSVG(SAVE.equip.cursor, 38); }
 
@@ -770,6 +895,7 @@
   // ════════════════════════════════════════════════════════════════
   function startGame() {
     G.state = 'playing';
+    G.maxHealth = maxHealthVal();
     G.health = G.maxHealth; G.destroyed = 0; G.wave = 1; G.t = 0;
     G.spawnTimer = 0.5; G.bossTimer = 0;
     for (const a of G.asteroids) scene.remove(a.mesh);
@@ -796,9 +922,11 @@
   });
   $('start-btn').onclick = startGame;
   $('retry-btn').onclick = startGame;
-  $('shop-toggle').onclick = () => { renderShop(); $('shop').classList.add('on'); };
+  $('shop-toggle').onclick = () => { rerollPower(); refreshFeatured(); renderShop(); $('shop').classList.add('on'); };
   $('shop-x').onclick = () => $('shop').classList.remove('on');
   $('shop').addEventListener('click', (e) => { if (e.target.id === 'shop') $('shop').classList.remove('on'); });
+  $('power-reroll').onclick = () => { rerollPower(); renderShop(); blip(440, 0.08, 'sine', 0.05); };
+  $('cursor-all').onclick = () => { showAll.cursor = !showAll.cursor; renderShop(); };
   $('mute').onclick = () => { muted = !muted; $('mute').textContent = muted ? '🔇' : '🔊'; };
   window.addEventListener('resize', () => {
     camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
@@ -814,7 +942,9 @@
   loop();
 
   // expose for headless testing
-  window.__AD = { G, SAVE, startGame, makeAsteroid, damage, destroy, coinsForKill, dmgPerClick, buyPower, buyCosmetic, equip, POWER, CURSORS, scene };
+  window.__AD = { G, SAVE, startGame, makeAsteroid, damage, destroy, coinsForKill, dmgPerClick, buyPower, buyCosmetic, equip,
+    POWER, CURSORS, BGS, ASTS, scene, speedFactor, splashRadius, luckyChance, maxHealthVal,
+    rerollPower, refreshFeatured, get powerOffers(){ return powerOffers; }, get cursorFeatured(){ return cursorFeatured; } };
   </script>
 </body>
 </html>
