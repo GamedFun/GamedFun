@@ -632,7 +632,7 @@
       obj.hitFlash = Math.max(0, obj.hitFlash - dt * 4);
       m.material.emissive.copy(obj.baseEmissive).addScalar(obj.hitFlash * 0.9);
     }
-    return m.position.length() < 14;     // reached Earth surface
+    return m.position.length() < 13 + obj.radius * 0.85;   // surface touches Earth — impact before burying in
   }
 
   function hurtEarth(amount) {
