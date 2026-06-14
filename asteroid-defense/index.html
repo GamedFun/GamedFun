@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>ASTEROID DEFENSE — click to save Earth | gamed.fun</title>
+  <meta name="description" content="Click the asteroids before they smash into Earth. Earn coins, upgrade your cursor, unlock cosmetic backgrounds and asteroid skins, and battle bosses. A 3D space-defense clicker.">
+  <meta property="og:title" content="ASTEROID DEFENSE — click to save Earth | gamed.fun">
+  <meta property="og:description" content="Click asteroids before they hit Earth. Earn coins, upgrade your cursor, unlock cosmetics, fight bosses.">
+  <meta property="og:url" content="https://gamed.fun/asteroid-defense/">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="ASTEROID DEFENSE — click to save Earth | gamed.fun">
+  <meta name="twitter:description" content="Click asteroids before they hit Earth. Upgrade, customize, defend.">
+  <link rel="canonical" href="https://gamed.fun/asteroid-defense/">
+  <link rel="icon" type="image/svg+xml" href="../logo.svg">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Asteroid Defense","description":"Click asteroids before they hit Earth. Earn coins, upgrade your cursor, unlock cosmetics, fight bosses.","url":"https://gamed.fun/asteroid-defense/","applicationCategory":"GameApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; background: #03030a; color: #e6ecff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; overflow: hidden; }
+    canvas#scene { position: fixed; inset: 0; display: block; z-index: 0; cursor: none; }
+
+    /* ── HUD ── */
+    #hud { position: fixed; top: 0; left: 0; right: 0; z-index: 10; pointer-events: none; padding: max(14px, env(safe-area-inset-top)) 16px 0; display: flex; justify-content: space-between; align-items: flex-start; }
+    .hud-coins { font-size: 1.6rem; font-weight: 900; color: #ffd76a; text-shadow: 0 0 18px rgba(255,200,80,.6); font-variant-numeric: tabular-nums; }
+    .hud-sub { font-size: .72rem; color: rgba(230,236,255,.55); margin-top: 2px; font-variant-numeric: tabular-nums; }
+    #hud-right { text-align: right; }
+    .hud-wave { font-size: .68rem; letter-spacing: .22em; text-transform: uppercase; color: rgba(230,236,255,.5); }
+    .hp-wrap { margin-top: 6px; width: 168px; }
+    .hp-label { font-size: .6rem; letter-spacing: .14em; text-transform: uppercase; color: rgba(230,236,255,.5); margin-bottom: 4px; text-align: right; }
+    .hp-track { height: 9px; background: rgba(255,255,255,.1); border-radius: 5px; overflow: hidden; border: 1px solid rgba(160,180,255,.18); }
+    .hp-fill { height: 100%; width: 100%; border-radius: 5px; background: linear-gradient(90deg,#2bd2ff,#7dffce); transition: width .25s ease, background .25s; }
+
+    /* day/night readout */
+    #phase { position: fixed; top: max(14px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 10; pointer-events: none; font-size: .66rem; letter-spacing: .26em; text-transform: uppercase; color: rgba(230,236,255,.45); }
+
+    /* ── boss banner ── */
+    #boss-bar { position: fixed; top: 72px; left: 50%; transform: translateX(-50%); z-index: 11; width: min(70vw, 420px); display: none; text-align: center; pointer-events: none; }
+    #boss-bar.on { display: block; }
+    #boss-bar .lbl { font-size: .8rem; font-weight: 900; letter-spacing: .18em; color: #ff5a7a; text-shadow: 0 0 18px rgba(255,60,110,.8); margin-bottom: 5px; animation: bossPulse 1s ease infinite; }
+    @keyframes bossPulse { 0%,100%{opacity:.75} 50%{opacity:1} }
+    #boss-bar .track { height: 10px; background: rgba(60,8,20,.7); border: 1px solid rgba(255,90,122,.4); border-radius: 6px; overflow: hidden; }
+    #boss-bar .fill { height: 100%; width: 100%; background: linear-gradient(90deg,#ff5a7a,#ffd76a); transition: width .12s; }
+
+    /* ── floating combat text ── */
+    #floaters { position: fixed; inset: 0; z-index: 9; pointer-events: none; overflow: hidden; }
+    .floater { position: absolute; font-weight: 900; font-size: .95rem; transform: translate(-50%,-50%); animation: floatUp 0.9s ease-out forwards; text-shadow: 0 0 10px currentColor; white-space: nowrap; }
+    @keyframes floatUp { 0%{opacity:1; transform:translate(-50%,-50%) scale(.7)} 25%{transform:translate(-50%,-90%) scale(1.1)} 100%{opacity:0; transform:translate(-50%,-160%) scale(1)} }
+
+    /* ── custom cursor ── */
+    #cursor { position: fixed; width: 38px; height: 38px; left: 0; top: 0; margin: -19px 0 0 -19px; z-index: 30; pointer-events: none; will-change: transform; }
+    #cursor svg { width: 100%; height: 100%; display: block; }
+    #cursor.tap { animation: curTap .18s ease; }
+    @keyframes curTap { 50%{ transform: scale(.78); } }
+
+    /* ── shop ── */
+    #shop-toggle { position: fixed; bottom: max(14px, env(safe-area-inset-bottom)); right: 16px; z-index: 20; pointer-events: auto; background: linear-gradient(100deg,#2bd2ff,#fa6bff); border: none; color: #04041a; font-weight: 900; font-size: .9rem; letter-spacing: .04em; padding: 12px 20px; border-radius: 30px; cursor: pointer; box-shadow: 0 10px 30px -10px rgba(150,90,255,.6); }
+    #shop-toggle:active { transform: scale(.95); }
+
+    #shop { position: fixed; inset: 0; z-index: 40; display: none; align-items: center; justify-content: center; padding: 18px; background: radial-gradient(ellipse at center, rgba(6,8,26,.6), rgba(2,2,10,.9)); }
+    #shop.on { display: flex; }
+    .shop-card { width: min(620px, 96vw); max-height: 88vh; overflow-y: auto; background: rgba(8,10,26,.96); border: 1px solid rgba(160,180,255,.22); border-radius: 18px; padding: 22px; }
+    .shop-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+    .shop-head h2 { font-size: 1.15rem; font-weight: 900; letter-spacing: .04em; }
+    .shop-bal { color: #ffd76a; font-weight: 900; font-variant-numeric: tabular-nums; }
+    .shop-close { pointer-events: auto; background: rgba(255,255,255,.08); border: 1px solid rgba(160,180,255,.2); color: #e6ecff; width: 32px; height: 32px; border-radius: 9px; font-size: 1.1rem; cursor: pointer; margin-left: 12px; }
+    .shop-section { margin-top: 18px; }
+    .shop-section h3 { font-size: .68rem; letter-spacing: .2em; text-transform: uppercase; color: rgba(230,236,255,.5); margin-bottom: 10px; }
+    .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 10px; }
+    .item { background: rgba(255,255,255,.04); border: 1px solid rgba(160,180,255,.16); border-radius: 12px; padding: 12px; cursor: pointer; transition: transform .12s, border-color .12s, background .12s; pointer-events: auto; position: relative; }
+    .item:hover { transform: translateY(-2px); border-color: rgba(120,200,255,.5); }
+    .item.locked-broke { opacity: .55; }
+    .item.owned { border-color: rgba(125,255,206,.4); }
+    .item.equipped { border-color: #7dffce; background: rgba(125,255,206,.1); }
+    .item .nm { font-size: .82rem; font-weight: 800; margin-bottom: 3px; }
+    .item .ds { font-size: .66rem; color: rgba(230,236,255,.6); line-height: 1.4; min-height: 2.5em; }
+    .item .pr { margin-top: 8px; font-size: .74rem; font-weight: 900; color: #ffd76a; font-variant-numeric: tabular-nums; }
+    .item .pr.have { color: #7dffce; }
+    .item .lvl { position: absolute; top: 8px; right: 10px; font-size: .62rem; font-weight: 900; color: rgba(230,236,255,.5); }
+    .swatch { width: 100%; height: 30px; border-radius: 7px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,.12); }
+
+    /* ── intro / gameover overlay ── */
+    .ov { position: fixed; inset: 0; z-index: 50; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; background: radial-gradient(ellipse at center, rgba(6,8,26,.55), rgba(2,2,10,.92)); }
+    .ov.on { display: flex; }
+    .ov h1 { font-size: clamp(2.1rem, 8vw, 3.4rem); font-weight: 900; letter-spacing: .1em; background: linear-gradient(100deg,#2bd2ff,#fa6bff,#ffd76a); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 22px rgba(150,90,255,.4)); }
+    .ov p { font-size: .86rem; color: rgba(230,236,255,.68); max-width: 380px; line-height: 1.6; margin: 14px 0 4px; }
+    .ov .big { font-size: 2rem; font-weight: 900; color: #ffd76a; margin: 16px 0; }
+    .ov button { pointer-events: auto; margin-top: 18px; background: linear-gradient(100deg,#2bd2ff,#fa6bff); border: none; color: #04041a; padding: 14px 40px; border-radius: 30px; font-size: 1rem; font-weight: 900; letter-spacing: .1em; cursor: pointer; box-shadow: 0 0 30px rgba(150,90,255,.5); }
+    .ov button:active { transform: scale(.95); }
+    .ov .note { font-size: .64rem; color: rgba(230,236,255,.4); margin-top: 16px; line-height: 1.7; }
+    #go-title { background: none; -webkit-text-fill-color: #ff5a7a; color: #ff5a7a; filter: drop-shadow(0 0 22px rgba(255,60,110,.5)); }
+
+    #home { position: fixed; bottom: max(14px, env(safe-area-inset-bottom)); left: 16px; z-index: 20; display: inline-flex; align-items: center; gap: 5px; background: rgba(2,4,16,.6); border: 1px solid rgba(160,180,255,.22); border-radius: 14px; color: rgba(230,236,255,.7); font-size: .72rem; font-weight: 800; padding: 6px 11px; text-decoration: none; backdrop-filter: blur(4px); }
+    #mute { position: fixed; bottom: max(14px, env(safe-area-inset-bottom)); left: 96px; z-index: 20; pointer-events: auto; background: rgba(2,4,16,.6); border: 1px solid rgba(160,180,255,.22); border-radius: 14px; color: rgba(230,236,255,.7); font-size: .8rem; padding: 5px 11px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <canvas id="scene"></canvas>
+  <div id="cursor"></div>
+  <div id="floaters"></div>
+
+  <div id="hud">
+    <div>
+      <div class="hud-coins" id="coins">0</div>
+      <div class="hud-sub" id="sub">0 destroyed · +0/click</div>
+    </div>
+    <div id="hud-right">
+      <div class="hud-wave" id="wave">WAVE 1</div>
+      <div class="hp-wrap">
+        <div class="hp-label">EARTH INTEGRITY</div>
+        <div class="hp-track"><div class="hp-fill" id="hp"></div></div>
+      </div>
+    </div>
+  </div>
+  <div id="phase">☀ DAY</div>
+
+  <div id="boss-bar">
+    <div class="lbl" id="boss-lbl">⚠ WARLORD ASTEROID</div>
+    <div class="track"><div class="fill" id="boss-fill"></div></div>
+  </div>
+
+  <a id="home" href="/">← gamed.fun</a>
+  <button id="mute">🔊</button>
+  <button id="shop-toggle">⚙ SHOP</button>
+
+  <!-- SHOP -->
+  <div id="shop">
+    <div class="shop-card">
+      <div class="shop-head">
+        <h2>⚙ Defense Shop</h2>
+        <div style="display:flex; align-items:center;">
+          <span class="shop-bal" id="shop-bal">0 💰</span>
+          <button class="shop-close" id="shop-x">✕</button>
+        </div>
+      </div>
+      <div class="shop-section">
+        <h3>⚡ Power — repeatable</h3>
+        <div class="shop-grid" id="grid-power"></div>
+      </div>
+      <div class="shop-section">
+        <h3>🖱 Cursors — equip one (perk + look)</h3>
+        <div class="shop-grid" id="grid-cursor"></div>
+      </div>
+      <div class="shop-section">
+        <h3>🌌 Backgrounds</h3>
+        <div class="shop-grid" id="grid-bg"></div>
+      </div>
+      <div class="shop-section">
+        <h3>☄ Asteroid Skins</h3>
+        <div class="shop-grid" id="grid-ast"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INTRO -->
+  <div class="ov on" id="intro">
+    <h1>ASTEROID DEFENSE</h1>
+    <p>Earth is in the firing line. <b>Click the asteroids</b> to blast them before they hit. Every kill pays <b>coins</b> — spend them in the shop on stronger cursors, coin multipliers, and cosmetics.</p>
+    <p style="font-size:.78rem; color:rgba(230,236,255,.5)">Watch the <b>day/night cycle</b> — rocks are far harder to spot crossing Earth's night side. And every so often, a <b>boss</b> rolls in. Keep clicking it.</p>
+    <button id="start-btn">DEFEND EARTH</button>
+    <div class="note">Mouse + click. Your progress and unlocks save automatically.</div>
+  </div>
+
+  <!-- GAME OVER -->
+  <div class="ov" id="gameover">
+    <h1 id="go-title">EARTH LOST</h1>
+    <p>The bombardment broke through.</p>
+    <div class="big" id="go-stats">0 destroyed</div>
+    <p style="font-size:.78rem; color:rgba(230,236,255,.5)">Your coins and unlocks are kept. Try again — buy a few upgrades first.</p>
+    <button id="retry-btn">DEFEND AGAIN</button>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+  // ════════════════════════════════════════════════════════════════
+  //  ASTEROID DEFENSE — single-file 3D clicker
+  // ════════════════════════════════════════════════════════════════
+  const $ = id => document.getElementById(id);
+
+  // ── persistent progression ──────────────────────────────────────
+  const DEFAULT_SAVE = {
+    coins: 0,
+    power: { dmg: 0, coins: 0, mult: 0 },          // upgrade levels
+    owned: { cursor: ['classic'], bg: ['void'], ast: ['rock'] },
+    equip: { cursor: 'classic', bg: 'void', ast: 'rock' },
+    bestWave: 1,
+  };
+  let SAVE = load();
+  function load() {
+    try {
+      const s = JSON.parse(localStorage.getItem('asteroidDefense'));
+      if (!s) return structuredClone(DEFAULT_SAVE);
+      // merge to tolerate older saves
+      const base = structuredClone(DEFAULT_SAVE);
+      base.coins = s.coins || 0;
+      Object.assign(base.power, s.power || {});
+      Object.assign(base.equip, s.equip || {});
+      for (const k of ['cursor','bg','ast']) base.owned[k] = [...new Set([...base.owned[k], ...((s.owned||{})[k]||[])])];
+      base.bestWave = s.bestWave || 1;
+      return base;
+    } catch { return structuredClone(DEFAULT_SAVE); }
+  }
+  function save() { localStorage.setItem('asteroidDefense', JSON.stringify(SAVE)); }
+
+  // ── catalogs ────────────────────────────────────────────────────
+  // Power upgrades: repeatable, cost scales with level.
+  const POWER = {
+    dmg:   { name: 'Sharper Aim', desc: '+1 damage per click. Needed to crack big rocks & bosses.', base: 40,  step: 1.7, max: 20 },
+    coins: { name: 'Bounty Boost', desc: '+3 coins on every asteroid you destroy.',              base: 60,  step: 1.6, max: 25 },
+    mult:  { name: 'Coin Magnet',  desc: '×1.5 coin multiplier per level. Stacks fast.',          base: 250, step: 2.3, max: 6 },
+  };
+  const powerCost = (k) => Math.round(POWER[k].base * Math.pow(POWER[k].step, SAVE.power[k]));
+
+  // Cursors: each is a cosmetic AND carries a gameplay perk.
+  const CURSORS = {
+    classic: { name: 'Standard Reticle', desc: 'No bonus. The starter sight.',          price: 0,    perk: '' },
+    plasma:  { name: 'Plasma Lance',     desc: '+5 coins on every kill. Glowing pink.',  price: 300,  perk: '+5 coins/kill' },
+    gold:    { name: 'Midas Sight',      desc: '×2 ALL coins earned. Pure gold.',        price: 1500, perk: '×2 coins' },
+    twin:    { name: 'Twin Fang',        desc: '+2 damage per click. Razor crosshair.',  price: 900,  perk: '+2 dmg/click' },
+  };
+  // Backgrounds: pure cosmetic. [deep space tint, star tint]
+  const BGS = {
+    void:   { name: 'The Void',     price: 0,    sky: 0x03030a, star: 0xaab4ff, neb: null },
+    nebula: { name: 'Rose Nebula',  price: 200,  sky: 0x140816, star: 0xffc8e6, neb: 0xff5aa0 },
+    deep:   { name: 'Deep Blue',    price: 200,  sky: 0x040a18, star: 0x9fd0ff, neb: 0x2b6bff },
+    ember:  { name: 'Ember Field',  price: 450,  sky: 0x140a04, star: 0xffd9a0, neb: 0xff7a2b },
+  };
+  // Asteroid skins: pure cosmetic. Color logic handled in makeAsteroid.
+  const ASTS = {
+    rock:    { name: 'Gray Rock',   price: 0,    desc: 'Honest space gravel.' },
+    neon:    { name: 'Neon Crystal',price: 250,  desc: 'Rainbow glowing shards.' },
+    lava:    { name: 'Molten',      price: 350,  desc: 'Cracked, red-hot cores.' },
+    ice:     { name: 'Ice Comet',   price: 350,  desc: 'Pale frozen chunks.' },
+  };
+
+  // ── runtime game state ──────────────────────────────────────────
+  const G = {
+    state: 'intro',            // intro | playing | over
+    coins: SAVE.coins,
+    health: 100, maxHealth: 100,
+    destroyed: 0, wave: 1, t: 0,
+    spawnTimer: 0, bossTimer: 0,
+    asteroids: [], boss: null,
+    sunAngle: 0,
+  };
+
+  // derived bonuses from upgrades + equipped cursor
+  function dmgPerClick() {
+    let d = 1 + SAVE.power.dmg * 1;
+    if (SAVE.equip.cursor === 'twin') d += 2;
+    return d;
+  }
+  function coinsForKill(base) {
+    let c = base + SAVE.power.coins * 3;
+    if (SAVE.equip.cursor === 'plasma') c += 5;
+    let mult = Math.pow(1.5, SAVE.power.mult);
+    if (SAVE.equip.cursor === 'gold') mult *= 2;
+    return Math.round(c * mult);
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  //  THREE.JS SCENE
+  // ════════════════════════════════════════════════════════════════
+  const canvas = $('scene');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 2000);
+  camera.position.set(0, 0, 60);
+
+  // lights — a strong sun (the day/night driver) + faint ambient
+  const sun = new THREE.DirectionalLight(0xfff4e0, 2.2);
+  scene.add(sun);
+  const ambient = new THREE.AmbientLight(0x404a80, 0.25);
+  scene.add(ambient);
+  const rim = new THREE.PointLight(0x4060ff, 0.6, 400);
+  rim.position.set(-40, 20, 40);
+  scene.add(rim);
+
+  // ── Earth (procedural canvas texture) ──────────────────────────
+  function earthTexture() {
+    const c = document.createElement('canvas'); c.width = 1024; c.height = 512;
+    const x = c.getContext('2d');
+    // ocean gradient
+    const g = x.createLinearGradient(0, 0, 0, 512);
+    g.addColorStop(0, '#0a2a55'); g.addColorStop(0.5, '#0e3a72'); g.addColorStop(1, '#0a2a55');
+    x.fillStyle = g; x.fillRect(0, 0, 1024, 512);
+    // continents — clumped green/brown blobs
+    let seed = 1337; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+    for (let i = 0; i < 26; i++) {
+      const cx = rnd() * 1024, cy = 90 + rnd() * 332, blobs = 6 + (rnd() * 10 | 0);
+      const land = rnd() < 0.5 ? '#2f7a3a' : '#3d7d2f';
+      x.fillStyle = land;
+      for (let b = 0; b < blobs; b++) {
+        const a = rnd() * 6.28, r = 14 + rnd() * 60;
+        const px = cx + Math.cos(a) * rnd() * 80, py = cy + Math.sin(a) * rnd() * 50;
+        x.beginPath(); x.arc(px, py, r, 0, 6.28); x.fill();
+      }
+    }
+    // ice caps
+    x.fillStyle = '#e8f0ff'; x.fillRect(0, 0, 1024, 26); x.fillRect(0, 486, 1024, 26);
+    return new THREE.CanvasTexture(c);
+  }
+  const earthMap = earthTexture();
+  const earth = new THREE.Mesh(
+    new THREE.SphereGeometry(13, 64, 48),
+    new THREE.MeshPhongMaterial({ map: earthMap, shininess: 12, emissive: 0x05122a, emissiveIntensity: 0.5 })
+  );
+  scene.add(earth);
+  // soft atmosphere shell
+  const atmo = new THREE.Mesh(
+    new THREE.SphereGeometry(13.7, 48, 32),
+    new THREE.MeshBasicMaterial({ color: 0x3b7bff, transparent: true, opacity: 0.12, side: THREE.BackSide })
+  );
+  scene.add(atmo);
+
+  // ── starfield ───────────────────────────────────────────────────
+  let stars, nebula = null;
+  function buildStars(starColor) {
+    if (stars) scene.remove(stars);
+    const n = 1400, pos = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      const r = 400 + Math.random() * 600;
+      const th = Math.random() * 6.28, ph = Math.acos(2 * Math.random() - 1);
+      pos[i*3] = r * Math.sin(ph) * Math.cos(th);
+      pos[i*3+1] = r * Math.sin(ph) * Math.sin(th);
+      pos[i*3+2] = r * Math.cos(ph);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    stars = new THREE.Points(geo, new THREE.PointsMaterial({ color: starColor, size: 2.2, sizeAttenuation: false }));
+    scene.add(stars);
+  }
+  function buildNebula(col) {
+    if (nebula) { scene.remove(nebula); nebula = null; }
+    if (col == null) return;
+    // a few big soft additive sprites
+    const tex = (() => {
+      const c = document.createElement('canvas'); c.width = c.height = 128;
+      const ctx = c.getContext('2d');
+      const gr = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+      gr.addColorStop(0, 'rgba(255,255,255,0.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = gr; ctx.fillRect(0, 0, 128, 128);
+      return new THREE.CanvasTexture(c);
+    })();
+    nebula = new THREE.Group();
+    for (let i = 0; i < 5; i++) {
+      const m = new THREE.SpriteMaterial({ map: tex, color: col, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false });
+      const s = new THREE.Sprite(m);
+      s.position.set((Math.random()-0.5)*700, (Math.random()-0.5)*500, -300 - Math.random()*300);
+      const sc = 200 + Math.random()*260; s.scale.set(sc, sc, 1);
+      nebula.add(s);
+    }
+    scene.add(nebula);
+  }
+
+  function applyBackground() {
+    const b = BGS[SAVE.equip.bg] || BGS.void;
+    scene.background = new THREE.Color(b.sky);
+    renderer.setClearColor(b.sky);
+    buildStars(b.star);
+    buildNebula(b.neb);
+  }
+
+  // ── asteroids ───────────────────────────────────────────────────
+  function astAppearance() {
+    const skin = SAVE.equip.ast;
+    if (skin === 'neon') { const col = new THREE.Color().setHSL(Math.random(), 1, 0.6); return { color: col, emissive: col.clone().multiplyScalar(0.55), shininess: 60 }; }
+    if (skin === 'lava') { const col = new THREE.Color(0x3a1208); return { color: col, emissive: new THREE.Color(0xff4a10).multiplyScalar(0.5), shininess: 8 }; }
+    if (skin === 'ice')  { const col = new THREE.Color(0xbfe0ff); return { color: col, emissive: new THREE.Color(0x224466).multiplyScalar(0.4), shininess: 90 }; }
+    const g = 0.32 + Math.random() * 0.18;                       // gray rock
+    return { color: new THREE.Color(g, g, g*0.96), emissive: new THREE.Color(0x000000), shininess: 4 };
+  }
+
+  function makeAsteroid(boss = false) {
+    const radius = boss ? 8 : 1.6 + Math.random() * 2.6;
+    let geo = boss
+      ? new THREE.IcosahedronGeometry(radius, 1)
+      : (Math.random() < 0.5 ? new THREE.DodecahedronGeometry(radius, 0) : new THREE.IcosahedronGeometry(radius, 0));
+    // rough it up
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const f = 1 + (Math.random() - 0.5) * (boss ? 0.18 : 0.34);
+      pos.setXYZ(i, pos.getX(i)*f, pos.getY(i)*f, pos.getZ(i)*f);
+    }
+    geo.computeVertexNormals();
+    const ap = boss ? { color: new THREE.Color(0x401015), emissive: new THREE.Color(0xff2a40).multiplyScalar(0.4), shininess: 20 } : astAppearance();
+    const mat = new THREE.MeshPhongMaterial({ color: ap.color, emissive: ap.emissive, shininess: ap.shininess, flatShading: true });
+    const mesh = new THREE.Mesh(geo, mat);
+
+    // spawn on a ring out in front, drift toward Earth
+    const ang = Math.random() * 6.28, spread = boss ? 8 : 30 + Math.random() * 24;
+    mesh.position.set(Math.cos(ang) * spread, Math.sin(ang) * spread * 0.7, -260 - Math.random() * 60);
+    const obj = {
+      mesh, boss, radius,
+      hp: boss ? 60 + G.wave * 10 : Math.ceil(radius * 1.2),
+      maxHp: 0,
+      speed: boss ? 7 : 11 + Math.random() * 9 + G.wave * 0.4,
+      spin: new THREE.Vector3((Math.random()-0.5)*2, (Math.random()-0.5)*2, (Math.random()-0.5)*2),
+      hitFlash: 0,
+    };
+    obj.maxHp = obj.hp;
+    scene.add(mesh);
+    return obj;
+  }
+
+  // ── raycasting / clicks ─────────────────────────────────────────
+  const raycaster = new THREE.Raycaster();
+  const ndc = new THREE.Vector2();
+  let cursorX = innerWidth/2, cursorY = innerHeight/2;
+
+  function pointerMove(e) {
+    cursorX = e.clientX; cursorY = e.clientY;
+    const cur = $('cursor');
+    cur.style.transform = `translate(${cursorX}px, ${cursorY}px)`;
+  }
+
+  function tryHit() {
+    if (G.state !== 'playing') return;
+    $('cursor').classList.remove('tap'); void $('cursor').offsetWidth; $('cursor').classList.add('tap');
+    ndc.x = (cursorX / innerWidth) * 2 - 1;
+    ndc.y = -(cursorY / innerHeight) * 2 + 1;
+    raycaster.setFromCamera(ndc, camera);
+    const targets = [];
+    for (const a of G.asteroids) targets.push(a.mesh);
+    if (G.boss) targets.push(G.boss.mesh);
+    const hits = raycaster.intersectObjects(targets, false);
+    if (!hits.length) { blip(180, 0.04, 'sine', 0.04); return; }
+    const mesh = hits[0].object;
+    const obj = G.boss && G.boss.mesh === mesh ? G.boss : G.asteroids.find(a => a.mesh === mesh);
+    if (!obj) return;
+    damage(obj, hits[0].point);
+  }
+
+  function damage(obj, point) {
+    const dmg = dmgPerClick();
+    obj.hp -= dmg;
+    obj.hitFlash = 1;
+    blip(obj.boss ? 90 : 320 + Math.random()*120, 0.05, 'triangle', 0.05);
+    if (obj.hp <= 0) { destroy(obj); }
+    else if (obj.boss) updateBossBar();
+  }
+
+  function destroy(obj) {
+    const reward = coinsForKill(obj.boss ? 200 + G.wave * 20 : 8 + Math.round(obj.radius * 2));
+    G.coins += reward; G.destroyed++;
+    explode(obj.mesh.position, obj.boss);
+    floater(obj.mesh.position, '+' + reward, obj.boss ? '#ffd76a' : '#7dffce', obj.boss ? 1.6 : 1);
+    scene.remove(obj.mesh);
+    obj.mesh.geometry.dispose(); obj.mesh.material.dispose();
+    blip(obj.boss ? 140 : 520, 0.18, 'sawtooth', 0.06);
+    if (obj.boss) { G.boss = null; $('boss-bar').classList.remove('on'); floater(obj.mesh.position, 'BOSS DOWN!', '#ff5a7a', 2); }
+    else G.asteroids = G.asteroids.filter(a => a !== obj);
+    syncHud();
+  }
+
+  // particle explosions (reused pool of tiny meshes)
+  const debris = [];
+  function explode(pos, big) {
+    const n = big ? 26 : 12;
+    for (let i = 0; i < n; i++) {
+      const m = new THREE.Mesh(
+        new THREE.TetrahedronGeometry(big ? 1.1 : 0.5),
+        new THREE.MeshBasicMaterial({ color: big ? 0xffb060 : 0x9fb4ff })
+      );
+      m.position.copy(pos);
+      const v = new THREE.Vector3((Math.random()-0.5), (Math.random()-0.5), (Math.random()-0.5)).multiplyScalar(big ? 50 : 30);
+      scene.add(m);
+      debris.push({ mesh: m, v, life: 0.7 });
+    }
+  }
+
+  // ── floating combat text (HTML) ────────────────────────────────
+  const floaterLayer = $('floaters');
+  function floater(worldPos, text, color, scale = 1) {
+    const v = worldPos.clone().project(camera);
+    const sx = (v.x * 0.5 + 0.5) * innerWidth, sy = (-v.y * 0.5 + 0.5) * innerHeight;
+    const el = document.createElement('div');
+    el.className = 'floater'; el.textContent = text;
+    el.style.left = sx + 'px'; el.style.top = sy + 'px';
+    el.style.color = color; el.style.fontSize = (0.95 * scale) + 'rem';
+    floaterLayer.appendChild(el);
+    setTimeout(() => el.remove(), 900);
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  //  AUDIO (tiny WebAudio blips)
+  // ════════════════════════════════════════════════════════════════
+  let actx = null, muted = false;
+  function blip(freq, dur, type, gain) {
+    if (muted) return;
+    if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch { return; } }
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(gain, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + dur);
+    o.connect(g).connect(actx.destination);
+    o.start(); o.stop(actx.currentTime + dur);
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  //  GAME LOOP
+  // ════════════════════════════════════════════════════════════════
+  let last = performance.now();
+  function loop() {
+    requestAnimationFrame(loop);
+    const now = performance.now(), dt = Math.min((now - last) / 1000, 0.05); last = now;
+
+    earth.rotation.y += dt * 0.12;
+    atmo.rotation.y += dt * 0.05;
+    if (stars) stars.rotation.y += dt * 0.005;
+
+    // day/night: orbit the sun around the scene; track phase for HUD + difficulty
+    G.sunAngle += dt * 0.22;
+    sun.position.set(Math.cos(G.sunAngle) * 200, 60, Math.sin(G.sunAngle) * 200);
+    // "daylight" = how much the sun faces the camera/play side (z>0)
+    const daylight = (Math.sin(G.sunAngle) + 1) / 2;           // 0 night … 1 day
+    ambient.intensity = 0.08 + daylight * 0.28;                // darker field at night
+    if (G.state === 'playing') {
+      $('phase').textContent = daylight > 0.55 ? '☀ DAY' : daylight > 0.35 ? '🌗 DUSK' : '🌑 NIGHT';
+    }
+
+    if (G.state === 'playing') updatePlay(dt, daylight);
+
+    // debris
+    for (let i = debris.length - 1; i >= 0; i--) {
+      const d = debris[i]; d.life -= dt;
+      d.mesh.position.addScaledVector(d.v, dt);
+      d.mesh.material.opacity = Math.max(0, d.life);
+      d.mesh.scale.multiplyScalar(1 - dt * 1.5);
+      if (d.life <= 0) { scene.remove(d.mesh); d.mesh.geometry.dispose(); d.mesh.material.dispose(); debris.splice(i, 1); }
+    }
+
+    renderer.render(scene, camera);
+  }
+
+  function updatePlay(dt, daylight) {
+    G.t += dt;
+    G.wave = 1 + Math.floor(G.destroyed / 12);
+    $('wave').textContent = 'WAVE ' + G.wave;
+
+    // spawn cadence ramps with wave
+    G.spawnTimer -= dt;
+    const interval = Math.max(0.5, 1.7 - G.wave * 0.08);
+    const cap = 5 + G.wave;
+    if (G.spawnTimer <= 0 && G.asteroids.length < cap) {
+      G.spawnTimer = interval * (0.6 + Math.random() * 0.8);
+      G.asteroids.push(makeAsteroid(false));
+    }
+
+    // boss every ~45s, not during another boss
+    G.bossTimer += dt;
+    if (!G.boss && G.bossTimer > 45 && G.wave >= 2) {
+      G.bossTimer = 0;
+      G.boss = makeAsteroid(true);
+      $('boss-bar').classList.add('on'); updateBossBar();
+    }
+
+    // update asteroids
+    for (let i = G.asteroids.length - 1; i >= 0; i--) {
+      if (stepAsteroid(G.asteroids[i], dt, daylight)) {
+        // hit Earth
+        hurtEarth(14 + G.asteroids[i].radius * 2);
+        scene.remove(G.asteroids[i].mesh);
+        G.asteroids.splice(i, 1);
+      }
+    }
+    if (G.boss) {
+      if (stepAsteroid(G.boss, dt, daylight)) {
+        hurtEarth(45); scene.remove(G.boss.mesh); G.boss = null; $('boss-bar').classList.remove('on');
+      }
+    }
+  }
+
+  function stepAsteroid(obj, dt, daylight) {
+    const m = obj.mesh;
+    // move toward Earth (origin)
+    const dir = m.position.clone().multiplyScalar(-1).normalize();
+    m.position.addScaledVector(dir, obj.speed * dt);
+    m.rotation.x += obj.spin.x * dt; m.rotation.y += obj.spin.y * dt; m.rotation.z += obj.spin.z * dt;
+    // night-side dimming: rocks crossing the dark side get harder to see
+    if (obj.hitFlash > 0) {
+      obj.hitFlash = Math.max(0, obj.hitFlash - dt * 4);
+      m.material.emissive.setRGB(obj.hitFlash, obj.hitFlash, obj.hitFlash);
+    }
+    return m.position.length() < 14;     // reached Earth surface
+  }
+
+  function hurtEarth(amount) {
+    G.health -= amount;
+    blip(70, 0.3, 'square', 0.08);
+    document.body.animate([{ filter: 'brightness(2.2) saturate(0.3)' }, { filter: 'none' }], { duration: 260 });
+    syncHud();
+    if (G.health <= 0) gameOver();
+  }
+
+  function updateBossBar() {
+    if (!G.boss) return;
+    $('boss-fill').style.width = Math.max(0, G.boss.hp / G.boss.maxHp * 100) + '%';
+  }
+
+  // ── HUD sync ────────────────────────────────────────────────────
+  function syncHud() {
+    $('coins').textContent = G.coins.toLocaleString();
+    $('sub').textContent = G.destroyed + ' destroyed · +' + coinsForKill(8) + '/kill';
+    $('hp').style.width = Math.max(0, G.health) / G.maxHealth * 100 + '%';
+    const h = G.health / G.maxHealth;
+    $('hp').style.background = h > 0.5 ? 'linear-gradient(90deg,#2bd2ff,#7dffce)' : h > 0.25 ? 'linear-gradient(90deg,#ffd76a,#ff9d4a)' : 'linear-gradient(90deg,#ff5a7a,#ff2a40)';
+    SAVE.coins = G.coins;
+    if (G.wave > SAVE.bestWave) SAVE.bestWave = G.wave;
+    save();
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  //  SHOP
+  // ════════════════════════════════════════════════════════════════
+  function renderShop() {
+    $('shop-bal').textContent = G.coins.toLocaleString() + ' 💰';
+
+    // Power
+    const gp = $('grid-power'); gp.innerHTML = '';
+    for (const k in POWER) {
+      const p = POWER[k], lvl = SAVE.power[k], maxed = lvl >= p.max, cost = powerCost(k);
+      const afford = G.coins >= cost;
+      const el = document.createElement('div');
+      el.className = 'item' + (maxed ? ' owned' : afford ? '' : ' locked-broke');
+      el.innerHTML = `<div class="lvl">Lv ${lvl}/${p.max}</div><div class="nm">${p.name}</div><div class="ds">${p.desc}</div><div class="pr ${maxed?'have':''}">${maxed ? 'MAXED' : cost.toLocaleString() + ' 💰'}</div>`;
+      if (!maxed) el.onclick = () => buyPower(k);
+      gp.appendChild(el);
+    }
+    // Cursors / Backgrounds / Asteroids
+    renderCosmetic('cursor', CURSORS, $('grid-cursor'), true);
+    renderCosmetic('bg', BGS, $('grid-bg'), false);
+    renderCosmetic('ast', ASTS, $('grid-ast'), false);
+  }
+
+  function renderCosmetic(kind, catalog, grid, showPerk) {
+    grid.innerHTML = '';
+    for (const id in catalog) {
+      const it = catalog[id];
+      const owned = SAVE.owned[kind].includes(id);
+      const equipped = SAVE.equip[kind] === id;
+      const afford = G.coins >= it.price;
+      const el = document.createElement('div');
+      el.className = 'item' + (equipped ? ' equipped' : owned ? ' owned' : afford ? '' : ' locked-broke');
+      let swatch = '';
+      if (kind === 'bg') swatch = `<div class="swatch" style="background:radial-gradient(circle at 60% 40%, #${(it.neb||it.star).toString(16).padStart(6,'0')}55, #${it.sky.toString(16).padStart(6,'0')})"></div>`;
+      if (kind === 'ast') swatch = `<div class="swatch" style="background:${astSwatch(id)}"></div>`;
+      if (kind === 'cursor') swatch = `<div class="swatch" style="display:grid;place-items:center;background:#0a0e1e">${cursorSVG(id, 22)}</div>`;
+      const sub = showPerk ? (it.perk ? `<b style="color:#7dffce">${it.perk}</b> · ${it.desc}` : it.desc) : (it.desc || '');
+      const priceHtml = owned ? (equipped ? '<span class="pr have">EQUIPPED</span>' : '<span class="pr have">tap to equip</span>') : `<span class="pr">${it.price.toLocaleString()} 💰</span>`;
+      el.innerHTML = `${swatch}<div class="nm">${it.name}</div><div class="ds">${sub}</div>${priceHtml}`;
+      el.onclick = () => owned ? equip(kind, id) : buyCosmetic(kind, id);
+      grid.appendChild(el);
+    }
+  }
+  function astSwatch(id) {
+    if (id === 'neon') return 'linear-gradient(90deg,#ff5af0,#5affc8,#5a9bff)';
+    if (id === 'lava') return 'radial-gradient(circle,#ff6a20,#3a1208)';
+    if (id === 'ice')  return 'linear-gradient(135deg,#dff0ff,#6fa8d8)';
+    return 'linear-gradient(135deg,#6a6a6a,#3a3a3a)';
+  }
+
+  function buyPower(k) {
+    const cost = powerCost(k);
+    if (G.coins < cost || SAVE.power[k] >= POWER[k].max) return;
+    G.coins -= cost; SAVE.power[k]++; syncHud(); renderShop();
+    blip(660, 0.12, 'triangle', 0.06);
+  }
+  function buyCosmetic(kind, id) {
+    const it = (kind === 'cursor' ? CURSORS : kind === 'bg' ? BGS : ASTS)[id];
+    if (G.coins < it.price) { blip(140, 0.1, 'square', 0.05); return; }
+    G.coins -= it.price; SAVE.owned[kind].push(id);
+    equip(kind, id); syncHud();
+    blip(780, 0.14, 'triangle', 0.06);
+  }
+  function equip(kind, id) {
+    SAVE.equip[kind] = id; save();
+    if (kind === 'cursor') applyCursor();
+    if (kind === 'bg') applyBackground();
+    // asteroid skin applies to newly spawned rocks
+    renderShop(); syncHud();
+    blip(520, 0.08, 'sine', 0.05);
+  }
+
+  // ── cursor cosmetic SVGs ────────────────────────────────────────
+  function cursorSVG(id, size = 38) {
+    const s = `width="${size}" height="${size}" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg"`;
+    if (id === 'plasma') return `<svg ${s}><g fill="none" stroke="#fa6bff" stroke-width="2" stroke-linecap="round" filter="drop-shadow(0 0 5px #fa6bff)"><circle cx="19" cy="19" r="6"/><path d="M19 3v7M19 28v7M3 19h7M28 19h7"/></g><circle cx="19" cy="19" r="2.4" fill="#fa6bff"/></svg>`;
+    if (id === 'gold') return `<svg ${s}><g filter="drop-shadow(0 0 5px #ffd76a)"><polygon points="19,3 25,8 25,30 19,35 13,30 13,8" fill="none" stroke="#ffd76a" stroke-width="2"/><circle cx="19" cy="19" r="3.4" fill="#ffd76a"/><path d="M19 6v5M19 27v5" stroke="#ffd76a" stroke-width="2" stroke-linecap="round"/></g></svg>`;
+    if (id === 'twin') return `<svg ${s}><g fill="none" stroke="#7dffce" stroke-width="2" stroke-linecap="round" filter="drop-shadow(0 0 4px #7dffce)"><path d="M8 8l8 8M30 8l-8 8M8 30l8-8M30 30l-8-8"/><circle cx="19" cy="19" r="2.2" fill="#7dffce"/></g></svg>`;
+    // classic
+    return `<svg ${s}><g fill="none" stroke="#7db4ff" stroke-width="2" stroke-linecap="round" filter="drop-shadow(0 0 4px rgba(120,160,255,.8))"><circle cx="19" cy="19" r="5.5"/><path d="M19 4v8M19 26v8M4 19h8M26 19h8"/></g><circle cx="19" cy="19" r="1.8" fill="#7db4ff"/></svg>`;
+  }
+  function applyCursor() { $('cursor').innerHTML = cursorSVG(SAVE.equip.cursor, 38); }
+
+  // ════════════════════════════════════════════════════════════════
+  //  FLOW
+  // ════════════════════════════════════════════════════════════════
+  function startGame() {
+    G.state = 'playing';
+    G.health = G.maxHealth; G.destroyed = 0; G.wave = 1; G.t = 0;
+    G.spawnTimer = 0.5; G.bossTimer = 0;
+    for (const a of G.asteroids) scene.remove(a.mesh);
+    if (G.boss) scene.remove(G.boss.mesh);
+    G.asteroids = []; G.boss = null;
+    $('boss-bar').classList.remove('on');
+    $('intro').classList.remove('on'); $('gameover').classList.remove('on');
+    syncHud();
+    if (actx && actx.state === 'suspended') actx.resume();
+  }
+  function gameOver() {
+    G.state = 'over';
+    $('go-stats').textContent = G.destroyed + ' destroyed · wave ' + G.wave;
+    $('gameover').classList.add('on');
+    save();
+  }
+
+  // ── events ──────────────────────────────────────────────────────
+  window.addEventListener('pointermove', pointerMove);
+  window.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('#shop, #shop-toggle, #intro, #gameover, #home, #mute')) return;
+    if (!actx) { try { actx = new (window.AudioContext||window.webkitAudioContext)(); } catch {} }
+    tryHit();
+  });
+  $('start-btn').onclick = startGame;
+  $('retry-btn').onclick = startGame;
+  $('shop-toggle').onclick = () => { renderShop(); $('shop').classList.add('on'); };
+  $('shop-x').onclick = () => $('shop').classList.remove('on');
+  $('shop').addEventListener('click', (e) => { if (e.target.id === 'shop') $('shop').classList.remove('on'); });
+  $('mute').onclick = () => { muted = !muted; $('mute').textContent = muted ? '🔇' : '🔊'; };
+  window.addEventListener('resize', () => {
+    camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+  window.addEventListener('beforeunload', save);
+
+  // ── boot ────────────────────────────────────────────────────────
+  renderer.setSize(innerWidth, innerHeight);
+  applyBackground();
+  applyCursor();
+  syncHud();
+  loop();
+
+  // expose for headless testing
+  window.__AD = { G, SAVE, startGame, makeAsteroid, damage, destroy, coinsForKill, dmgPerClick, buyPower, buyCosmetic, equip, POWER, CURSORS, scene };
+  </script>
+</body>
+</html>
