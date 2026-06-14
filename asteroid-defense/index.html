@@ -407,7 +407,7 @@
   }
 
   function makeAsteroid(boss = false) {
-    const radius = boss ? 13 : 4 + Math.random() * 3.5;
+    const radius = boss ? 15 : 5.5 + Math.random() * 4;
     // finely subdivided sphere, then displaced by a few smooth plane-waves so
     // it's an irregular potato (not a chunky low-poly chunk)
     const detail = boss ? 4 : 3;
@@ -436,13 +436,13 @@
     });
     const mesh = new THREE.Mesh(geo, mat);
 
-    // spawn FAR out and spread wide, then fly in toward Earth — rocks grow as
-    // they approach instead of just appearing nearby
-    const ang = Math.random() * 6.28, spread = boss ? 30 : 60 + Math.random() * 110;
-    mesh.position.set(Math.cos(ang) * spread, Math.sin(ang) * spread * 0.6, (boss ? -320 : -300) - Math.random() * 160);
+    // spawn well out to the SIDES (never near screen center), then fly in
+    // toward Earth — rocks slide in from the screen edges and grow as they come
+    const ang = Math.random() * 6.28, spread = boss ? 120 : 150 + Math.random() * 100;
+    mesh.position.set(Math.cos(ang) * spread, Math.sin(ang) * spread * 0.62, (boss ? -260 : -240) - Math.random() * 120);
     const obj = {
       mesh, boss, radius,
-      hp: boss ? 60 + G.wave * 10 : Math.max(2, Math.round(radius * 0.8)),
+      hp: boss ? 60 + G.wave * 10 : Math.max(2, Math.round(radius * 0.65)),
       maxHp: 0,
       speed: boss ? 12 : 18 + Math.random() * 12 + G.wave * 0.5,
       spin: new THREE.Vector3((Math.random()-0.5)*1.4, (Math.random()-0.5)*1.4, (Math.random()-0.5)*1.4),
