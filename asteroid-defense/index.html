@@ -282,34 +282,53 @@
   fill.position.set(0, 10, 80);
   scene.add(fill);
 
-  // ── Earth (procedural canvas texture) ──────────────────────────
-  function earthTexture() {
-    const c = document.createElement('canvas'); c.width = 1024; c.height = 512;
-    const x = c.getContext('2d');
-    // ocean gradient
-    const g = x.createLinearGradient(0, 0, 0, 512);
-    g.addColorStop(0, '#0a2a55'); g.addColorStop(0.5, '#0e3a72'); g.addColorStop(1, '#0a2a55');
-    x.fillStyle = g; x.fillRect(0, 0, 1024, 512);
-    // continents — clumped green/brown blobs
-    let seed = 1337; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
-    for (let i = 0; i < 26; i++) {
-      const cx = rnd() * 1024, cy = 90 + rnd() * 332, blobs = 6 + (rnd() * 10 | 0);
-      const land = rnd() < 0.5 ? '#2f7a3a' : '#3d7d2f';
-      x.fillStyle = land;
-      for (let b = 0; b < blobs; b++) {
-        const a = rnd() * 6.28, r = 14 + rnd() * 60;
-        const px = cx + Math.cos(a) * rnd() * 80, py = cy + Math.sin(a) * rnd() * 50;
-        x.beginPath(); x.arc(px, py, r, 0, 6.28); x.fill();
-      }
+  // ── Earth — same realistic treatment as the asteroids: a smooth procedural
+  //    height field drives both a grainy color map and a bump map for relief
+  function earthTextures() {
+    const W = 768, H = 384;
+    // smooth height field: low-freq random grid (big continents) upscaled with
+    // smoothing, plus a faint finer octave for coastline texture
+    function octave(gw, gh) {
+      const s = document.createElement('canvas'); s.width = gw; s.height = gh;
+      const sc = s.getContext('2d'), sd = sc.createImageData(gw, gh);
+      for (let i = 0; i < sd.data.length; i += 4) { const v = Math.random()*255; sd.data[i]=sd.data[i+1]=sd.data[i+2]=v; sd.data[i+3]=255; }
+      sc.putImageData(sd, 0, 0);
+      const b = document.createElement('canvas'); b.width = W; b.height = H;
+      const bxc = b.getContext('2d'); bxc.imageSmoothingEnabled = true; bxc.drawImage(s, 0, 0, W, H);
+      return bxc.getImageData(0, 0, W, H).data;
     }
-    // ice caps
-    x.fillStyle = '#e8f0ff'; x.fillRect(0, 0, 1024, 26); x.fillRect(0, 486, 1024, 26);
-    return new THREE.CanvasTexture(c);
+    const o1 = octave(22, 12), o2 = octave(54, 28);   // big landmasses + detail
+    const hd = new Float32Array(W*H);
+    for (let p = 0; p < W*H; p++) hd[p] = (o1[p*4]*0.72 + o2[p*4]*0.28);
+
+    const colC = document.createElement('canvas'); colC.width = W; colC.height = H;
+    const cc = colC.getContext('2d'), cimg = cc.createImageData(W, H);
+    const bumpC = document.createElement('canvas'); bumpC.width = W; bumpC.height = H;
+    const bc = bumpC.getContext('2d'), bimg = bc.createImageData(W, H);
+    const sea = 0.52;
+    for (let p = 0; p < W*H; p++) {
+      const h = hd[p] / 255, lat = Math.abs(Math.floor(p/W)/H - 0.5) * 2;
+      let r, g, b, bump;
+      if (lat > 0.9) { r = 232; g = 238; b = 250; bump = 205; }           // polar ice
+      else if (h < sea) { const d = h/sea; r = 6+d*14; g = 26+d*44; b = 60+d*70; bump = 55+d*25; }  // ocean
+      else {
+        const t = (h-sea)/(1-sea);                                        // 0 coast → 1 peak
+        r = 46 + t*70; g = 92 - t*44; b = 44 - t*8;                       // green → brown
+        if (t > 0.72) { const m = (t-0.72)/0.28; r = 104+m*78; g = 92+m*66; b = 78+m*64; }  // snowy peaks
+        bump = 132 + t*116;
+      }
+      const gr = (Math.random()-0.5)*16; r += gr; g += gr; b += gr;
+      cimg.data[p*4]=r; cimg.data[p*4+1]=g; cimg.data[p*4+2]=b; cimg.data[p*4+3]=255;
+      const bgn = bump + (Math.random()-0.5)*12;
+      bimg.data[p*4]=bimg.data[p*4+1]=bimg.data[p*4+2]=bgn; bimg.data[p*4+3]=255;
+    }
+    cc.putImageData(cimg, 0, 0); bc.putImageData(bimg, 0, 0);
+    return { map: new THREE.CanvasTexture(colC), bump: new THREE.CanvasTexture(bumpC) };
   }
-  const earthMap = earthTexture();
+  const earthTex = earthTextures();
   const earth = new THREE.Mesh(
-    new THREE.SphereGeometry(13, 64, 48),
-    new THREE.MeshPhongMaterial({ map: earthMap, shininess: 12, emissive: 0x05122a, emissiveIntensity: 0.5 })
+    new THREE.SphereGeometry(13, 96, 64),
+    new THREE.MeshPhongMaterial({ map: earthTex.map, bumpMap: earthTex.bump, bumpScale: 0.7, shininess: 6, emissive: 0x010308, emissiveIntensity: 0.35 })
   );
   scene.add(earth);
   // soft atmosphere shell
@@ -436,15 +455,15 @@
     });
     const mesh = new THREE.Mesh(geo, mat);
 
-    // spawn well out to the SIDES (never near screen center), then fly in
-    // toward Earth — rocks slide in from the screen edges and grow as they come
-    const ang = Math.random() * 6.28, spread = boss ? 120 : 150 + Math.random() * 100;
-    mesh.position.set(Math.cos(ang) * spread, Math.sin(ang) * spread * 0.62, (boss ? -260 : -240) - Math.random() * 120);
+    // spawn OFF-SCREEN, well beyond the visible edges, then fly inward toward
+    // Earth — rocks enter from off the screen and grow as they approach
+    const ang = Math.random() * 6.28, spread = boss ? 260 : 320 + Math.random() * 180;
+    mesh.position.set(Math.cos(ang) * spread, Math.sin(ang) * spread * 0.62, (boss ? -220 : -200) - Math.random() * 120);
     const obj = {
       mesh, boss, radius,
       hp: boss ? 60 + G.wave * 10 : Math.max(2, Math.round(radius * 0.65)),
       maxHp: 0,
-      speed: boss ? 12 : 18 + Math.random() * 12 + G.wave * 0.5,
+      speed: boss ? 18 : 30 + Math.random() * 14 + G.wave * 0.7,
       spin: new THREE.Vector3((Math.random()-0.5)*1.4, (Math.random()-0.5)*1.4, (Math.random()-0.5)*1.4),
       hitFlash: 0, baseEmissive: ap.emissive.clone(),
     };
@@ -554,6 +573,9 @@
   function loop() {
     requestAnimationFrame(loop);
     const now = performance.now(), dt = Math.min((now - last) / 1000, 0.05); last = now;
+
+    // freeze everything while the shop is open — nothing moves, just render
+    if ($('shop').classList.contains('on')) { renderer.render(scene, camera); return; }
 
     earth.rotation.y += dt * 0.12;
     atmo.rotation.y += dt * 0.05;
