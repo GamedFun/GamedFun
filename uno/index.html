@@ -183,9 +183,9 @@
 
     /* ---------- Draw pile (UNO card back) ---------- */
     .deck {
-      width: 96px;
-      height: 138px;
-      border-radius: 13px;
+      width: 112px;
+      height: 164px;
+      border-radius: 14px;
       border: 0;
       position: relative;
       cursor: pointer;
@@ -201,7 +201,7 @@
     .deck::before {
       content: "";
       position: absolute;
-      inset: 16% 12%;
+      inset: 11% 9%;
       border-radius: 50%;
       background: linear-gradient(150deg, #ff5b5b, #d11e1e);
       transform: rotate(-22deg);
@@ -213,7 +213,7 @@
       inset: 0;
       display: grid;
       place-items: center;
-      font-size: 1.45rem;
+      font-size: 1.75rem;
       font-weight: 1000;
       font-style: italic;
       letter-spacing: -.02em;
@@ -228,10 +228,10 @@
 
     /* ---------- Playable / discard cards ---------- */
     .card {
-      width: 96px;
-      height: 138px;
+      width: 112px;
+      height: 164px;
       flex: 0 0 auto;
-      border-radius: 13px;
+      border-radius: 14px;
       border: 0;
       padding: 0;
       cursor: pointer;
@@ -239,7 +239,7 @@
       overflow: hidden;
       background:
         linear-gradient(150deg, var(--c1, #888) 0%, var(--c2, #555) 100%);
-      box-shadow: 0 10px 24px rgba(0,0,0,.38), inset 0 0 0 3px #fff, inset 0 0 0 4px rgba(0,0,0,.12);
+      box-shadow: 0 10px 24px rgba(0,0,0,.38), inset 0 0 0 4px #fff, inset 0 0 0 5px rgba(0,0,0,.12);
       transform: translateY(0);
       transition: transform .14s ease, filter .14s ease, opacity .14s ease, box-shadow .14s ease;
     }
@@ -247,44 +247,45 @@
     .card::before {
       content: "";
       position: absolute;
-      inset: 3px 3px 50% 3px;
-      border-radius: 11px 11px 40% 40%;
-      background: linear-gradient(180deg, rgba(255,255,255,.32), rgba(255,255,255,0));
+      inset: 4px 4px 52% 4px;
+      border-radius: 11px 11px 50% 50%;
+      background: linear-gradient(180deg, rgba(255,255,255,.34), rgba(255,255,255,0));
       pointer-events: none;
     }
     .card .oval {
       position: absolute;
-      inset: 13% 9%;
-      background: linear-gradient(160deg, #fff, #f1f1f4);
+      inset: 6% 7%;
+      background: linear-gradient(160deg, #fff, #eef0f3);
       border-radius: 50%;
-      transform: rotate(-22deg);
+      transform: rotate(-24deg);
       display: grid;
       place-items: center;
-      box-shadow: inset 0 0 0 1px rgba(0,0,0,.06), 0 2px 5px rgba(0,0,0,.18);
+      box-shadow: inset 0 0 0 2px rgba(0,0,0,.05), 0 3px 8px rgba(0,0,0,.22);
     }
     .card .center {
-      transform: rotate(22deg);
+      transform: rotate(24deg);
       display: grid;
       place-items: center;
       color: var(--ink, #333);
-      font-size: 2.5rem;
+      font-size: 4rem;
       font-weight: 1000;
       line-height: 1;
+      text-shadow: 0 2px 0 rgba(0,0,0,.08);
     }
-    .card.act .center { font-size: 1.7rem; }
+    .card.act .center { font-size: 2.5rem; letter-spacing: -.03em; }
     .card .corner {
       position: absolute;
-      font-size: 1rem;
+      font-size: 1.3rem;
       font-weight: 1000;
       line-height: 1;
       color: #fff;
-      text-shadow: 0 1px 2px rgba(0,0,0,.4);
-      z-index: 2;
+      text-shadow: 0 2px 3px rgba(0,0,0,.45);
+      z-index: 4;
     }
-    .card .corner svg { width: .95rem; height: .95rem; display: block; }
-    .card .center svg { width: 2.6rem; height: 2.6rem; display: block; }
-    .card .tl { top: 7px; left: 9px; }
-    .card .br { bottom: 7px; right: 9px; transform: rotate(180deg); }
+    .card .corner svg { width: 1.25rem; height: 1.25rem; display: block; }
+    .card .center svg { width: 4rem; height: 4rem; display: block; }
+    .card .tl { top: 8px; left: 11px; }
+    .card .br { bottom: 8px; right: 11px; transform: rotate(180deg); }
     .card.yellow .corner { color: #5a3b00; text-shadow: 0 1px 1px rgba(255,255,255,.3); }
     .card:not(.unplayable):hover { transform: translateY(-12px) scale(1.03); filter: brightness(1.05); box-shadow: 0 18px 34px rgba(0,0,0,.45), inset 0 0 0 3px #fff; }
     .card.unplayable {
@@ -301,22 +302,23 @@
     }
     .card.wild .oval { background: #fff; }
     .card .w4 { position: relative; display: grid; place-items: center; }
-    .card .w4 svg { width: 2.6rem; height: 2.6rem; }
+    .card .w4 svg { width: 4rem; height: 4rem; }
     .card .w4-txt {
       position: absolute;
-      font-size: 1.15rem;
+      font-size: 1.7rem;
       font-weight: 1000;
       color: #fff;
-      -webkit-text-stroke: 1.4px #16161c;
+      -webkit-text-stroke: 1.8px #16161c;
       paint-order: stroke fill;
     }
 
     .hand {
       display: flex;
-      gap: .55rem;
+      justify-content: safe center;
+      gap: .6rem;
       overflow-x: auto;
-      padding: 1rem .1rem .3rem;
-      min-height: 162px;
+      padding: 1.1rem .1rem .3rem;
+      min-height: 190px;
     }
     .npc-hand {
       display: flex;
