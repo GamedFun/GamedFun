@@ -5,17 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script>document.documentElement.dataset.theme=localStorage.getItem('gf-theme')||'dark';</script>
   <title>UNO Duel — free card game online | gamed.fun</title>
-  <meta name="description" content="Play UNO against a computer opponent right in your browser. Free online card game — no download, no login. Draw 4!">
+  <meta name="description" content="Play UNO against a smart computer opponent — choose Easy, Medium or Hard, plus 1000 wild twists with 3 random rule changes every game. Free, no download.">
   <meta property="og:title" content="UNO Duel — free card game online | gamed.fun">
-  <meta property="og:description" content="Play UNO against a computer opponent right in your browser. Free online card game — no download, no login.">
+  <meta property="og:description" content="Play UNO against a smart computer opponent — Easy, Medium & Hard difficulty, plus 1000 wild twists with 3 random rule changes every game. Free, no download.">
   <meta property="og:url" content="https://gamed.fun/uno/">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="UNO Duel — free card game online | gamed.fun">
-  <meta name="twitter:description" content="Play UNO against a computer opponent right in your browser. Free online card game — no download, no login.">
+  <meta name="twitter:description" content="Play UNO against a smart computer opponent — Easy, Medium & Hard difficulty, plus 1000 wild twists with 3 random rule changes every game. Free, no download.">
 <link rel="canonical" href="https://gamed.fun/uno/">
   <link rel="icon" type="image/svg+xml" href="../logo.svg">
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"UNO Duel","description":"Play UNO against a computer opponent in your browser. Free online card game — no download.","url":"https://gamed.fun/uno/","applicationCategory":"GameApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"UNO Duel","description":"Play UNO against a smart computer opponent with Easy, Medium and Hard difficulty, plus 1000 wild twists that pull 3 random rule changes every game. Free online card game, no download.","url":"https://gamed.fun/uno/","applicationCategory":"GameApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -113,102 +113,237 @@
       align-content: center;
       justify-items: center;
       gap: 1rem;
-      padding: 1rem;
+      padding: 1.4rem 1rem;
+      background:
+        radial-gradient(120% 120% at 50% 0%, rgba(34,197,94,.14), transparent 60%),
+        radial-gradient(80% 80% at 50% 50%, rgba(16,120,60,.22), rgba(10,40,24,.32)),
+        rgba(24,35,58,.9);
     }
     .piles {
       display: flex;
       justify-content: center;
-      align-items: center;
-      gap: 1rem;
+      align-items: flex-start;
+      gap: 1.6rem;
       flex-wrap: wrap;
     }
-    .deck {
-      width: 90px;
-      height: 128px;
-      border-radius: 14px;
-      border: 2px solid rgba(255,255,255,.72);
-      background:
-        linear-gradient(135deg, transparent 0 46%, rgba(255,255,255,.85) 46% 54%, transparent 54%),
-        linear-gradient(45deg, var(--red) 0 25%, var(--blue) 25% 50%, var(--green) 50% 75%, var(--yellow) 75%);
-      color: #fff;
+    .pile {
       display: grid;
-      place-items: center;
-      font-size: 1rem;
-      font-weight: 1000;
-      box-shadow: 0 12px 28px rgba(0,0,0,.32);
+      justify-items: center;
+      gap: .45rem;
     }
-    .card {
-      width: 90px;
-      height: 128px;
-      border-radius: 14px;
-      border: 2px solid rgba(255,255,255,.78);
-      color: #fff;
+    .pile .label { font-size: .6rem; }
+    /* empty discard slot frame sits behind the top card */
+    .pile.discard-slot {
+      position: relative;
+    }
+    /* ---------- Twist banner ---------- */
+    .twists {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: .5rem;
+      width: 100%;
+      max-width: 720px;
+    }
+    .twists:empty { display: none; }
+    .twist-chip {
+      flex: 1 1 200px;
+      max-width: 240px;
+      background: linear-gradient(150deg, rgba(192,132,252,.16), rgba(59,130,246,.12));
+      border: 1px solid rgba(192,132,252,.4);
+      border-radius: 12px;
+      padding: .55rem .7rem;
+      text-align: left;
+      box-shadow: 0 6px 16px rgba(0,0,0,.22);
+    }
+    .twist-chip .tw-name {
+      display: flex;
+      align-items: center;
+      gap: .35rem;
+      font-size: .8rem;
+      font-weight: 900;
+      color: #e9d5ff;
+      letter-spacing: .01em;
+    }
+    .twist-chip .tw-name::before { content: "⚡"; font-size: .85rem; }
+    .twist-chip .tw-desc {
+      font-size: .72rem;
+      font-weight: 700;
+      color: var(--muted);
+      margin-top: .15rem;
+      line-height: 1.25;
+    }
+    [data-theme="light"] .twist-chip { background: linear-gradient(150deg, rgba(147,51,234,.1), rgba(59,130,246,.08)); }
+    [data-theme="light"] .twist-chip .tw-name { color: #7c3aed; }
+    /* ---------- Card colour ramps ---------- */
+    .card.red    { --c1:#ff5b5b; --c2:#d11e1e; --ink:#c81d1d; }
+    .card.yellow { --c1:#ffdd55; --c2:#e6a700; --ink:#b97e00; }
+    .card.green  { --c1:#4ade80; --c2:#16933f; --ink:#138038; }
+    .card.blue   { --c1:#5b9bff; --c2:#1f5fe0; --ink:#1f5fe0; }
+
+    /* ---------- Draw pile (UNO card back) ---------- */
+    .deck {
+      width: 96px;
+      height: 138px;
+      border-radius: 13px;
+      border: 0;
+      position: relative;
       cursor: pointer;
+      overflow: hidden;
+      background:
+        radial-gradient(130% 100% at 28% 18%, #2c2c34 0%, #16161c 60%, #0a0a0e 100%);
+      box-shadow:
+        4px 5px 0 -1px #0a0a0e, 5px 6px 0 0 rgba(255,255,255,.18),
+        8px 10px 0 -2px #0a0a0e, 9px 11px 0 -1px rgba(255,255,255,.12),
+        0 16px 34px rgba(0,0,0,.45);
+      transition: transform .14s ease, filter .14s ease;
+    }
+    .deck::before {
+      content: "";
+      position: absolute;
+      inset: 16% 12%;
+      border-radius: 50%;
+      background: linear-gradient(150deg, #ff5b5b, #d11e1e);
+      transform: rotate(-22deg);
+      box-shadow: 0 4px 10px rgba(0,0,0,.45);
+    }
+    .deck::after {
+      content: "UNO";
+      position: absolute;
+      inset: 0;
       display: grid;
       place-items: center;
-      font-size: 1.9rem;
+      font-size: 1.45rem;
+      font-weight: 1000;
+      font-style: italic;
+      letter-spacing: -.02em;
+      color: #facc15;
+      -webkit-text-stroke: 1.5px #16161c;
+      paint-order: stroke fill;
+      text-shadow: 0 2px 4px rgba(0,0,0,.55);
+      transform: rotate(-12deg);
+    }
+    .deck:not(:disabled):hover { transform: translateY(-4px); filter: brightness(1.08); }
+    .deck:disabled { cursor: not-allowed; filter: saturate(.55) brightness(.8); }
+
+    /* ---------- Playable / discard cards ---------- */
+    .card {
+      width: 96px;
+      height: 138px;
+      flex: 0 0 auto;
+      border-radius: 13px;
+      border: 0;
+      padding: 0;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      background:
+        linear-gradient(150deg, var(--c1, #888) 0%, var(--c2, #555) 100%);
+      box-shadow: 0 10px 24px rgba(0,0,0,.38), inset 0 0 0 3px #fff, inset 0 0 0 4px rgba(0,0,0,.12);
+      transform: translateY(0);
+      transition: transform .14s ease, filter .14s ease, opacity .14s ease, box-shadow .14s ease;
+    }
+    /* glossy top sheen */
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 3px 3px 50% 3px;
+      border-radius: 11px 11px 40% 40%;
+      background: linear-gradient(180deg, rgba(255,255,255,.32), rgba(255,255,255,0));
+      pointer-events: none;
+    }
+    .card .oval {
+      position: absolute;
+      inset: 13% 9%;
+      background: linear-gradient(160deg, #fff, #f1f1f4);
+      border-radius: 50%;
+      transform: rotate(-22deg);
+      display: grid;
+      place-items: center;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.06), 0 2px 5px rgba(0,0,0,.18);
+    }
+    .card .center {
+      transform: rotate(22deg);
+      display: grid;
+      place-items: center;
+      color: var(--ink, #333);
+      font-size: 2.5rem;
       font-weight: 1000;
       line-height: 1;
-      overflow: hidden;
-      padding: .35rem;
-      position: relative;
-      box-shadow: 0 12px 28px rgba(0,0,0,.32);
-      transform: translateY(0);
-      transition: transform .14s ease, filter .14s ease, opacity .14s ease;
     }
-    .card::before, .card::after {
-      content: attr(data-label);
+    .card.act .center { font-size: 1.7rem; }
+    .card .corner {
       position: absolute;
-      font-size: .72rem;
-      font-weight: 1000;
-    }
-    .card::before { top: .55rem; left: .58rem; }
-    .card::after { right: .58rem; bottom: .55rem; transform: rotate(180deg); }
-    .card.action {
       font-size: 1rem;
-      overflow-wrap: anywhere;
+      font-weight: 1000;
+      line-height: 1;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0,0,0,.4);
+      z-index: 2;
     }
-    .card:hover { transform: translateY(-8px); }
+    .card .corner svg { width: .95rem; height: .95rem; display: block; }
+    .card .center svg { width: 2.6rem; height: 2.6rem; display: block; }
+    .card .tl { top: 7px; left: 9px; }
+    .card .br { bottom: 7px; right: 9px; transform: rotate(180deg); }
+    .card.yellow .corner { color: #5a3b00; text-shadow: 0 1px 1px rgba(255,255,255,.3); }
+    .card:not(.unplayable):hover { transform: translateY(-12px) scale(1.03); filter: brightness(1.05); box-shadow: 0 18px 34px rgba(0,0,0,.45), inset 0 0 0 3px #fff; }
     .card.unplayable {
       cursor: not-allowed;
-      filter: saturate(.5);
-      opacity: .58;
+      filter: saturate(.45) brightness(.82);
+      opacity: .62;
     }
     .card.unplayable:hover { transform: none; }
-    .card.red { background: var(--red); }
-    .card.yellow { background: var(--yellow); color: #422006; }
-    .card.green { background: var(--green); }
-    .card.blue { background: var(--blue); }
+
+    /* ---------- Wild card ---------- */
     .card.wild {
-      background:
-        radial-gradient(circle at 28% 28%, var(--red) 0 18%, transparent 19%),
-        radial-gradient(circle at 72% 28%, var(--yellow) 0 18%, transparent 19%),
-        radial-gradient(circle at 28% 72%, var(--green) 0 18%, transparent 19%),
-        radial-gradient(circle at 72% 72%, var(--blue) 0 18%, transparent 19%),
-        var(--wild);
+      background: radial-gradient(120% 100% at 30% 20%, #2c2c34, #0a0a0e);
+      --ink:#1a1a1a;
     }
+    .card.wild .oval { background: #fff; }
+    .card .w4 { position: relative; display: grid; place-items: center; }
+    .card .w4 svg { width: 2.6rem; height: 2.6rem; }
+    .card .w4-txt {
+      position: absolute;
+      font-size: 1.15rem;
+      font-weight: 1000;
+      color: #fff;
+      -webkit-text-stroke: 1.4px #16161c;
+      paint-order: stroke fill;
+    }
+
     .hand {
       display: flex;
       gap: .55rem;
       overflow-x: auto;
-      padding: .85rem .1rem .3rem;
-      min-height: 150px;
+      padding: 1rem .1rem .3rem;
+      min-height: 162px;
     }
     .npc-hand {
+      display: flex;
       justify-content: center;
-      min-height: 72px;
+      align-items: center;
+      min-height: 78px;
       padding-top: .8rem;
+      flex-wrap: wrap;
+      gap: .3rem;
     }
     .card-back {
-      width: 46px;
-      height: 64px;
+      width: 42px;
+      height: 60px;
       flex: 0 0 auto;
-      border-radius: 9px;
-      border: 1px solid rgba(255,255,255,.62);
-      background:
-        linear-gradient(135deg, transparent 0 46%, rgba(255,255,255,.75) 46% 54%, transparent 54%),
-        linear-gradient(45deg, var(--red) 0 25%, var(--blue) 25% 50%, var(--green) 50% 75%, var(--yellow) 75%);
-      box-shadow: 0 8px 18px rgba(0,0,0,.24);
+      border-radius: 7px;
+      position: relative;
+      overflow: hidden;
+      background: radial-gradient(130% 100% at 28% 18%, #2c2c34, #0a0a0e);
+      box-shadow: inset 0 0 0 2px #fff, 0 6px 14px rgba(0,0,0,.3);
+    }
+    .card-back::before {
+      content: "";
+      position: absolute;
+      inset: 18% 14%;
+      border-radius: 50%;
+      background: linear-gradient(150deg, #ff5b5b, #d11e1e);
+      transform: rotate(-22deg);
     }
     .message {
       min-height: 1.4rem;
@@ -300,17 +435,21 @@
     }
     @media (max-width: 640px) {
       main { padding: .75rem; }
-      .card, .deck { width: 74px; height: 106px; border-radius: 12px; }
-      .card { font-size: 1.5rem; }
-      .card.action { font-size: .78rem; }
-      .hand { min-height: 126px; }
+      .card, .deck { width: 78px; height: 112px; border-radius: 11px; }
+      .card .center { font-size: 2rem; }
+      .card .center svg { width: 2.1rem; height: 2.1rem; }
+      .card.act .center { font-size: 1.35rem; }
+      .hand { min-height: 134px; }
       .color-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 420px) {
       header { padding: .5rem .75rem; }
-      .card, .deck { width: 62px; height: 90px; border-radius: 10px; }
-      .card { font-size: 1.25rem; }
-      .hand { min-height: 110px; }
+      .card, .deck { width: 64px; height: 92px; border-radius: 9px; }
+      .card .center { font-size: 1.6rem; }
+      .card .center svg { width: 1.7rem; height: 1.7rem; }
+      .card .corner { font-size: .8rem; }
+      .card .corner svg { width: .8rem; height: .8rem; }
+      .hand { min-height: 116px; }
     }
     @keyframes pageIn { from { opacity: 0; } to { opacity: 1; } }
     body { animation: pageIn .22s ease; }
@@ -384,9 +523,16 @@
       </div>
 
       <div class="center panel">
+        <div class="twists" id="twists"></div>
         <div class="piles">
-          <button class="deck" id="drawBtn" type="button">DRAW</button>
-          <div id="discard"></div>
+          <div class="pile">
+            <button class="deck" id="drawBtn" type="button" aria-label="Draw a card"></button>
+            <div class="label" id="drawLabel">Draw</div>
+          </div>
+          <div class="pile discard-slot">
+            <div id="discard"></div>
+            <div class="label">Discard</div>
+          </div>
         </div>
         <div class="message" id="message"></div>
         <div class="meta" id="deckCount"></div>
@@ -398,6 +544,8 @@
         </div>
         <div class="controls">
           <button class="uno-btn" id="unoBtn" type="button" disabled>UNO</button>
+          <button class="secondary" id="difficultyBtn" type="button">Difficulty: Medium</button>
+          <button class="secondary" id="twistsBtn" type="button" aria-pressed="true">Twists: On</button>
           <button class="secondary" id="stackingBtn" type="button" aria-pressed="false">Stacking: Off</button>
           <button class="secondary" id="newGameBtn" type="button">New game</button>
         </div>
@@ -427,6 +575,10 @@
     const drawBtn = document.getElementById('drawBtn');
     const unoBtn = document.getElementById('unoBtn');
     const stackingBtn = document.getElementById('stackingBtn');
+    const difficultyBtn = document.getElementById('difficultyBtn');
+    const twistsBtn = document.getElementById('twistsBtn');
+    const twistsEl = document.getElementById('twists');
+    const drawLabel = document.getElementById('drawLabel');
     const newGameBtn = document.getElementById('newGameBtn');
     const colorPicker = document.getElementById('colorPicker');
     const colorDot = document.getElementById('colorDot');
@@ -445,6 +597,127 @@
     let unoTimer = null;
     let audioCtx = null;
     let stackingEnabled = localStorage.getItem('uno_stacking') === 'on';
+    let difficulty = localStorage.getItem('uno_difficulty') || 'medium';
+    let twistsEnabled = localStorage.getItem('uno_twists') !== 'off';
+    let activeTwists = [];
+    let activeEffects = [];
+
+    /* =====================================================================
+       TWIST ENGINE
+       A catalog of 1000 rule-bending "twists" is generated from a set of
+       fully-implemented modifier atoms (single effects) plus combinations
+       of two atoms. Each game randomly pulls 3 twists and applies them.
+       Every twist in the pool is real — the engine reads its effect atoms.
+    ===================================================================== */
+    const cap = s => s[0].toUpperCase() + s.slice(1);
+
+    // Build the atomic effects — each is something the engine knows how to do.
+    const twistAtoms = (() => {
+      const atoms = [];
+      colors.forEach(c => atoms.push({ kind: 'wildColor', color: c,
+        name: `${cap(c)} Rainbow`, desc: `${cap(c)} cards play on anything.` }));
+      for (let v = 0; v <= 9; v++) atoms.push({ kind: 'wildValue', value: String(v),
+        name: `Lucky ${v}`, desc: `Any ${v} plays on anything.` });
+      for (let v = 0; v <= 9; v++) for (const amt of [1, 2, 3]) atoms.push({ kind: 'penaltyValue', value: String(v), amount: amt,
+        name: `Sting ${v}${amt > 1 ? ` ×${amt}` : ''}`, desc: `Play a ${v} → opponent draws ${amt}.` });
+      for (let v = 0; v <= 9; v++) atoms.push({ kind: 'bonusValue', value: String(v),
+        name: `Encore ${v}`, desc: `Play a ${v} → you go again.` });
+      for (let v = 0; v <= 9; v++) atoms.push({ kind: 'skipValue', value: String(v),
+        name: `Freeze ${v}`, desc: `Play a ${v} → opponent is skipped.` });
+      colors.forEach(c => [1, 2].forEach(amt => atoms.push({ kind: 'penaltyColor', color: c, amount: amt,
+        name: `${cap(c)} Curse${amt > 1 ? ` ×${amt}` : ''}`, desc: `Play ${c} → opponent draws ${amt}.` })));
+      colors.forEach(c => atoms.push({ kind: 'selfPenaltyColor', color: c, amount: 1,
+        name: `${cap(c)} Tax`, desc: `Playing ${c} costs you 1 card.` }));
+      colors.forEach(c => atoms.push({ kind: 'skipColor', color: c,
+        name: `${cap(c)} Flash`, desc: `Play ${c} → opponent is skipped.` }));
+      return atoms;
+    })();
+
+    // Setup twists alter the match before/while dealing — kept as singles.
+    const setupTwists = [
+      ...[3, 4, 5, 6, 9, 10, 12].map(n => ({ effects: [{ kind: 'handSize', n }],
+        name: `Loaded Hands (${n})`, desc: `Everyone starts with ${n} cards.` })),
+      ...[2, 3].map(n => ({ effects: [{ kind: 'drawN', n }],
+        name: `Greedy Draw (${n})`, desc: `Each draw pulls ${n} cards.` })),
+      { effects: [{ kind: 'forceStack' }], name: 'No Mercy', desc: '+2 and +4 always stack.' },
+      { effects: [{ kind: 'drawToMatch' }], name: 'Persistent', desc: `Can't play? Draw until you can.` },
+    ];
+
+    // Assemble exactly 1000 twists: setups + single atoms + atom pairs.
+    const TWIST_POOL = (() => {
+      const pool = [...setupTwists];
+      twistAtoms.forEach(a => pool.push({ effects: [a], name: a.name, desc: a.desc }));
+      outer:
+      for (let i = 0; i < twistAtoms.length; i++) {
+        for (let j = i + 1; j < twistAtoms.length; j++) {
+          if (pool.length >= 1000) break outer;
+          const a = twistAtoms[i], b = twistAtoms[j];
+          pool.push({ effects: [a, b], name: `${a.name} + ${b.name}`, desc: `${a.desc} ${b.desc}` });
+        }
+      }
+      return pool;
+    })();
+
+    const hasEffect = kind => activeEffects.some(e => e.kind === kind);
+    const findEffect = kind => activeEffects.find(e => e.kind === kind);
+    const stackingActive = () => stackingEnabled || hasEffect('forceStack');
+    const startHandSize = () => (findEffect('handSize')?.n) ?? 7;
+    const drawMultiplier = () => (findEffect('drawN')?.n) ?? 1;
+    const drawToMatchActive = () => hasEffect('drawToMatch');
+
+    function rollTwists() {
+      activeTwists = [];
+      if (twistsEnabled) {
+        const pool = [...TWIST_POOL];
+        for (let i = 0; i < 3 && pool.length; i++) {
+          activeTwists.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+        }
+      }
+      activeEffects = activeTwists.flatMap(t => t.effects);
+      renderTwists();
+    }
+
+    function renderTwists() {
+      twistsEl.innerHTML = '';
+      activeTwists.forEach(t => {
+        const chip = document.createElement('div');
+        chip.className = 'twist-chip';
+        chip.innerHTML = `<div class="tw-name">${t.name}</div><div class="tw-desc">${t.desc}</div>`;
+        twistsEl.appendChild(chip);
+      });
+    }
+
+    // Draw cards the "voluntary" way — honours Greedy Draw and Persistent twists.
+    function voluntaryDraw(hand) {
+      let last;
+      for (let i = 0, m = drawMultiplier(); i < m; i++) { drawCard(hand); last = hand[hand.length - 1]; }
+      if (drawToMatchActive()) {
+        let guard = 0;
+        while (last && !canPlay(last) && deck.length && guard < 60) { drawCard(hand); last = hand[hand.length - 1]; guard++; }
+      }
+      return last;
+    }
+
+    // Apply on-play twist triggers after a card resolves. Returns true if the
+    // player who played gets to go again.
+    function applyTwistTriggers(played, owner) {
+      const oppHand = owner === 'player' ? npc : player;
+      const ownHand = owner === 'player' ? player : npc;
+      let oppDraw = 0, selfDraw = 0, goAgain = false;
+      activeEffects.forEach(e => {
+        const numMatch = played.type === 'number' && played.value === e.value;
+        const colorMatch = played.color !== 'wild' && played.color === e.color;
+        if (e.kind === 'penaltyValue' && numMatch) oppDraw += e.amount;
+        if (e.kind === 'penaltyColor' && colorMatch) oppDraw += e.amount;
+        if (e.kind === 'selfPenaltyColor' && colorMatch) selfDraw += e.amount;
+        if ((e.kind === 'bonusValue' || e.kind === 'skipValue') && numMatch) goAgain = true;
+        if (e.kind === 'skipColor' && colorMatch) goAgain = true;
+      });
+      for (let i = 0; i < oppDraw; i++) drawCard(oppHand);
+      for (let i = 0; i < selfDraw; i++) drawCard(ownHand);
+      if (oppDraw && owner === 'npc') clearUnoCall();
+      return { oppDraw, selfDraw, goAgain };
+    }
 
     function buildDeck() {
       const cards = [];
@@ -485,7 +758,9 @@
       pendingWild = null;
       pendingDraw = null;
       clearUnoCall();
-      for (let i = 0; i < 7; i++) {
+      rollTwists();
+      const handSize = startHandSize();
+      for (let i = 0; i < handSize; i++) {
         player.push(deck.pop());
         npc.push(deck.pop());
       }
@@ -508,8 +783,12 @@
     }
 
     function canPlay(cardToCheck) {
-      if (pendingDraw && stackingEnabled) {
+      if (pendingDraw && stackingActive()) {
         return cardToCheck.value === pendingDraw.value || cardToCheck.value === '+4';
+      }
+      if (cardToCheck.color !== 'wild') {
+        if (activeEffects.some(e => e.kind === 'wildColor' && e.color === cardToCheck.color)) return true;
+        if (cardToCheck.type === 'number' && activeEffects.some(e => e.kind === 'wildValue' && e.value === cardToCheck.value)) return true;
       }
       const top = topCard();
       return cardToCheck.color === 'wild'
@@ -553,9 +832,19 @@
       colorPicker.classList.remove('on');
       if (checkWinner(owner)) return;
       applyCardEffect(played, owner);
+      const fx = applyTwistTriggers(played, owner);
+      if (checkWinner(owner)) return;
+      if (!pendingDraw && (fx.goAgain || fx.oppDraw)) {
+        // Going again, or the opponent just had to draw, hands the turn back.
+        turn = owner;
+        const who = owner === 'player' ? 'You' : 'NPC';
+        let note = fx.goAgain ? `${who} go again.` : '';
+        if (fx.oppDraw) note = `${owner === 'player' ? 'NPC' : 'You'} drew ${fx.oppDraw} (twist). ${who} go again.`;
+        messageEl.textContent = note.trim();
+      }
       if (owner === 'player' && player.length === 1) startUnoCall();
       render();
-      if (turn === 'npc') setTimeout(npcTurn, 650);
+      if (turn === 'npc' && !gameOver) setTimeout(npcTurn, 650);
     }
 
     function applyCardEffect(played, owner) {
@@ -563,7 +852,7 @@
       if (played.value === '+2' || played.value === '+4') {
         const amount = played.value === '+2' ? 2 : 4;
         const target = owner === 'player' ? 'npc' : 'player';
-        if (stackingEnabled && owner !== 'start') {
+        if (stackingActive() && owner !== 'start') {
           const previousAmount = pendingDraw?.amount || 0;
           pendingDraw = { value: played.value, amount: previousAmount + amount, target };
           turn = target;
@@ -645,6 +934,7 @@
     }
 
     function chooseNpcColor() {
+      if (difficulty === 'easy') return colors[Math.floor(Math.random() * colors.length)];
       const counts = Object.fromEntries(colors.map(color => [color, 0]));
       npc.forEach(item => {
         if (counts[item.color] !== undefined) counts[item.color]++;
@@ -652,20 +942,42 @@
       return colors.reduce((best, color) => counts[color] > counts[best] ? color : best, colors[0]);
     }
 
+    // Picks which playable card the NPC should play, by difficulty.
+    function chooseNpcPlay(idxs) {
+      if (difficulty === 'easy') return idxs[Math.floor(Math.random() * idxs.length)];
+      if (difficulty === 'medium') return idxs[0];
+      // Hard: hold wilds in reserve, punish a low-on-cards opponent, dump heavy cards.
+      const oppLow = player.length <= 2;
+      let best = idxs[0], bestScore = -Infinity;
+      for (const i of idxs) {
+        const c = npc[i];
+        const wild = c.type === 'wild' || c.type === 'wild4';
+        const disruptive = ['+4', '+2', 'Skip', 'Reverse'].includes(c.value);
+        let s = 0;
+        if (wild) s += oppLow ? 45 : -30;
+        if (disruptive) s += oppLow ? 38 : 12;
+        if (c.type === 'number') {
+          s += 10 + Number(c.value) + npc.filter(x => x.color === c.color).length;
+        }
+        if (s > bestScore) { bestScore = s; best = i; }
+      }
+      return best;
+    }
+
     function npcTurn() {
       if (gameOver || turn !== 'npc') return;
-      const playableIndex = npc.findIndex(canPlay);
-      if (playableIndex >= 0) {
-        const played = npc[playableIndex];
-        playFrom(npc, playableIndex, 'npc');
+      const playable = npc.reduce((acc, c, i) => (canPlay(c) ? acc.concat(i) : acc), []);
+      if (playable.length) {
+        const choice = chooseNpcPlay(playable);
+        const played = npc[choice];
+        playFrom(npc, choice, 'npc');
         if (!pendingDraw) messageEl.textContent = `NPC played ${labelFor(played)}.`;
       } else {
         if (pendingDraw) {
           resolvePendingDraw('npc');
           return;
         }
-        drawCard(npc);
-        const drawn = npc[npc.length - 1];
+        const drawn = voluntaryDraw(npc);
         if (drawn && canPlay(drawn)) {
           playFrom(npc, npc.length - 1, 'npc');
           messageEl.textContent = `NPC drew and played ${labelFor(drawn)}.`;
@@ -681,14 +993,32 @@
       return item.color === 'wild' ? item.value : `${item.color} ${item.value}`;
     }
 
-    function renderCard(item, playable, onClick) {
+    const ICONS = {
+      skip: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"><circle cx="16" cy="16" r="11.5"/><line x1="7.8" y1="7.8" x2="24.2" y2="24.2"/></svg>',
+      reverse: '<svg viewBox="0 0 32 32" fill="currentColor"><path d="M9 4 L4 12 L7 12 L7 28 L11 28 L11 12 L14 12 Z"/><path d="M23 28 L28 20 L25 20 L25 4 L21 4 L21 20 L18 20 Z"/></svg>',
+      wheel: '<svg viewBox="0 0 32 32"><path d="M16 16 L16 2 A14 14 0 0 1 30 16 Z" fill="#facc15"/><path d="M16 16 L30 16 A14 14 0 0 1 16 30 Z" fill="#22c55e"/><path d="M16 16 L16 30 A14 14 0 0 1 2 16 Z" fill="#3b82f6"/><path d="M16 16 L2 16 A14 14 0 0 1 16 2 Z" fill="#ef4444"/><circle cx="16" cy="16" r="14" fill="none" stroke="rgba(0,0,0,.25)" stroke-width="1.5"/></svg>'
+    };
+
+    // Returns the inner markup for a card's big centre and a small corner pip.
+    function cardGlyphs(item) {
+      if (item.type === 'wild') return { center: ICONS.wheel, corner: ICONS.wheel, act: false };
+      if (item.type === 'wild4') return { center: `<span class="w4">${ICONS.wheel}<span class="w4-txt">+4</span></span>`, corner: '+4', act: true };
+      if (item.value === 'Skip') return { center: ICONS.skip, corner: ICONS.skip, act: false };
+      if (item.value === 'Reverse') return { center: ICONS.reverse, corner: ICONS.reverse, act: false };
+      if (item.value === '+2') return { center: '+2', corner: '+2', act: true };
+      return { center: item.value, corner: item.value, act: false };
+    }
+
+    function renderCard(item, playable, onClick, isDiscard) {
       const el = document.createElement('button');
-      const isLongAction = item.value.length > 2;
-      el.className = `card ${item.color}${isLongAction ? ' action' : ''}${playable ? '' : ' unplayable'}`;
+      const g = cardGlyphs(item);
+      el.className = `card ${item.color}${g.act ? ' act' : ''}${!playable && !isDiscard ? ' unplayable' : ''}`;
       el.type = 'button';
-      el.dataset.label = item.value;
-      el.textContent = item.value;
-      el.disabled = !playable;
+      el.disabled = !playable && !isDiscard;
+      el.innerHTML =
+        `<span class="corner tl">${g.corner}</span>` +
+        `<span class="oval"><span class="center">${g.center}</span></span>` +
+        `<span class="corner br">${g.corner}</span>`;
       el.addEventListener('click', onClick);
       return el;
     }
@@ -707,16 +1037,25 @@
         npcHandEl.appendChild(back);
       });
       discardEl.innerHTML = '';
-      const discardCard = renderCard(topCard(), false, () => {});
+      const top = topCard();
+      const discardCard = renderCard(top, false, () => {}, true);
       discardCard.classList.add('card-played');
+      if (top.color === 'wild') {
+        discardCard.style.boxShadow = `0 10px 24px rgba(0,0,0,.38), inset 0 0 0 3px #fff, inset 0 0 0 7px var(--${currentColor})`;
+      }
       discardEl.appendChild(discardCard);
       playerCountEl.textContent = player.length;
       npcCountEl.textContent = npc.length;
       deckCountEl.textContent = `${deck.length} cards left in deck`;
       drawBtn.disabled = turn !== 'player' || gameOver;
-      drawBtn.textContent = pendingDraw && turn === 'player' ? `DRAW ${pendingDraw.amount}` : 'DRAW';
+      drawLabel.textContent = pendingDraw && turn === 'player'
+        ? `Draw ${pendingDraw.amount}`
+        : (drawMultiplier() > 1 ? `Draw ${drawMultiplier()}` : 'Draw');
       unoBtn.disabled = !unoPending || gameOver;
       unoBtn.classList.toggle('active', unoPending && !gameOver);
+      difficultyBtn.textContent = `Difficulty: ${difficulty[0].toUpperCase()}${difficulty.slice(1)}`;
+      twistsBtn.textContent = `Twists: ${twistsEnabled ? 'On' : 'Off'}`;
+      twistsBtn.setAttribute('aria-pressed', String(twistsEnabled));
       stackingBtn.textContent = `Stacking: ${stackingEnabled ? 'On' : 'Off'}`;
       stackingBtn.setAttribute('aria-pressed', String(stackingEnabled));
       stackingBtn.disabled = Boolean(pendingDraw) || turn === 'choosing';
@@ -730,9 +1069,8 @@
         resolvePendingDraw('player');
         return;
       }
-      drawCard(player);
+      const drawn = voluntaryDraw(player);
       clearUnoCall();
-      const drawn = player[player.length - 1];
       if (drawn && canPlay(drawn)) {
         messageEl.textContent = 'You drew a playable card.';
       } else {
@@ -844,6 +1182,21 @@
       localStorage.setItem('uno_stacking', stackingEnabled ? 'on' : 'off');
       messageEl.textContent = `Stacking ${stackingEnabled ? 'on' : 'off'}.`;
       render();
+    });
+
+    const difficultyOrder = ['easy', 'medium', 'hard'];
+    difficultyBtn.addEventListener('click', () => {
+      difficulty = difficultyOrder[(difficultyOrder.indexOf(difficulty) + 1) % difficultyOrder.length];
+      localStorage.setItem('uno_difficulty', difficulty);
+      messageEl.textContent = `Difficulty set to ${difficulty}.`;
+      render();
+    });
+
+    twistsBtn.addEventListener('click', () => {
+      twistsEnabled = !twistsEnabled;
+      localStorage.setItem('uno_twists', twistsEnabled ? 'on' : 'off');
+      startGame();
+      messageEl.textContent = twistsEnabled ? 'Twists on — new game with 3 fresh twists.' : 'Twists off — new game.';
     });
 
     newGameBtn.addEventListener('click', startGame);
