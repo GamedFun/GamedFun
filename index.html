@@ -522,6 +522,26 @@
       text-decoration: underline;
       text-underline-offset: 3px;
     }
+    .bmc-wrap { margin-top: 16px; }
+    .bmc-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #ffdd00;
+      color: #1a1625;
+      font-weight: 700;
+      font-size: 0.9rem;
+      padding: 10px 20px;
+      border-radius: 999px;
+      text-decoration: none;
+      box-shadow: 0 2px 10px rgba(0,0,0,.12);
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .bmc-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(0,0,0,.2);
+      text-decoration: none;
+    }
 
     /* ── RESPONSIVE ── */
     @media (max-width: 640px) {
@@ -832,6 +852,9 @@
 
   <footer>
     made with curiosity
+    <div class="bmc-wrap">
+      <a class="bmc-btn" href="https://buymeacoffee.com/pleasedonok" target="_blank" rel="noopener">☕ Buy me a coffee</a>
+    </div>
   </footer>
 </div>
 
