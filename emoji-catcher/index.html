@@ -15,7 +15,7 @@
 <meta name="twitter:description" content="Catch the right emoji as they fall and rack up a high score. Free browser arcade game — no download, no login required.">
 <link rel="canonical" href="https://gamed.fun/emoji-catcher/">
   <link rel="icon" type="image/svg+xml" href="../logo.svg">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Emoji Pop","description":"Catch the right emoji as they fall and rack up a high score. 274 to collect across 6 rarities.","url":"https://gamed.fun/emoji-catcher/","applicationCategory":"GameApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Emoji Pop","description":"Catch emojis, level up a skill tree, win elemental battles, fuse new species, run idle auto-catchers and ascend for permanent bonuses. 274 to collect across 6 rarities.","url":"https://gamed.fun/emoji-catcher/","applicationCategory":"GameApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
 <style>
   :root {
     --bg: #1a1625;
@@ -615,6 +615,146 @@
   @keyframes confettiFall { to { transform: translateY(110vh) rotate(800deg); opacity: 0; } }
   @keyframes pageIn { from { opacity: 0; } to { opacity: 1; } }
   body { animation: pageIn .22s ease; }
+
+  /* ── SECONDARY HUD (level / idle / buffs) ── */
+  #hud2 {
+    flex-shrink: 0;
+    display: flex; align-items: center; gap: .55rem;
+    padding: .3rem 1rem; font-size: .74rem;
+    background: rgba(18,16,20,.55); border-bottom: 1px solid var(--border);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  #hud2::-webkit-scrollbar { display: none; }
+  #level-chip { display: flex; align-items: center; gap: .35rem; flex-shrink: 0; }
+  #level-chip .lvl-num { background: linear-gradient(135deg,#a78bfa,#60a5fa); color:#0b0712; font-weight:900; border-radius:6px; padding:.05rem .35rem; font-size:.72rem; }
+  #xp-bar-wrap { width: 88px; height: 7px; background: var(--border); border-radius: 99px; overflow: hidden; }
+  #xp-bar { height: 100%; width: 0%; border-radius: 99px; background: linear-gradient(90deg,#a78bfa,#60a5fa); transition: width .3s; }
+  #hud2 .h2-stat { color: var(--muted); flex-shrink: 0; white-space: nowrap; }
+  #hud2 .h2-stat strong { color: var(--text); }
+  #stardust-chip { color: #c4b5fd; font-weight: 800; flex-shrink: 0; white-space: nowrap; }
+  #buff-bar { display: flex; gap: .3rem; flex-shrink: 0; }
+  .buff-chip {
+    display: flex; align-items: center; gap: .2rem; flex-shrink: 0;
+    background: rgba(167,139,250,.16); border: 1px solid rgba(167,139,250,.4);
+    color: #c4b5fd; border-radius: 99px; padding: .05rem .4rem; font-size: .68rem; font-weight: 800;
+    animation: buffPulse 1.2s ease-in-out infinite;
+  }
+  @keyframes buffPulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+
+  /* ── EXTRA BOTTOM-BAR ROW ── */
+  #tool-row-2 { display: flex; gap: .4rem; padding: .1rem .7rem .4rem; }
+  #tool-row-2 button {
+    flex: 1; border-radius: 8px; font-size: .8rem; font-weight: 700; cursor: pointer;
+    padding: .3rem .4rem; transition: transform .08s, background .12s; white-space: nowrap;
+  }
+  #tool-row-2 button:active { transform: scale(.94); }
+  #shop-toggle  { border:1px solid rgba(52,211,153,.4);  background:rgba(52,211,153,.1);  color:#34d399; }
+  #skill-toggle { border:1px solid rgba(96,165,250,.4);  background:rgba(96,165,250,.1);  color:#60a5fa; }
+  #idle-toggle  { border:1px solid rgba(251,191,36,.4);  background:rgba(251,191,36,.1);  color:#fbbf24; }
+  #ach-toggle   { border:1px solid rgba(244,114,182,.4); background:rgba(244,114,182,.1); color:#f472b6; }
+  #prestige-toggle { border:1px solid rgba(192,132,252,.45); background:rgba(192,132,252,.12); color:#c084fc; }
+  .tool-badge { display:none; position:absolute; top:-5px; right:-5px; background:#f87171; color:#fff; font-size:.58rem; font-weight:900; border-radius:99px; padding:1px 5px; pointer-events:none; }
+  .tool-wrap { position: relative; flex: 1; display: flex; }
+
+  /* ── GENERIC FULLSCREEN OVERLAY (shop/skills/idle/ach/prestige) ── */
+  .sys-overlay {
+    position: fixed; inset: 0; z-index: 56; background: var(--bg);
+    display: flex; flex-direction: column;
+    transform: translateY(100%); transition: transform .3s ease;
+  }
+  .sys-overlay.open { transform: translateY(0); }
+  .sys-head { display:flex; justify-content:space-between; align-items:center; padding:.8rem 1rem; border-bottom:1px solid var(--border); flex-shrink:0; }
+  .sys-head h2 { font-size:1.1rem; font-weight:900; }
+  .sys-head .sub { font-size:.74rem; color:var(--muted); font-weight:700; }
+  .sys-close { background:none; border:none; color:var(--muted); font-size:1.4rem; cursor:pointer; padding:0 .3rem; }
+  .sys-body { flex:1; overflow-y:auto; padding:.8rem 1rem; display:flex; flex-direction:column; gap:.55rem; }
+
+  /* shop / idle cards */
+  .buy-card {
+    display:flex; align-items:center; gap:.7rem; background:var(--panel);
+    border:1px solid var(--border); border-radius:12px; padding:.6rem .8rem;
+  }
+  .buy-card .bc-ico { font-size:1.9rem; line-height:1; flex-shrink:0; width:2.2rem; text-align:center; }
+  .buy-card .bc-info { flex:1; min-width:0; }
+  .buy-card .bc-title { font-weight:800; font-size:.9rem; display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; }
+  .buy-card .bc-desc { font-size:.72rem; color:var(--muted); line-height:1.3; }
+  .buy-card .bc-own { font-size:.68rem; color:#fbbf24; font-weight:800; }
+  .buy-btn {
+    flex-shrink:0; border:1px solid var(--border); background:#2a2438; color:var(--text);
+    border-radius:9px; padding:.45rem .7rem; font-size:.78rem; font-weight:800; cursor:pointer;
+    min-width:72px; text-align:center; transition:background .12s, transform .08s;
+  }
+  .buy-btn:hover:not(:disabled) { background:#332d45; }
+  .buy-btn:active { transform:scale(.93); }
+  .buy-btn:disabled { opacity:.4; cursor:default; }
+  .buy-btn .bb-cost { display:block; font-size:.66rem; color:var(--gold); }
+  .buy-card.active-buff { border-color:rgba(167,139,250,.6); box-shadow:0 0 10px rgba(167,139,250,.25); }
+  [data-theme="light"] .buy-btn { background:#e4e4ef; color:#111827; }
+  [data-theme="light"] .buy-btn:hover:not(:disabled) { background:#d5d5e8; }
+
+  /* skill tree */
+  #skill-pts-banner { text-align:center; font-weight:800; color:#60a5fa; font-size:.9rem; padding:.2rem 0 .4rem; }
+  .skill-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:.55rem; }
+  .skill-card {
+    background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:.6rem .7rem;
+    display:flex; flex-direction:column; gap:.35rem; cursor:pointer; transition:border-color .12s, transform .08s;
+  }
+  .skill-card:hover { border-color:rgba(96,165,250,.5); }
+  .skill-card:active { transform:scale(.97); }
+  .skill-card.maxed { border-color:rgba(251,191,36,.55); }
+  .skill-card.cant { opacity:.55; }
+  .sk-top { display:flex; align-items:center; gap:.4rem; }
+  .sk-ico { font-size:1.4rem; }
+  .sk-name { font-weight:800; font-size:.82rem; }
+  .sk-desc { font-size:.7rem; color:var(--muted); line-height:1.3; min-height:2.4em; }
+  .sk-pips { display:flex; gap:3px; }
+  .sk-pip { width:100%; height:5px; border-radius:99px; background:var(--border); }
+  .sk-pip.on { background:linear-gradient(90deg,#a78bfa,#60a5fa); }
+  .sk-cost { font-size:.7rem; font-weight:800; color:#60a5fa; }
+  .sk-cost.max { color:#fbbf24; }
+
+  /* achievements */
+  .ach-card {
+    display:flex; align-items:center; gap:.7rem; background:var(--panel);
+    border:1px solid var(--border); border-radius:12px; padding:.55rem .8rem; transition:opacity .2s;
+  }
+  .ach-card.locked { opacity:.45; }
+  .ach-card.unlocked { border-color:rgba(244,114,182,.45); }
+  .ach-ico { font-size:1.7rem; line-height:1; flex-shrink:0; width:2rem; text-align:center; }
+  .ach-info { flex:1; min-width:0; }
+  .ach-name { font-weight:800; font-size:.88rem; }
+  .ach-desc { font-size:.72rem; color:var(--muted); }
+  .ach-rew { font-size:.7rem; color:#fbbf24; font-weight:800; flex-shrink:0; text-align:right; }
+  .ach-bar-wrap { height:5px; background:var(--border); border-radius:99px; overflow:hidden; margin-top:.25rem; }
+  .ach-bar { height:100%; background:#f472b6; border-radius:99px; transition:width .3s; }
+
+  /* prestige */
+  #prestige-overlay .sys-body { align-items:center; justify-content:center; text-align:center; gap:1rem; }
+  #prestige-orb { font-size:4.5rem; animation:bobble 3s ease-in-out infinite; }
+  #prestige-overlay h3 { font-size:1.4rem; font-weight:900; color:#c084fc; }
+  #prestige-overlay p { color:var(--muted); font-size:.85rem; max-width:320px; line-height:1.5; }
+  #prestige-gain { font-size:1.1rem; font-weight:900; color:#c4b5fd; }
+  #prestige-btn { padding:.7rem 1.8rem; border-radius:12px; border:1px solid rgba(192,132,252,.5); background:rgba(192,132,252,.18); color:#c084fc; font-size:1rem; font-weight:900; cursor:pointer; }
+  #prestige-btn:disabled { opacity:.4; cursor:default; }
+  .prestige-stat-row { display:flex; gap:1.2rem; justify-content:center; flex-wrap:wrap; }
+  .prestige-stat { display:flex; flex-direction:column; }
+  .prestige-stat .ps-val { font-size:1.2rem; font-weight:900; color:#fff; }
+  .prestige-stat .ps-lbl { font-size:.68rem; color:var(--muted); }
+
+  /* battle element badge */
+  .elem-badge { font-size:.7rem; font-weight:800; padding:.05rem .4rem; border-radius:99px; display:inline-flex; gap:.15rem; align-items:center; }
+  .status-badge { font-size:.68rem; margin-left:.3rem; }
+  .crit-pop { animation:critShake .4s; color:#fbbf24 !important; font-weight:900; }
+  @keyframes critShake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-3px)} 75%{transform:translateX(3px)} }
+
+  #levelup-flash {
+    position:fixed; left:50%; top:35%; transform:translate(-50%,-50%); z-index:210;
+    text-align:center; pointer-events:none; display:none;
+  }
+  #levelup-flash.on { display:block; animation:floatUp 1.6s ease-out forwards; }
+  #levelup-flash .lf-big { font-size:2.4rem; font-weight:900; color:#a78bfa; text-shadow:0 0 18px rgba(167,139,250,.6); }
+  #levelup-flash .lf-sub { font-size:.9rem; font-weight:800; color:#fff; }
+
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
 </style>
 </head>
@@ -637,10 +777,22 @@
   <button id="new-game-btn" onclick="newGame()">New Game</button>
 </div>
 
+<div id="hud2">
+  <div id="level-chip">
+    <span class="lvl-num" id="levelNum">Lv 1</span>
+    <div id="xp-bar-wrap"><div id="xp-bar"></div></div>
+  </div>
+  <div class="h2-stat" id="idleRateStat">💤 <strong id="idleRate">0</strong>/s</div>
+  <div id="stardust-chip" style="display:none">✦ <span id="stardustCount">0</span> stardust</div>
+  <div id="buff-bar"></div>
+</div>
+
+<div id="levelup-flash"><div class="lf-big">LEVEL UP!</div><div class="lf-sub" id="lf-sub"></div></div>
+
 <div id="start-screen">
   <img src="/logo.svg" alt="gamed.fun" style="width:64px;height:64px;border-radius:18px;display:block;margin:0 auto;box-shadow:0 12px 32px rgba(251,191,36,.35);">
   <h1>Emoji Pop</h1>
-  <p id="start-tagline">Catch emojis, build your collection.</p>
+  <p id="start-tagline">Catch emojis · level up · battle · fuse · build helpers · ascend.</p>
   <div id="mode-btns">
     <button class="mode-card" id="normal-card" onclick="startNormalMode()">
       <span class="mode-icon">🎯</span>
@@ -686,6 +838,13 @@
     <button id="battle-toggle" onclick="openBattle()" style="flex:1;border:1px solid rgba(248,113,113,.4);border-radius:8px;background:rgba(248,113,113,.1);color:#f87171;font-size:.82rem;font-weight:700;cursor:pointer;padding:.3rem .6rem;">⚔️ Battle</button>
     <button id="fuse-toggle" onclick="openFuse()" style="display:none;flex:1;border:1px solid rgba(96,165,250,.4);border-radius:8px;background:rgba(96,165,250,.1);color:#60a5fa;font-size:.82rem;font-weight:700;cursor:pointer;padding:.3rem .6rem;">⚗️ Fuse</button>
     <div id="quest-toggle-wrap"><button id="quest-toggle" onclick="openQuests()" style="width:100%;border:1px solid rgba(167,139,250,.4);border-radius:8px;background:rgba(167,139,250,.1);color:#a78bfa;font-size:.82rem;font-weight:700;cursor:pointer;padding:.3rem .6rem;">📋 Quests</button><span id="quest-badge"></span></div>
+  </div>
+  <div id="tool-row-2">
+    <button id="shop-toggle" onclick="openShop()">⚡ Power-Ups</button>
+    <button id="skill-toggle" onclick="openSkills()">🌟 Skills</button>
+    <button id="idle-toggle" onclick="openIdle()">🤖 Helpers</button>
+    <div class="tool-wrap"><button id="ach-toggle" onclick="openAch()" style="width:100%">🏅 Awards</button><span class="tool-badge" id="ach-badge"></span></div>
+    <button id="prestige-toggle" onclick="openPrestige()">✦ Ascend</button>
   </div>
 </div>
 
@@ -769,6 +928,61 @@
   </div>
   <div id="fuse-hint">Tap a slot above to make it active, then pick from your collection:</div>
   <div id="fuse-picker-grid"></div>
+</div>
+
+<div id="shop-overlay" class="sys-overlay">
+  <div class="sys-head">
+    <div><h2>⚡ Power-Up Shop</h2><div class="sub">Spend coins on temporary boosts</div></div>
+    <button class="sys-close" onclick="closeShop()">✕</button>
+  </div>
+  <div class="sys-body" id="shop-body"></div>
+</div>
+
+<div id="skill-overlay" class="sys-overlay">
+  <div class="sys-head">
+    <div><h2>🌟 Skill Tree</h2><div class="sub">Level up to earn skill points</div></div>
+    <button class="sys-close" onclick="closeSkills()">✕</button>
+  </div>
+  <div class="sys-body">
+    <div id="skill-pts-banner"></div>
+    <div class="skill-grid" id="skill-grid"></div>
+  </div>
+</div>
+
+<div id="idle-overlay" class="sys-overlay">
+  <div class="sys-head">
+    <div><h2>🤖 Auto-Catchers</h2><div class="sub">They earn coins even while you're away</div></div>
+    <button class="sys-close" onclick="closeIdle()">✕</button>
+  </div>
+  <div class="sys-body" id="idle-body"></div>
+</div>
+
+<div id="ach-overlay" class="sys-overlay">
+  <div class="sys-head">
+    <div><h2>🏅 Achievements</h2><div class="sub" id="ach-sub"></div></div>
+    <button class="sys-close" onclick="closeAch()">✕</button>
+  </div>
+  <div class="sys-body" id="ach-body"></div>
+</div>
+
+<div id="prestige-overlay" class="sys-overlay">
+  <div class="sys-head">
+    <div><h2>✦ Ascension</h2><div class="sub">Reset for permanent power</div></div>
+    <button class="sys-close" onclick="closePrestige()">✕</button>
+  </div>
+  <div class="sys-body">
+    <div id="prestige-orb">🌌</div>
+    <h3 id="prestige-title">Ascend to a new cycle</h3>
+    <p id="prestige-desc"></p>
+    <div class="prestige-stat-row">
+      <div class="prestige-stat"><span class="ps-val" id="ps-current">0</span><span class="ps-lbl">Current Stardust</span></div>
+      <div class="prestige-stat"><span class="ps-val" id="ps-mult">+0%</span><span class="ps-lbl">Coin & XP Bonus</span></div>
+      <div class="prestige-stat"><span class="ps-val" id="ps-cycles">0</span><span class="ps-lbl">Ascensions</span></div>
+    </div>
+    <div id="prestige-gain"></div>
+    <button id="prestige-btn" onclick="doPrestige()">✦ Ascend</button>
+    <p style="font-size:.72rem;opacity:.7">Resets coins, collection, level, skills &amp; helpers.<br>Keeps stardust, achievements &amp; ascension bonus.</p>
+  </div>
 </div>
 
 <div id="rarity-flash"></div>
@@ -946,6 +1160,360 @@ let customEmojiDefs = [];
 let questState = { date: '', quests: [], usedIds: [], completedCount: 0 };
 let questOpen = false;
 
+// ── NEW PROGRESSION STATE ──────────────────────────────────
+let xp = 0;
+let level = 1;
+let skillPoints = 0;
+let talents = {};                 // { talentId: rank }
+let achievements = {};            // { achId: true }
+let generators = {};              // { genId: count }
+let stardust = 0;
+let prestigeCount = 0;
+let lastSeen = Date.now();
+let stats = { catches: 0, battlesWon: 0, fuses: 0, pulls: 0, coinsEarned: 0, crits: 0 };
+let activeBuffs = {};             // { buffId: expiresAtMs }
+let idleInterval = null;
+let buffTickInterval = null;
+let achNew = 0;
+
+// ════════════════════════════════════════════════════════════
+//  NEW SYSTEMS: XP · Skill Tree · Power-Ups · Idle · Elements
+//               · Achievements · Prestige
+// ════════════════════════════════════════════════════════════
+
+// ── XP / LEVEL ─────────────────────────────────────────────
+const XP_PER_RARITY = { common:2, uncommon:5, rare:12, epic:30, legendary:80, mythic:200 };
+function xpForLevel(lv) { return Math.floor(60 * Math.pow(1.17, lv - 1)); }
+function gainXP(amount) {
+  if (amount <= 0) return;
+  xp += amount;
+  let leveled = false;
+  while (xp >= xpForLevel(level)) {
+    xp -= xpForLevel(level);
+    level++;
+    skillPoints += 1 + (level % 5 === 0 ? 2 : 0);   // milestone bonus every 5 levels
+    leveled = true;
+  }
+  if (leveled) onLevelUp();
+  updateHUD2();
+}
+function onLevelUp() {
+  const f = document.getElementById('levelup-flash');
+  document.getElementById('lf-sub').textContent = `Reached Level ${level} · +Skill Point`;
+  f.classList.remove('on'); void f.offsetWidth; f.classList.add('on');
+  if (navigator.vibrate) navigator.vibrate([20, 10, 40]);
+  launchConfetti(['#a78bfa', '#60a5fa', '#fff']);
+  checkAchievements();
+  saveGame();
+}
+
+// ── SKILL TREE ─────────────────────────────────────────────
+const TALENTS = [
+  { id:'coin',  ico:'💰', name:'Coin Boost',   max:10, per:0.08, desc:lv=>`+${lv*8}% coins from catches` },
+  { id:'xp',    ico:'📘', name:'Fast Learner',  max:10, per:0.10, desc:lv=>`+${lv*10}% XP gained` },
+  { id:'crit',  ico:'💥', name:'Critical Eye',  max:10, per:0.03, desc:lv=>`+${lv*3}% crit chance (4× coins)` },
+  { id:'spawn', ico:'⏩', name:'Quick Spawns',  max:8,  per:0.06, desc:lv=>`Emojis appear ${lv*6}% faster` },
+  { id:'life',  ico:'⏳', name:'Lingering',     max:8,  per:0.08, desc:lv=>`Emojis stay ${lv*8}% longer` },
+  { id:'luck',  ico:'🍀', name:'Lucky Star',    max:6,  per:0.05, desc:lv=>`+${lv*5}% chance to upgrade rarity` },
+  { id:'bdmg',  ico:'⚔️', name:'Battle Fury',   max:10, per:0.06, desc:lv=>`+${lv*6}% battle attack` },
+  { id:'bhp',   ico:'❤️', name:'Toughness',     max:10, per:0.06, desc:lv=>`+${lv*6}% battle HP` },
+  { id:'idle',  ico:'🤖', name:'Overclock',     max:10, per:0.10, desc:lv=>`+${lv*10}% helper income` },
+];
+function talentEffect(id) { const t = TALENTS.find(x => x.id === id); return t ? (talents[id]||0) * t.per : 0; }
+function talentCost(id) { return 1 + Math.floor((talents[id]||0) / 2); }
+function openSkills() { document.getElementById('skill-overlay').classList.add('open'); renderSkills(); }
+function closeSkills() { document.getElementById('skill-overlay').classList.remove('open'); }
+function renderSkills() {
+  document.getElementById('skill-pts-banner').textContent = `🌟 ${skillPoints} skill point${skillPoints===1?'':'s'} available · Level ${level}`;
+  const g = document.getElementById('skill-grid'); g.innerHTML = '';
+  for (const t of TALENTS) {
+    const rank = talents[t.id]||0, maxed = rank >= t.max, cost = talentCost(t.id);
+    const can = !maxed && skillPoints >= cost;
+    const card = document.createElement('div');
+    card.className = 'skill-card' + (maxed?' maxed':'') + (!can&&!maxed?' cant':'');
+    const pips = Array.from({length:t.max},(_,i)=>`<div class="sk-pip${i<rank?' on':''}"></div>`).join('');
+    card.innerHTML = `<div class="sk-top"><span class="sk-ico">${t.ico}</span><span class="sk-name">${t.name}</span></div>
+      <div class="sk-desc">${t.desc(rank)}</div><div class="sk-pips">${pips}</div>
+      <div class="sk-cost ${maxed?'max':''}">${maxed?'★ MAXED':'Cost: '+cost+' pt'+(cost>1?'s':'')}</div>`;
+    if (!maxed) card.addEventListener('click', () => buySkill(t.id));
+    g.appendChild(card);
+  }
+}
+function buySkill(id) {
+  const t = TALENTS.find(x => x.id === id), rank = talents[id]||0;
+  if (rank >= t.max) return;
+  const cost = talentCost(id);
+  if (skillPoints < cost) { showToast('Not enough skill points'); return; }
+  skillPoints -= cost; talents[id] = rank + 1;
+  if (navigator.vibrate) navigator.vibrate(12);
+  saveGame(); renderSkills(); updateHUD();
+}
+
+// ── ELEMENTS (battle) ──────────────────────────────────────
+// Cycle: fire→nature→water→electric→ice→cosmic→fire (each beats the next)
+const ELEMENTS = {
+  fire:    { icon:'🔥', name:'Fire',     color:'#f87171', beats:'nature' },
+  nature:  { icon:'🌿', name:'Nature',   color:'#34d399', beats:'water' },
+  water:   { icon:'💧', name:'Water',    color:'#60a5fa', beats:'electric' },
+  electric:{ icon:'⚡', name:'Electric', color:'#fbbf24', beats:'ice' },
+  ice:     { icon:'❄️', name:'Ice',      color:'#a5f3fc', beats:'cosmic' },
+  cosmic:  { icon:'✨', name:'Cosmic',   color:'#c084fc', beats:'fire' },
+};
+const ELEM_KEYS = ['fire','nature','water','electric','ice','cosmic'];
+function elementOf(em) {
+  const key = (em.e||'') + (em.n || em.name || '');
+  return ELEM_KEYS[Math.floor(strHash(key) * ELEM_KEYS.length) % ELEM_KEYS.length];
+}
+function effectiveness(a, b) {
+  if (!a || !b) return 1;
+  if (ELEMENTS[a].beats === b) return 1.5;
+  if (ELEMENTS[b].beats === a) return 0.66;
+  return 1;
+}
+function elemBadge(el) { const e = ELEMENTS[el]; return `<span class="elem-badge" style="background:${e.color}22;color:${e.color}">${e.icon}${e.name}</span>`; }
+function statusBadge(burn, frozen) { let s=''; if (burn>0) s+=`<span class="status-badge">🔥${burn}</span>`; if (frozen>0) s+='<span class="status-badge">❄️</span>'; return s; }
+function masteryBonus(em) { const c = collection[em.n]||0; return Math.min(0.6, Math.max(0, c-1) * 0.03); }
+
+// ── POWER-UP SHOP (timed buffs) ────────────────────────────
+const BUFFS = [
+  { id:'double', ico:'💰', name:'Double Coins', dur:45, cost:200, desc:'2× coins from every catch' },
+  { id:'xprush', ico:'📈', name:'XP Rush',      dur:45, cost:250, desc:'3× XP from every catch' },
+  { id:'freeze', ico:'🧊', name:'Time Freeze',  dur:40, cost:250, desc:'Emojis linger 3× longer' },
+  { id:'frenzy', ico:'🌪️', name:'Spawn Frenzy', dur:30, cost:300, desc:'Way more emojis, much faster' },
+  { id:'golden', ico:'🌟', name:'Golden Hour',  dur:30, cost:600, desc:'Every spawn upgraded one tier' },
+];
+function isBuffActive(id) { return (activeBuffs[id]||0) > Date.now(); }
+function buffRemaining(id) { return Math.max(0, Math.ceil((activeBuffs[id]-Date.now())/1000)); }
+function stardustMult() { return 1 + stardust * 0.02; }
+function coinGlobalMult() { return (isBuffActive('double')?2:1) * stardustMult(); }
+function openShop() { document.getElementById('shop-overlay').classList.add('open'); renderShop(); }
+function closeShop() { document.getElementById('shop-overlay').classList.remove('open'); }
+function renderShop() {
+  const b = document.getElementById('shop-body'); b.innerHTML = '';
+  const head = document.createElement('div');
+  head.style.cssText = 'font-size:.8rem;color:var(--muted);text-align:center';
+  head.innerHTML = creativeMode ? 'Creative mode — everything is free!' : `You have <strong style="color:#fbbf24">${coins.toLocaleString()}</strong> 🪙`;
+  b.appendChild(head);
+  for (const buff of BUFFS) {
+    const active = isBuffActive(buff.id);
+    const card = document.createElement('div'); card.className = 'buy-card' + (active?' active-buff':'');
+    card.innerHTML = `<div class="bc-ico">${buff.ico}</div>
+      <div class="bc-info"><div class="bc-title">${buff.name} <span style="font-size:.66rem;color:var(--muted)">${buff.dur}s</span></div>
+      <div class="bc-desc">${buff.desc}</div>${active?`<div class="bc-own">⏳ ${buffRemaining(buff.id)}s remaining</div>`:''}</div>`;
+    const btn = document.createElement('button'); btn.className = 'buy-btn';
+    btn.innerHTML = active ? 'Active' : `Buy<span class="bb-cost">${buff.cost} 🪙</span>`;
+    btn.disabled = active || (!creativeMode && coins < buff.cost);
+    btn.addEventListener('click', () => buyBuff(buff.id));
+    card.appendChild(btn); b.appendChild(card);
+  }
+}
+function buyBuff(id) {
+  const buff = BUFFS.find(b => b.id === id);
+  if (!buff || isBuffActive(id)) return;
+  if (!creativeMode) { if (coins < buff.cost) { showToast('Not enough coins'); return; } coins -= buff.cost; }
+  activeBuffs[id] = Date.now() + buff.dur * 1000;
+  showToast(`${buff.ico} ${buff.name} activated!`);
+  if (navigator.vibrate) navigator.vibrate(15);
+  updateHUD(); renderShop();
+}
+function renderBuffBar() {
+  const bar = document.getElementById('buff-bar'); if (!bar) return;
+  bar.innerHTML = '';
+  for (const buff of BUFFS) {
+    if (isBuffActive(buff.id)) {
+      const c = document.createElement('span'); c.className = 'buff-chip';
+      c.textContent = `${buff.ico}${buffRemaining(buff.id)}s`;
+      bar.appendChild(c);
+    }
+  }
+}
+function startBuffTick() {
+  if (buffTickInterval) return;
+  buffTickInterval = setInterval(() => {
+    renderBuffBar();
+    if (document.getElementById('shop-overlay').classList.contains('open')) renderShop();
+  }, 1000);
+}
+
+// ── IDLE AUTO-CATCHERS ─────────────────────────────────────
+const GENERATORS = [
+  { id:'ant',    ico:'🐜', name:'Ant Forager',   base:100,     rate:1 },
+  { id:'bee',    ico:'🐝', name:'Honey Drone',    base:1200,    rate:9 },
+  { id:'eagle',  ico:'🦅', name:'Sky Hunter',     base:14000,   rate:55 },
+  { id:'dragon', ico:'🐉', name:'Dragon Hoard',   base:160000,  rate:380 },
+  { id:'cosmic', ico:'🌌', name:'Cosmic Engine',  base:2500000, rate:2600 },
+];
+function genCost(g) { return Math.ceil(g.base * Math.pow(1.16, generators[g.id]||0)); }
+function idleRate() {
+  let r = 0;
+  for (const g of GENERATORS) r += (generators[g.id]||0) * g.rate;
+  return Math.round(r * (1 + talentEffect('idle')) * stardustMult());
+}
+function genTotal() { let n = 0; for (const g of GENERATORS) n += (generators[g.id]||0); return n; }
+function buyGen(id) {
+  const g = GENERATORS.find(x => x.id === id), cost = genCost(g);
+  if (!creativeMode) { if (coins < cost) { showToast('Not enough coins'); return; } coins -= cost; }
+  generators[id] = (generators[id]||0) + 1;
+  if (navigator.vibrate) navigator.vibrate(10);
+  checkAchievements(); saveGame(); updateHUD(); renderIdle();
+}
+function openIdle() { document.getElementById('idle-overlay').classList.add('open'); renderIdle(); }
+function closeIdle() { document.getElementById('idle-overlay').classList.remove('open'); }
+function renderIdle() {
+  const b = document.getElementById('idle-body'); b.innerHTML = '';
+  const head = document.createElement('div');
+  head.style.cssText = 'font-size:.82rem;text-align:center;color:var(--muted)';
+  head.innerHTML = `Earning <strong style="color:#fbbf24">${idleRate().toLocaleString()}</strong> 🪙/sec · ${coins.toLocaleString()} 🪙`;
+  b.appendChild(head);
+  for (const g of GENERATORS) {
+    const owned = generators[g.id]||0, cost = genCost(g);
+    const myRate = Math.round(owned * g.rate * (1 + talentEffect('idle')) * stardustMult());
+    const card = document.createElement('div'); card.className = 'buy-card';
+    card.innerHTML = `<div class="bc-ico">${g.ico}</div>
+      <div class="bc-info"><div class="bc-title">${g.name}</div>
+      <div class="bc-desc">${g.rate} 🪙/sec each${owned?` · making ${myRate.toLocaleString()}/sec`:''}</div>
+      <div class="bc-own">Owned: ${owned}</div></div>`;
+    const btn = document.createElement('button'); btn.className = 'buy-btn';
+    btn.innerHTML = `Buy<span class="bb-cost">${cost.toLocaleString()} 🪙</span>`;
+    btn.disabled = !creativeMode && coins < cost;
+    btn.addEventListener('click', () => buyGen(g.id));
+    card.appendChild(btn); b.appendChild(card);
+  }
+}
+function startIdleLoop() {
+  if (idleInterval) return;
+  idleInterval = setInterval(() => {
+    if (creativeMode) return;
+    const r = idleRate();
+    if (r > 0) {
+      coins += r; stats.coinsEarned += r;
+      updateHUD();
+      if (document.getElementById('idle-overlay').classList.contains('open')) renderIdle();
+    }
+  }, 1000);
+}
+function stopIdleLoop() { clearInterval(idleInterval); idleInterval = null; }
+function applyOfflineEarnings() {
+  const r = idleRate();
+  if (r <= 0 || creativeMode) { lastSeen = Date.now(); return; }
+  const elapsed = Math.min((Date.now() - lastSeen) / 1000, 8 * 3600);
+  if (elapsed > 60) {
+    const earned = Math.floor(r * elapsed);
+    coins += earned; stats.coinsEarned += earned;
+    setTimeout(() => showToast(`💤 Helpers earned ${earned.toLocaleString()} 🪙 while away!`), 1000);
+  }
+  lastSeen = Date.now();
+}
+
+// ── ACHIEVEMENTS ───────────────────────────────────────────
+function collCount() { return Object.keys(collection).length; }
+const ACHIEVEMENTS = [
+  { id:'first',   ico:'🥚', name:'First Catch',    desc:'Catch your first emoji',     coins:20,    test:()=>stats.catches>=1 },
+  { id:'c100',    ico:'📦', name:'Getting Started',desc:'Catch 100 emojis',           coins:150,   test:()=>stats.catches>=100,   prog:()=>[stats.catches,100] },
+  { id:'c1000',   ico:'🏭', name:'Catch Machine',  desc:'Catch 1,000 emojis',         coins:1000,  test:()=>stats.catches>=1000,  prog:()=>[stats.catches,1000] },
+  { id:'c10000',  ico:'🌠', name:'Emoji Overlord', desc:'Catch 10,000 emojis',        coins:10000, test:()=>stats.catches>=10000, prog:()=>[stats.catches,10000] },
+  { id:'coll50',  ico:'📗', name:'Collector',      desc:'Discover 50 emojis',         coins:200,   test:()=>collCount()>=50,      prog:()=>[collCount(),50] },
+  { id:'coll150', ico:'📚', name:'Curator',        desc:'Discover 150 emojis',        coins:800,   test:()=>collCount()>=150,     prog:()=>[collCount(),150] },
+  { id:'collall', ico:'🏆', name:'Completionist',  desc:'Discover every base emoji',  coins:5000,  test:()=>collCount()>=TOTAL,   prog:()=>[collCount(),TOTAL] },
+  { id:'b10',     ico:'⚔️', name:'Brawler',        desc:'Win 10 battles',             coins:300,   test:()=>stats.battlesWon>=10, prog:()=>[stats.battlesWon,10] },
+  { id:'b50',     ico:'🛡️', name:'Champion',       desc:'Win 50 battles',             coins:1500,  test:()=>stats.battlesWon>=50, prog:()=>[stats.battlesWon,50] },
+  { id:'lvl10',   ico:'🌟', name:'Rising Star',    desc:'Reach level 10',             coins:250,   test:()=>level>=10,            prog:()=>[level,10] },
+  { id:'lvl25',   ico:'💫', name:'Veteran',        desc:'Reach level 25',             coins:1200,  test:()=>level>=25,            prog:()=>[level,25] },
+  { id:'lvl50',   ico:'☄️', name:'Living Legend',  desc:'Reach level 50',             coins:6000,  test:()=>level>=50,            prog:()=>[level,50] },
+  { id:'idle5',   ico:'🤖', name:'Automation',     desc:'Own 5 auto-catchers',        coins:300,   test:()=>genTotal()>=5,        prog:()=>[genTotal(),5] },
+  { id:'idle25',  ico:'🏗️', name:'Factory Owner',  desc:'Own 25 auto-catchers',       coins:1500,  test:()=>genTotal()>=25,       prog:()=>[genTotal(),25] },
+  { id:'crit50',  ico:'💥', name:'Sharp Shooter',  desc:'Land 50 critical catches',   coins:500,   test:()=>stats.crits>=50,      prog:()=>[stats.crits,50] },
+  { id:'fuse10',  ico:'⚗️', name:'Mad Scientist',  desc:'Fuse 10 times',              coins:400,   test:()=>stats.fuses>=10,      prog:()=>[stats.fuses,10] },
+  { id:'asc1',    ico:'✦',  name:'Reborn',         desc:'Ascend for the first time',  sd:5,        test:()=>prestigeCount>=1 },
+];
+function checkAchievements() {
+  let any = false;
+  for (const a of ACHIEVEMENTS) {
+    if (!achievements[a.id] && a.test()) {
+      achievements[a.id] = true; any = true; achNew++;
+      if (a.coins) coins += a.coins;
+      if (a.sd) stardust += a.sd;
+      showToast(`🏅 ${a.name}!${a.coins?` +${a.coins}🪙`:''}${a.sd?` +${a.sd}✦`:''}`);
+      launchConfetti(['#f472b6', '#fbbf24', '#fff']);
+    }
+  }
+  if (any) { updateHUD(); saveGame(); if (document.getElementById('ach-overlay').classList.contains('open')) renderAch(); }
+  updateAchBadge();
+}
+function updateAchBadge() {
+  const badge = document.getElementById('ach-badge'); if (!badge) return;
+  badge.style.display = achNew > 0 ? 'block' : 'none';
+  badge.textContent = achNew;
+}
+function openAch() { achNew = 0; document.getElementById('ach-overlay').classList.add('open'); renderAch(); updateAchBadge(); }
+function closeAch() { document.getElementById('ach-overlay').classList.remove('open'); }
+function renderAch() {
+  const unlocked = ACHIEVEMENTS.filter(a => achievements[a.id]).length;
+  document.getElementById('ach-sub').textContent = `${unlocked} / ${ACHIEVEMENTS.length} unlocked`;
+  const b = document.getElementById('ach-body'); b.innerHTML = '';
+  for (const a of ACHIEVEMENTS) {
+    const got = !!achievements[a.id];
+    const card = document.createElement('div'); card.className = 'ach-card ' + (got?'unlocked':'locked');
+    let progHTML = '';
+    if (!got && a.prog) {
+      const [cur, max] = a.prog();
+      progHTML = `<div class="ach-bar-wrap"><div class="ach-bar" style="width:${Math.min(100,cur/max*100)}%"></div></div>
+        <div style="font-size:.66rem;color:var(--muted);margin-top:2px">${Math.min(cur,max).toLocaleString()} / ${max.toLocaleString()}</div>`;
+    }
+    const rew = a.sd ? `+${a.sd}✦` : `+${a.coins}🪙`;
+    card.innerHTML = `<div class="ach-ico">${got?a.ico:'🔒'}</div>
+      <div class="ach-info"><div class="ach-name">${a.name}</div><div class="ach-desc">${a.desc}</div>${progHTML}</div>
+      <div class="ach-rew">${got?'✓':rew}</div>`;
+    b.appendChild(card);
+  }
+}
+
+// ── PRESTIGE / ASCENSION ───────────────────────────────────
+function prestigeGain() { return Math.floor(Math.sqrt(stats.catches/8) + collCount()/3 + level/2); }
+function prestigeUnlocked() { return collCount() >= 120 || level >= 25; }
+function openPrestige() { document.getElementById('prestige-overlay').classList.add('open'); renderPrestige(); }
+function closePrestige() { document.getElementById('prestige-overlay').classList.remove('open'); }
+function renderPrestige() {
+  document.getElementById('ps-current').textContent = stardust;
+  document.getElementById('ps-mult').textContent = '+' + Math.round((stardustMult()-1)*100) + '%';
+  document.getElementById('ps-cycles').textContent = prestigeCount;
+  const gain = prestigeGain(), unlocked = prestigeUnlocked();
+  const btn = document.getElementById('prestige-btn');
+  const desc = document.getElementById('prestige-desc');
+  const gainEl = document.getElementById('prestige-gain');
+  if (creativeMode) { desc.textContent = 'Ascension is disabled in Creative mode.'; gainEl.textContent = ''; btn.disabled = true; return; }
+  if (!unlocked) {
+    desc.textContent = 'Unlock Ascension by discovering 120 emojis OR reaching level 25. Each Stardust grants +2% coins & XP forever.';
+    gainEl.textContent = `Progress: ${collCount()}/120 emojis · Lv ${level}/25`;
+    btn.disabled = true; return;
+  }
+  desc.textContent = 'Ascending wipes your coins, collection, level, skills and helpers — but you gain Stardust: a permanent +2% boost to all coins and XP per point.';
+  gainEl.textContent = `You will gain ✦ ${gain} Stardust  (+${gain*2}% boost)`;
+  btn.disabled = gain <= 0;
+}
+function doPrestige() {
+  if (creativeMode || !prestigeUnlocked()) return;
+  const gain = prestigeGain();
+  if (gain <= 0) { showToast('Not enough progress yet'); return; }
+  if (!confirm(`Ascend now for ✦${gain} Stardust?\nThis resets your whole run (you keep stardust & achievements).`)) return;
+  stardust += gain; prestigeCount++;
+  // wipe the run
+  coins = 0; collection = {}; customEmojiDefs = []; xp = 0; level = 1; skillPoints = 0;
+  talents = {}; generators = {}; streak = 0; activeBuffs = {}; newlyFound = new Set();
+  completionShown = false;
+  clearTimeout(spawnTimer);
+  activeEmojis.forEach(a => { clearTimeout(a.timeout); a.el.remove(); });
+  activeEmojis = [];
+  checkAchievements();
+  saveGame();
+  closePrestige();
+  launchConfetti(['#c084fc', '#a78bfa', '#fff', '#fbbf24']);
+  showToast(`✦ Ascended! +${gain} Stardust`);
+  if (collOpen) renderCollection();
+  updateHUD();
+  startGame();
+}
+
 const gameArea = document.getElementById('game-area');
 const coinCountEl = document.getElementById('coinCount');
 const progressEl = document.getElementById('progress');
@@ -967,11 +1535,24 @@ function rollEmoji(rarityKey) {
 }
 
 // ── SPAWN ──────────────────────────────────────────────────
+function maxActiveNow() {
+  return MAX_ACTIVE + (isBuffActive('frenzy') ? 8 : 0);
+}
+const RARITY_KEYS = ['common','uncommon','rare','epic','legendary','mythic'];
+function upgradeRarity(rKey, steps = 1) {
+  const i = Math.min(RARITY_KEYS.indexOf(rKey) + steps, RARITY_KEYS.length - 1);
+  return RARITY_KEYS[i];
+}
+
 function spawnEmoji() {
-  if (activeEmojis.length >= MAX_ACTIVE) return;
+  if (activeEmojis.length >= maxActiveNow()) return;
   const rarityList = Object.keys(RARITIES);
   const weights = rarityList.map(r => RARITIES[r].weight);
-  const rKey = rollRarity(rarityList, weights);
+  let rKey = rollRarity(rarityList, weights);
+  // Luck talent: chance to bump up a tier
+  if (Math.random() < talentEffect('luck')) rKey = upgradeRarity(rKey, 1);
+  // Golden Hour buff: everything bumps up a tier
+  if (isBuffActive('golden')) rKey = upgradeRarity(rKey, 1);
   const emoji = rollEmoji(rKey);
   spawnToScreen(emoji, rKey);
 }
@@ -991,10 +1572,11 @@ function spawnToScreen(emoji, rKey) {
   el.style.top  = y + 'px';
   el.style.animationDelay = delay + 's';
 
+  const life = RARITIES[rKey].lifetime * (1 + talentEffect('life')) * (isBuffActive('freeze') ? 3 : 1);
   const timeout = setTimeout(() => {
     el.classList.add('vanish');
     setTimeout(() => { el.remove(); activeEmojis = activeEmojis.filter(a => a.el !== el); }, 600);
-  }, RARITIES[rKey].lifetime);
+  }, life);
 
   el.addEventListener('click', ev => { ev.stopPropagation(); collect(emoji, rKey, el, timeout); });
   gameArea.appendChild(el);
@@ -1055,15 +1637,34 @@ function collect(emoji, rKey, el, timeout, noCoins, coinMultiplier = 1) {
   clearTimeout(streakTimer);
   streakTimer = setTimeout(() => { streak = 0; updateHUD(); }, 3000);
   const mult = Math.min(streak, 10);
-  const earned = noCoins ? 0 : Math.ceil(RARITIES[rKey].coins * coinMultiplier * (1 + (mult - 1) * 0.2));
+  // crit?
+  const critChance = talentEffect('crit');
+  const isCrit = !noCoins && Math.random() < critChance;
+  if (isCrit) stats.crits++;
+  const critMult = isCrit ? 4 : 1;
+  const earned = noCoins ? 0 : Math.ceil(
+    RARITIES[rKey].coins * coinMultiplier
+    * (1 + (mult - 1) * 0.2)        // streak
+    * (1 + talentEffect('coin'))    // coin talent
+    * coinGlobalMult()              // buffs + stardust + prestige
+    * critMult
+  );
   coins += earned;
+  if (earned > 0) stats.coinsEarned += earned;
+
+  // XP
+  if (!noCoins) gainXP(Math.round(XP_PER_RARITY[rKey] * (1 + talentEffect('xp')) * (isBuffActive('xprush') ? 3 : 1)));
+
+  // stat + achievement tracking
+  stats.catches++;
+  checkAchievements();
 
   // Coin popup
   const rect = el.getBoundingClientRect();
   const pop = document.createElement('div');
-  pop.className = 'coin-pop';
-  pop.style.cssText = `left:${rect.left + rect.width/2}px;top:${rect.top}px;color:${RARITIES[rKey].color};transform-origin:center;`;
-  let label = '+' + earned + '🪙';
+  pop.className = 'coin-pop' + (isCrit ? ' crit-pop' : '');
+  pop.style.cssText = `left:${rect.left + rect.width/2}px;top:${rect.top}px;color:${isCrit ? '#fbbf24' : RARITIES[rKey].color};transform-origin:center;`;
+  let label = (isCrit ? '💥CRIT +' : '+') + earned + '🪙';
   if (isNew) label += ' ✨NEW!';
   else if (streak >= 5) label += ' 🔥×' + mult;
   pop.textContent = label;
@@ -1102,6 +1703,8 @@ function doSummon(type) {
   const emoji = rollEmoji(rKey);
   collect(emoji, rKey, { getBoundingClientRect: () => ({ left: window.innerWidth/2-28, top: window.innerHeight/2-28, width:56, height:56 }) }, null, false, 5);
   showSummonResult(emoji, rKey);
+  stats.pulls++;
+  checkAchievements();
   trackQuest('pull');
 }
 
@@ -1136,6 +1739,20 @@ function updateHUD() {
   const sd = document.getElementById('streakDisplay');
   if (sd) sd.textContent = streak >= 2 ? '🔥 ×' + Math.min(streak, 10) + ' combo!' : '';
   syncSummonButtons();
+  updateHUD2();
+}
+
+function updateHUD2() {
+  document.getElementById('levelNum').textContent = 'Lv ' + level;
+  const need = xpForLevel(level);
+  document.getElementById('xp-bar').style.width = Math.min(100, (xp / need) * 100) + '%';
+  const rate = idleRate();
+  document.getElementById('idleRate').textContent = rate >= 1000 ? (rate/1000).toFixed(1) + 'k' : rate;
+  const sdChip = document.getElementById('stardust-chip');
+  if (stardust > 0 || prestigeCount > 0) { sdChip.style.display = ''; document.getElementById('stardustCount').textContent = stardust; }
+  else sdChip.style.display = 'none';
+  renderBuffBar();
+  updateAchBadge();
 }
 
 // ── COLLECTION ─────────────────────────────────────────────
@@ -1182,7 +1799,8 @@ function renderCollection() {
 
 // ── SPAWN LOOP ─────────────────────────────────────────────
 function scheduleSpawn() {
-  const delay = 1200 + Math.random() * 1800;
+  let delay = (1200 + Math.random() * 1800) * (1 - talentEffect('spawn'));
+  if (isBuffActive('frenzy')) delay *= 0.35;
   spawnTimer = setTimeout(() => { spawnEmoji(); scheduleSpawn(); }, delay);
 }
 
@@ -1209,6 +1827,11 @@ function newGame() {
   streak = 0;
   newlyFound = new Set();
   customEmojiDefs = [];
+  xp = 0; level = 1; skillPoints = 0; talents = {}; achievements = {};
+  generators = {}; stardust = 0; prestigeCount = 0;
+  stats = { catches:0, battlesWon:0, fuses:0, pulls:0, coinsEarned:0, crits:0 };
+  activeBuffs = {};
+  stopIdleLoop();
   localStorage.removeItem(SAVE_KEY);
   activeEmojis = [];
   filterRarity = 'all';
@@ -1232,6 +1855,9 @@ function saveGame() {
       newlyFound: [...newlyFound],
       customEmojiDefs,
       questState,
+      xp, level, skillPoints, talents, achievements, generators,
+      stardust, prestigeCount, stats,
+      lastSeen: Date.now(),
     }));
   } catch {}
 }
@@ -1245,6 +1871,16 @@ function loadGame() {
     newlyFound = new Set(raw.newlyFound || []);
     customEmojiDefs = (raw.customEmojiDefs || []).map(c => ({...c, custom: true}));
     if (raw.questState) questState = raw.questState;
+    xp = raw.xp || 0;
+    level = raw.level || 1;
+    skillPoints = raw.skillPoints || 0;
+    talents = raw.talents || {};
+    achievements = raw.achievements || {};
+    generators = raw.generators || {};
+    stardust = raw.stardust || 0;
+    prestigeCount = raw.prestigeCount || 0;
+    stats = Object.assign({ catches:0, battlesWon:0, fuses:0, pulls:0, coinsEarned:0, crits:0 }, raw.stats || {});
+    lastSeen = raw.lastSeen || Date.now();
   } catch {}
 }
 
@@ -1255,6 +1891,9 @@ function startNormalMode() {
   loadGame();
   initQuests();
   replaceFuseQuests();                                             // never leave an unwinnable fuse quest in normal mode
+  applyOfflineEarnings();
+  startIdleLoop();
+  startBuffTick();
   updateHUD();
   updateQuestBadge();
   startGame();
@@ -1266,7 +1905,9 @@ function startCreativeMode() {
   document.getElementById('fuse-toggle').style.display = '';       // Fuse available in creative
   coins = 999999999;
   EMOJIS.forEach(e => { collection[e.n] = 999; });
+  level = 50; xp = 0; skillPoints = 99;
   initQuests();
+  startBuffTick();
   updateHUD();
   updateQuestBadge();
   startGame();
@@ -1384,7 +2025,9 @@ function renderFighterPick() {
     const cell = document.createElement('div');
     cell.className = 'battle-pick-cell';
     cell.style.borderColor = r.color;
-    cell.innerHTML = `<span>${emojiHTML(em)}</span><span class="bp-name" style="color:${r.color}">${em.n}</span><span class="bp-stats">❤️${em.hp} ⚔️${em.atk}</span>`;
+    const mb = masteryBonus(em);
+    const mbTxt = mb > 0 ? ` <span style="color:#fbbf24">★${Math.round(mb*100)}%</span>` : '';
+    cell.innerHTML = `<span>${emojiHTML(em)}</span><span class="bp-name" style="color:${r.color}">${ELEMENTS[elementOf(em)].icon}${em.n}</span><span class="bp-stats">❤️${em.hp} ⚔️${em.atk}${mbTxt}</span>`;
     cell.addEventListener('click', () => startBattle(em));
     grid.appendChild(cell);
   }
@@ -1392,11 +2035,14 @@ function renderFighterPick() {
 
 function startBattle(emojiDef) {
   const npc = scaleOpponentToFighter(pickBattleOpponent(emojiDef), emojiDef);
+  const mastery = masteryBonus(emojiDef);
+  const pMaxHP = Math.round(emojiDef.hp * (1 + talentEffect('bhp') + mastery));
+  const pAtk = Math.round(emojiDef.atk * (1 + talentEffect('bdmg') + mastery));
   battleState = {
-    playerEmoji: emojiDef,
-    playerHP: emojiDef.hp, playerMaxHP: emojiDef.hp, playerAtk: emojiDef.atk,
-    npc, npcHP: npc.hp, npcMaxHP: npc.hp, npcAtk: npc.atk,
-    guarding: false, acting: false,
+    playerEmoji: emojiDef, playerElem: elementOf(emojiDef),
+    playerHP: pMaxHP, playerMaxHP: pMaxHP, playerAtk: pAtk,
+    npc, npcElem: elementOf(npc), npcHP: npc.hp, npcMaxHP: npc.hp, npcAtk: npc.atk,
+    guarding: false, acting: false, npcBurn: 0, playerBurn: 0, npcFrozen: 0,
   };
   document.getElementById('battle-pick-screen').style.display = 'none';
   document.getElementById('battle-fight-screen').style.display = 'flex';
@@ -1404,13 +2050,16 @@ function startBattle(emojiDef) {
   document.getElementById('battle-log').innerHTML = '';
   setBattleDisabled(false);
   renderBattle();
-  logBattle(`⚔️ ${emojiDef.n} vs ${npc.name}! Fight!`);
+  const eff = effectiveness(battleState.playerElem, battleState.npcElem);
+  const effTxt = eff > 1 ? ' — type advantage! 🔺' : eff < 1 ? ' — type disadvantage 🔻' : '';
+  if (mastery > 0) logBattle(`🌟 Mastery bonus: +${Math.round(mastery*100)}% stats!`);
+  logBattle(`⚔️ ${ELEMENTS[battleState.playerElem].icon}${emojiDef.n} vs ${ELEMENTS[battleState.npcElem].icon}${npc.name}!${effTxt}`);
 }
 
 function renderBattle() {
   const { playerEmoji, playerHP, playerMaxHP, npc, npcHP, npcMaxHP } = battleState;
   document.getElementById('player-emoji').innerHTML = emojiHTML(playerEmoji);
-  document.getElementById('player-name').textContent = playerEmoji.n;
+  document.getElementById('player-name').innerHTML = elemBadge(battleState.playerElem) + ' ' + playerEmoji.n + statusBadge(battleState.playerBurn, 0);
   document.getElementById('player-hp-text').textContent = `${playerHP} / ${playerMaxHP}`;
   const pPct = Math.max(0, playerHP / playerMaxHP * 100);
   const pBar = document.getElementById('player-hp-bar');
@@ -1419,7 +2068,7 @@ function renderBattle() {
   document.getElementById('player-card').style.borderColor = RARITIES[playerEmoji.r].color;
 
   document.getElementById('npc-emoji').innerHTML = emojiHTML(npc);
-  document.getElementById('npc-name').textContent = npc.name;
+  document.getElementById('npc-name').innerHTML = elemBadge(battleState.npcElem) + ' ' + npc.name + statusBadge(battleState.npcBurn, battleState.npcFrozen);
   document.getElementById('npc-hp-text').textContent = `${npcHP} / ${npcMaxHP}`;
   const nPct = Math.max(0, npcHP / npcMaxHP * 100);
   const nBar = document.getElementById('npc-hp-bar');
@@ -1445,25 +2094,39 @@ function doAction(type) {
   battleState.acting = true;
   setBattleDisabled(true);
   const { playerEmoji, playerAtk, npc, npcAtk } = battleState;
+  const eff = effectiveness(battleState.playerElem, battleState.npcElem);
   let playerDmg = 0;
 
+  const critRoll = Math.random() < (0.08 + talentEffect('crit'));
+  const critMul = critRoll ? 1.8 : 1;
+
   if (type === 'attack') {
-    playerDmg = Math.round(playerAtk * (0.85 + Math.random() * 0.3));
-    logBattle(`${emojiText(playerEmoji)} attacks for ${playerDmg}!`);
+    playerDmg = Math.round(playerAtk * (0.85 + Math.random() * 0.3) * eff * critMul);
+    logBattle(`${emojiText(playerEmoji)} attacks for ${playerDmg}!${critRoll ? ' ✨CRIT!' : ''}${eff>1?' 🔺':eff<1?' 🔻':''}`);
   } else if (type === 'power') {
     if (Math.random() < 0.28) {
       logBattle(`${emojiText(playerEmoji)} Power Strike... missed! 😬`);
     } else {
-      playerDmg = Math.round(playerAtk * (1.6 + Math.random() * 0.6));
-      logBattle(`${emojiText(playerEmoji)} Power Strike for ${playerDmg}! 💥`);
+      playerDmg = Math.round(playerAtk * (1.6 + Math.random() * 0.6) * eff * critMul);
+      // elemental status on hit
+      const el = battleState.playerElem;
+      if (el === 'ice') { battleState.npcFrozen = 1; logBattle(`${emojiText(playerEmoji)} Power Strike for ${playerDmg}! ❄️ Froze the foe!`); }
+      else { battleState.npcBurn = 3; logBattle(`${emojiText(playerEmoji)} Power Strike for ${playerDmg}! 🔥 Burning!`); }
     }
   } else {
-    playerDmg = Math.round(playerAtk * 0.35);
+    playerDmg = Math.round(playerAtk * 0.35 * eff);
     battleState.guarding = true;
     logBattle(`${emojiText(playerEmoji)} guards, deals ${playerDmg}. 🛡️`);
   }
 
   battleState.npcHP = Math.max(0, battleState.npcHP - playerDmg);
+  // burn tick on npc
+  if (battleState.npcBurn > 0 && battleState.npcHP > 0) {
+    const burn = Math.max(3, Math.round(battleState.npcMaxHP * 0.06));
+    battleState.npcHP = Math.max(0, battleState.npcHP - burn);
+    battleState.npcBurn--;
+    logBattle(`🔥 ${npc.name} takes ${burn} burn damage!`);
+  }
   renderBattle();
 
   if (battleState.npcHP <= 0) {
@@ -1472,10 +2135,20 @@ function doAction(type) {
   }
 
   setTimeout(() => {
+    // frozen foe skips its turn
+    if (battleState.npcFrozen > 0) {
+      battleState.npcFrozen--;
+      battleState.guarding = false;
+      logBattle(`❄️ ${npc.name} is frozen and can't move!`);
+      battleState.acting = false;
+      setBattleDisabled(false);
+      return;
+    }
     const g = battleState.guarding;
     battleState.guarding = false;
+    const npcEff = effectiveness(battleState.npcElem, battleState.playerElem);
     const fullBlock = g && Math.random() < 0.8;
-    const nd = fullBlock ? 0 : Math.round(npcAtk * (0.85 + Math.random() * 0.3));
+    const nd = fullBlock ? 0 : Math.round(npcAtk * (0.85 + Math.random() * 0.3) * npcEff);
     if (fullBlock) {
       logBattle(`${emojiText(npc)} attacks — fully blocked! 🛡️`);
     } else {
@@ -1514,6 +2187,9 @@ function endBattle(won) {
     document.getElementById('result-icon').textContent = '🏆';
     document.getElementById('result-title').textContent = 'Victory!';
     document.getElementById('result-desc').textContent = `+${reward} 🪙 coins earned!${extra}`;
+    stats.battlesWon++;
+    gainXP(Math.round((RARITIES[npc.r].coins + 10) * 1.5));
+    checkAchievements();
     trackQuest('battle');
     updateHUD();
     saveGame();
@@ -1852,6 +2528,8 @@ function doFuse() {
   const wasNew = !collection[result.n];
   collection[result.n] = (collection[result.n] || 0) + 1;
   if (wasNew) newlyFound.add(result.n);
+  stats.fuses++;
+  checkAchievements();
   trackQuest('fuse');
   updateHUD();
   saveGame();
