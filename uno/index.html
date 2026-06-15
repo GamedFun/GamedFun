@@ -262,7 +262,7 @@
       place-items: center;
       box-shadow: inset 0 0 0 2px rgba(0,0,0,.05), 0 3px 8px rgba(0,0,0,.22);
     }
-    .card .center {
+    .card .cval {
       transform: rotate(0deg);
       display: grid;
       place-items: center;
@@ -275,7 +275,7 @@
       padding: 0;
       gap: 0;
     }
-    .card.act .center { font-size: 2.5rem; letter-spacing: -.03em; }
+    .card.act .cval { font-size: 2.5rem; letter-spacing: -.03em; }
     .card .corner {
       position: absolute;
       font-size: 1.3rem;
@@ -286,7 +286,7 @@
       z-index: 4;
     }
     .card .corner svg { width: 1.25rem; height: 1.25rem; display: block; }
-    .card .center svg { width: 4rem; height: 4rem; display: block; }
+    .card .cval svg { width: 4rem; height: 4rem; display: block; }
     .card .tl { top: 8px; left: 11px; }
     .card .br { bottom: 8px; right: 11px; transform: rotate(180deg); }
     .card.yellow .corner { color: #5a3b00; text-shadow: 0 1px 1px rgba(255,255,255,.3); }
@@ -441,9 +441,9 @@
     @media (max-width: 640px) {
       main { padding: .75rem; }
       .card, .deck { width: 92px; height: 134px; border-radius: 12px; }
-      .card .center { font-size: 3.1rem; }
-      .card .center svg, .card .w4 svg { width: 3.1rem; height: 3.1rem; }
-      .card.act .center { font-size: 2rem; }
+      .card .cval { font-size: 3.1rem; }
+      .card .cval svg, .card .w4 svg { width: 3.1rem; height: 3.1rem; }
+      .card.act .cval { font-size: 2rem; }
       .card .corner { font-size: 1.1rem; }
       .card .corner svg { width: 1.05rem; height: 1.05rem; }
       .deck::after { font-size: 1.45rem; }
@@ -453,9 +453,9 @@
     @media (max-width: 420px) {
       header { padding: .5rem .75rem; }
       .card, .deck { width: 74px; height: 108px; border-radius: 10px; }
-      .card .center { font-size: 2.5rem; }
-      .card .center svg, .card .w4 svg { width: 2.5rem; height: 2.5rem; }
-      .card.act .center { font-size: 1.6rem; }
+      .card .cval { font-size: 2.5rem; }
+      .card .cval svg, .card .w4 svg { width: 2.5rem; height: 2.5rem; }
+      .card.act .cval { font-size: 1.6rem; }
       .card .w4-txt { font-size: 1.2rem; }
       .card .corner { font-size: .9rem; }
       .card .corner svg { width: .9rem; height: .9rem; }
@@ -1026,7 +1026,7 @@
       el.disabled = !playable && !isDiscard;
       el.innerHTML =
         `<span class="corner tl">${g.corner}</span>` +
-        `<span class="oval"><span class="center">${g.center}</span></span>` +
+        `<span class="oval"><span class="cval">${g.center}</span></span>` +
         `<span class="corner br">${g.corner}</span>`;
       el.addEventListener('click', onClick);
       return el;
