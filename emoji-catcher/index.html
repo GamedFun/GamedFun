@@ -684,7 +684,7 @@
   <div style="display:flex;gap:.4rem;padding:.4rem .7rem;border-top:1px solid var(--border);">
     <button id="collection-toggle" onclick="openCollection()" style="flex:1;border:none;background:none;color:var(--muted);font-size:.82rem;cursor:pointer;padding:.2rem;text-align:left;">📖 Collection ▲</button>
     <button id="battle-toggle" onclick="openBattle()" style="flex:1;border:1px solid rgba(248,113,113,.4);border-radius:8px;background:rgba(248,113,113,.1);color:#f87171;font-size:.82rem;font-weight:700;cursor:pointer;padding:.3rem .6rem;">⚔️ Battle</button>
-    <button id="fuse-toggle" onclick="openFuse()" style="flex:1;border:1px solid rgba(96,165,250,.4);border-radius:8px;background:rgba(96,165,250,.1);color:#60a5fa;font-size:.82rem;font-weight:700;cursor:pointer;padding:.3rem .6rem;">⚗️ Fuse</button>
+    <button id="fuse-toggle" onclick="openFuse()" style="display:none;flex:1;border:1px solid rgba(96,165,250,.4);border-radius:8px;background:rgba(96,165,250,.1);color:#60a5fa;font-size:.82rem;font-weight:700;cursor:pointer;padding:.3rem .6rem;">⚗️ Fuse</button>
     <div id="quest-toggle-wrap"><button id="quest-toggle" onclick="openQuests()" style="width:100%;border:1px solid rgba(167,139,250,.4);border-radius:8px;background:rgba(167,139,250,.1);color:#a78bfa;font-size:.82rem;font-weight:700;cursor:pointer;padding:.3rem .6rem;">📋 Quests</button><span id="quest-badge"></span></div>
   </div>
 </div>
@@ -1251,8 +1251,10 @@ function loadGame() {
 function startNormalMode() {
   creativeMode = false;
   document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('fuse-toggle').style.display = 'none';   // fusing is a creative-only tool
   loadGame();
   initQuests();
+  replaceFuseQuests();                                             // never leave an unwinnable fuse quest in normal mode
   updateHUD();
   updateQuestBadge();
   startGame();
@@ -1261,6 +1263,7 @@ function startNormalMode() {
 function startCreativeMode() {
   creativeMode = true;
   document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('fuse-toggle').style.display = '';       // Fuse available in creative
   coins = 999999999;
   EMOJIS.forEach(e => { collection[e.n] = 999; });
   initQuests();
@@ -1718,6 +1721,7 @@ function fuseCost() {
 }
 
 function openFuse() {
+  if (!creativeMode) return;            // fusing is a creative-only tool
   fuseOpen = true;
   fuseEmoji1 = null; fuseEmoji2 = null; fuseSlotActive = 1;
   document.getElementById('fuse-overlay').classList.add('open');
@@ -1885,10 +1889,13 @@ const QUEST_POOL = [
 
 function getTodayStr() { return new Date().toISOString().slice(0, 10); }
 
+// fusing is creative-only, so its quest is never offered in normal mode
+function questPool() { return creativeMode ? QUEST_POOL : QUEST_POOL.filter(q => q.type !== 'fuse'); }
+
 function initQuests() {
   const today = getTodayStr();
   if (questState.date === today) return;
-  const shuffled = [...QUEST_POOL].sort(() => Math.random() - 0.5);
+  const shuffled = [...questPool()].sort(() => Math.random() - 0.5);
   const picked = shuffled.slice(0, 3);
   questState = {
     date: today,
@@ -1899,9 +1906,29 @@ function initQuests() {
   saveGame();
 }
 
+// swap out any already-active fuse quest when playing normal mode, so it's never unwinnable
+function replaceFuseQuests() {
+  if (creativeMode || !questState.quests) return;
+  let changed = false;
+  questState.quests = questState.quests.map(q => {
+    const def = QUEST_POOL.find(d => d.id === q.id);
+    if (def && def.type === 'fuse') {
+      const used = new Set(questState.usedIds);
+      const repl = questPool().find(d => !used.has(d.id));
+      if (repl) {
+        changed = true;
+        questState.usedIds = questState.usedIds.map(id => id === q.id ? repl.id : id);
+        return { id: repl.id, progress: 0, done: false, claimed: false };
+      }
+    }
+    return q;
+  });
+  if (changed) saveGame();
+}
+
 function nextQuest() {
   const used = new Set(questState.usedIds);
-  const available = QUEST_POOL.filter(q => !used.has(q.id));
+  const available = questPool().filter(q => !used.has(q.id));
   if (!available.length) return null;
   return available[Math.floor(Math.random() * available.length)];
 }
