@@ -168,8 +168,8 @@ const f = n => n.toFixed(6);  // embed constants into GLSL
 const CURSOR_RAW = [[0,0],[0,1.375],[0.375,1.042],[0.625,1.583],[0.833,1.5],[0.583,0.958],[1.042,0.958]];
 const CURSOR_PTS = CURSOR_RAW.map(([x, y]) => {
   const cx = (x - 0.52) * 1.5, cy = (0.79 - y) * 1.5;
-  const B = -0.582, cB = Math.cos(B), sB = Math.sin(B);   // tip → +Y
-  return `vec2(${f(cx*cB - cy*sB)}, ${f(cx*sB + cy*cB)})`;
+  const B = -0.582, cB = Math.cos(B), sB = Math.sin(B);   // align tip, then flip: tip → straight down
+  return `vec2(${f(-(cx*cB - cy*sB))}, ${f(-(cx*sB + cy*cB))})`;
 }).join(', ');
 
 // shared formulas — JS side
@@ -663,7 +663,7 @@ function die() {
   G.state = 'dying'; G.dieT = 0; G.hurt = 1; G.shake = 1;
   shipTrail.length = 0; curTrail.length = 0;
   AUDIO.death(); AUDIO.stop();
-  explode(innerWidth/2, innerHeight*0.62);
+  explode(...shipPos());
   if (navigator.vibrate) try { navigator.vibrate([60, 40, 120]); } catch {}
   const dist = Math.floor(G.z);
   const isRecord = dist > best.dist;
@@ -830,7 +830,13 @@ function projPoint(wx, wy, wz) {
   return [(1.55 * xc / zc * innerHeight + innerWidth) / 2,
           innerHeight * (1 - 1.55 * yc / zc) / 2];
 }
-function shipPos() { return [innerWidth/2, innerHeight*0.62]; }
+function shipPos() {
+  if (CAM.ok) {
+    const p = projPoint(G.x, G.y, G.z);
+    if (p) return p;
+  }
+  return [innerWidth/2, innerHeight*0.62];
+}
 function explode(x, y) {
   for (let i = 0; i < 60; i++) {
     const a = Math.random()*Math.PI*2, sp = 60 + Math.random()*420;
@@ -904,8 +910,8 @@ function drawFX(dt) {
     const [sx, sy] = shipPos();
     const bank = Math.max(-0.6, Math.min(0.6, G.vx * 0.028));
     const shake = G.shake * 6;
-    const drawX = sx + (Math.random()-0.5)*shake - G.vx*0.55;
-    const drawY = sy + (Math.random()-0.5)*shake + G.vy*0.18;
+    const drawX = sx + (Math.random()-0.5)*shake;
+    const drawY = sy + (Math.random()-0.5)*shake;
     // exhaust ribbon: recent ship positions, swept down-screen by age
     shipTrail.push({ x: drawX, y: drawY });
     if (shipTrail.length > 16) shipTrail.shift();
@@ -994,15 +1000,14 @@ function render() {
   if (!gl || !TEST.linked) return;
   const zp = zoneParams(G.z);
 
-  // camera: behind & above the ship, looking down-path
-  const tz = G.z + 10;
+  // eagle-eye camera: high above and behind the ship, pitched down-path
   const tanX = pathDX(G.z), tanY = pathDY(G.z);
-  let fz = 1, fxd = tanX + G.vx*0.012, fyd = tanY + G.vy*0.012;
+  let fz = 1, fxd = tanX + G.vx*0.012, fyd = tanY + G.vy*0.012 - 0.22;
   const fl = Math.hypot(fxd, fyd, fz); fxd/=fl; fyd/=fl; fz/=fl;
   const shk = G.shake * 0.3;
-  let camX = G.x - fxd*5.2 + (Math.random()-0.5)*shk;
-  let camY = G.y - fyd*5.2 + 1.5 + (Math.random()-0.5)*shk;
-  const camZ = G.z - fz*5.2;
+  let camX = G.x - fxd*6.0 + (Math.random()-0.5)*shk;
+  let camY = G.y - fyd*6.0 + 4.0 + (Math.random()-0.5)*shk;
+  const camZ = G.z - fz*6.0;
   // keep the chase cam out of the walls: clamp its lateral offset from the path
   const ccx = pathX(camZ), ccy = pathY(camZ);
   const cOff = Math.hypot(camX - ccx, camY - ccy);

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Food Chain — eat, grow, clash | gamed.fun</title>
+    <meta name="description" content="Eat to grow your chain, clash with smaller animals to swallow them, and evolve from Mouse to Dragon across five biomes. Free browser game, no download." />
+    <meta property="og:title" content="Food Chain — eat, grow, clash | gamed.fun" />
+    <meta property="og:description" content="Eat to grow your chain, swallow smaller rivals, and evolve from Mouse to Dragon across five biomes." />
+    <meta property="og:url" content="https://gamed.fun/food-chain/" />
+    <meta property="og:type" content="website" />
+    <link rel="canonical" href="https://gamed.fun/food-chain/" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="game-shell">
+      <section class="hud" aria-label="Game status">
+        <div class="brand">
+          <span>Food Chain</span>
+          <strong>Predator Arena</strong>
+        </div>
+        <div class="stat-grid">
+          <div>
+            <span>Score</span>
+            <strong id="score">0</strong>
+          </div>
+          <div>
+            <span>Length</span>
+            <strong id="length">22</strong>
+          </div>
+          <div>
+            <span>Predator</span>
+            <strong id="predator">Mouse</strong>
+          </div>
+          <div>
+            <span>Biome</span>
+            <strong id="biome">Meadow</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="arena-wrap" aria-label="Food Chain game arena">
+        <canvas id="arena" width="1200" height="760"></canvas>
+        <div class="overlay" id="overlay">
+          <div class="menu-web" aria-hidden="true">
+            <i class="web-chain"></i>
+            <i class="web-chain"></i>
+            <i class="web-prey"></i>
+            <i class="web-prey"></i>
+            <i class="web-power"></i>
+          </div>
+          <p class="kicker">Eat. Grow. Clash.</p>
+          <h1>Become the top predator</h1>
+          <p>Collect food, grab power-ups, build streaks, and survive harder biomes until you become apex.</p>
+          <div class="power-guide" aria-label="Power-ups">
+            <span>Magnet</span>
+            <span>Shield</span>
+            <span>Surge</span>
+          </div>
+          <div class="overlay-stats" id="overlayStats" aria-live="polite"></div>
+          <input id="nameInput" class="name-field" maxlength="14" placeholder="your name" autocomplete="off" />
+          <div class="overlay-buttons">
+            <button id="startButton" type="button">Play</button>
+            <button id="shareButton" type="button"><span>Share run</span></button>
+          </div>
+        </div>
+        <aside class="board" id="board" aria-label="Leaderboard"></aside>
+        <button class="mute-button" id="muteButton" type="button" aria-label="Toggle sound">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path class="speaker" d="M4 9.2v5.6h3.6L13 19V5L7.6 9.2H4z" fill="currentColor" />
+            <path class="wave" d="M15.8 8.6a4.8 4.8 0 0 1 0 6.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            <path class="wave" d="M18.2 6.4a8 8 0 0 1 0 11.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            <line class="slash" x1="4.5" y1="4.5" x2="19.5" y2="19.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+          </svg>
+        </button>
+      </section>
+
+      <section class="action-bar" aria-label="Game controls">
+        <button class="control-button" id="leftButton" type="button" aria-label="Turn left"><span>◀</span></button>
+        <button class="control-button boost" id="boostButton" type="button" aria-label="Boost"><span>BOOST</span></button>
+        <button class="control-button" id="rightButton" type="button" aria-label="Turn right"><span>▶</span></button>
+      </section>
+    </main>
+
+    <button class="touch-boost" id="touchBoostButton" type="button" aria-label="Boost"><span>BOOST</span></button>
+
+    <script>
+      window.addEventListener("error", function (event) {
+        var bar = document.getElementById("err-bar");
+        if (!bar) {
+          bar = document.createElement("div");
+          bar.id = "err-bar";
+          bar.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:99;background:#b71c1c;color:#fff;font:12px monospace;padding:8px 12px;white-space:pre-wrap;";
+          document.body.appendChild(bar);
+        }
+        bar.textContent = "⚠ " + event.message + " @ line " + event.lineno;
+      });
+    </script>
+    <script src="app.js"></script>
+  </body>
+</html>

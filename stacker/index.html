@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem('gf-theme')||'dark';}catch(e){}</script>
+  <title>Skyline — stack the tower | gamed.fun</title>
+  <meta name="description" content="Tap to drop each slab and build the tallest tower you can. Land it perfectly to keep your width and chain combos. Free one-tap browser game, no download.">
+  <meta property="og:title" content="Skyline — stack the tower | gamed.fun">
+  <meta property="og:description" content="Tap to drop each slab and build the tallest tower you can. Perfect stacks chain combos.">
+  <meta property="og:url" content="https://gamed.fun/stacker/">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <link rel="canonical" href="https://gamed.fun/stacker/">
+  <link rel="icon" type="image/svg+xml" href="/logo.svg">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Skyline","description":"Tap to drop each slab and build the tallest tower you can. Perfect stacks chain combos.","url":"https://gamed.fun/stacker/","applicationCategory":"GameApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; background: #0a0e1a; color: #eef3ff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; touch-action: none; }
+    canvas { position: fixed; inset: 0; display: block; }
+
+    /* SCORE */
+    #score { position: fixed; top: 0; left: 0; right: 0; z-index: 3; text-align: center; pointer-events: none;
+      padding-top: calc(26px + env(safe-area-inset-top)); }
+    #score .h { font-size: 4rem; font-weight: 900; line-height: 1; letter-spacing: -.02em;
+      text-shadow: 0 4px 24px rgba(0,0,0,.5); font-variant-numeric: tabular-nums; }
+    #score .lbl { font-size: .66rem; letter-spacing: .22em; text-transform: uppercase; color: rgba(200,215,255,.55); margin-top: 6px; }
+    #combo { position: fixed; top: 0; left: 0; right: 0; z-index: 3; text-align: center; pointer-events: none;
+      padding-top: calc(150px + env(safe-area-inset-top)); font-weight: 800; font-size: 1.1rem; color: #ffe27a;
+      opacity: 0; transition: opacity .2s; text-shadow: 0 2px 10px rgba(0,0,0,.6); }
+    #combo.show { opacity: 1; }
+
+    /* MUTE */
+    #muteBtn { position: fixed; top: calc(14px + env(safe-area-inset-top)); right: 14px; z-index: 4;
+      width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgba(255,255,255,.14);
+      background: rgba(12,18,36,.6); color: #d6e2ff; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+    #muteBtn svg { width: 19px; height: 19px; }
+    #muteBtn .slash { display: none; }
+    #muteBtn.muted .slash { display: block; }
+    #muteBtn.muted .wave { display: none; }
+
+    /* OVERLAYS */
+    .overlay { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center;
+      background: rgba(6,9,20,.7); -webkit-backdrop-filter: blur(7px); backdrop-filter: blur(7px); animation: fade .25s ease; padding: 18px; }
+    @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+    .panel { text-align: center; max-width: 420px; width: 100%; padding: 32px 26px;
+      background: rgba(14,20,40,.9); border: 1px solid rgba(140,180,255,.16); border-radius: 22px; box-shadow: 0 24px 70px rgba(0,0,0,.55); }
+    .panel h1 { font-size: 2.4rem; font-weight: 900; letter-spacing: .02em; }
+    .panel h1 .g { background: linear-gradient(90deg, #5ad1ff, #8a7cff, #ff7ac3); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .panel .tag { color: rgba(195,210,245,.72); font-size: .92rem; margin: 12px 0 22px; line-height: 1.55; }
+    .btn { display: inline-block; border: none; cursor: pointer; border-radius: 13px; padding: 14px 42px;
+      font-size: 1.05rem; font-weight: 800; color: #06101f; background: linear-gradient(135deg, #5ad1ff, #8a7cff);
+      box-shadow: 0 6px 22px rgba(110,160,255,.4); transition: transform .12s; }
+    .btn:active { transform: scale(.95); }
+    .btn.ghost { background: rgba(255,255,255,.09); color: #eef3ff; box-shadow: none; border: 1px solid rgba(255,255,255,.2); }
+    .hint { margin-top: 18px; font-size: .72rem; color: rgba(180,200,240,.5); line-height: 1.7; }
+    .row-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .hidden { display: none !important; }
+
+    #dstats { display: flex; justify-content: center; gap: 30px; margin: 18px 0 22px; }
+    #dstats > div { text-align: center; }
+    #dstats .v { font-size: 1.7rem; font-weight: 900; color: #7cdcff; font-variant-numeric: tabular-nums; }
+    #dstats .k { font-size: .6rem; letter-spacing: .14em; text-transform: uppercase; color: rgba(180,200,240,.5); margin-top: 4px; }
+    #dbest { font-size: .84rem; color: rgba(195,210,245,.75); margin-bottom: 4px; }
+    #dbest.new { color: #ffe27a; font-weight: 800; }
+    a.home { position: fixed; bottom: calc(10px + env(safe-area-inset-bottom)); left: 12px; z-index: 3;
+      font-size: .66rem; color: rgba(180,200,240,.4); text-decoration: none; }
+    a.home:hover { color: rgba(195,210,245,.8); }
+    #taphint { position: fixed; bottom: calc(40px + env(safe-area-inset-bottom)); left: 0; right: 0; text-align: center; z-index: 3;
+      font-size: .8rem; color: rgba(180,200,240,.45); pointer-events: none; animation: pulse 1.6s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:.35} 50%{opacity:.8} }
+  </style>
+</head>
+<body>
+  <canvas id="cv"></canvas>
+
+  <div id="score" class="hidden"><div class="h" id="scoreH">0</div><div class="lbl">height</div></div>
+  <div id="combo"></div>
+  <div id="taphint" class="hidden">drag the slab to balance it</div>
+
+  <button id="muteBtn" aria-label="Sound">
+    <svg viewBox="0 0 24 24">
+      <path class="speaker" d="M4 9.2v5.6h3.6L13 19V5L7.6 9.2H4z" fill="currentColor"/>
+      <path class="wave" d="M15.8 8.6a4.8 4.8 0 0 1 0 6.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <path class="wave" d="M18.2 6.4a8 8 0 0 1 0 11.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <line class="slash" x1="4.5" y1="4.5" x2="19.5" y2="19.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+    </svg>
+  </button>
+
+  <a class="home" href="/">← gamed.fun</a>
+
+  <div class="overlay" id="start">
+    <div class="panel">
+      <h1>SKY<span class="g">LINE</span></h1>
+      <div class="tag">Slabs of all sizes fall from the top. Drag each one so it balances on the slab below.<br>Keep its center on the stack — let it lean too far and the tower topples.</div>
+      <button class="btn" id="playBtn">PLAY</button>
+      <div class="hint">Drag to move · or use ← → arrow keys · center-up for a perfect</div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="death">
+    <div class="panel">
+      <div id="dbest"></div>
+      <h1>TOWER <span class="g">TOPPLED</span></h1>
+      <div id="dstats">
+        <div><div class="v" id="d-h">0</div><div class="k">height</div></div>
+        <div><div class="v" id="d-best">0</div><div class="k">perfects</div></div>
+      </div>
+      <div class="row-btns">
+        <button class="btn" id="againBtn">PLAY AGAIN</button>
+        <button class="btn ghost" id="shareBtn"><span>SHARE</span></button>
+      </div>
+    </div>
+  </div>
+
+<script>
+'use strict';
+window.addEventListener('error', e => {
+  let bar = document.getElementById('err-bar');
+  if (!bar) { bar = document.createElement('div'); bar.id = 'err-bar';
+    bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99;background:#b71c1c;color:#fff;font:12px monospace;padding:8px 12px;white-space:pre-wrap;';
+    document.body.appendChild(bar); }
+  bar.textContent = '⚠ ' + e.message + ' @ ' + e.lineno;
+});
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+};
+
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const $ = id => document.getElementById(id);
+const TAU = Math.PI * 2;
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+let DPR = 1, VW = 0, VH = 0;
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  VW = window.innerWidth; VH = window.innerHeight;
+  cv.width = VW * DPR; cv.height = VH * DPR; cv.style.width = VW + 'px'; cv.style.height = VH + 'px';
+}
+window.addEventListener('resize', resize); resize();
+
+let muted = store.get('gf-stack-mute') === '1';
+
+/* ===== SOUND ===== */
+let AC = null;
+function tone(freq, dur, type, vol, slide) {
+  if (muted) return;
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === 'suspended') AC.resume();
+    const o = AC.createOscillator(), g = AC.createGain(), t = AC.currentTime;
+    o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t);
+    if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + dur);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol || .1, t + .01);
+    g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + dur + .04);
+  } catch (e) {}
+}
+const sPlace   = () => tone(180, .09, 'square', .05, 130);
+const sPerfect = c => tone(360 * Math.pow(1.0594, Math.min(c, 24)), .12, 'sine', .12, 540 * Math.pow(1.0594, Math.min(c, 24)));
+const sSlice   = () => tone(110, .12, 'sawtooth', .05, 60);
+const sOver    = () => { tone(300, .5, 'triangle', .12, 90); };
+
+/* ===== STATE ===== */
+let state = 'start'; // start | playing | over
+let blocks = [], piece = null, debris = [], flashes = [];
+let score = 0, combo = 0, bestCombo = 0, camY = 0, camTarget = 0, baseHue = 220;
+let fallSpeed = 300;
+const aim = { x: 0 };
+const keyState = {};
+let lastT = 0;
+const BLOCK_H = 32, GROUND = 90;
+
+function baseWidth() { return Math.min(VW * 0.54, 270); }
+function screenBottomY(level) { return (VH - GROUND) - level * BLOCK_H + camY; }
+
+function startGame() {
+  blocks = [];
+  const w = baseWidth();
+  blocks.push({ left: (VW - w) / 2, width: w, level: 0 });
+  debris = []; flashes = [];
+  score = 0; combo = 0; bestCombo = 0; baseHue = 200 + Math.random() * 80;
+  camY = 0; camTarget = 0; aim.x = VW / 2;
+  spawnFalling();
+  state = 'playing'; lastT = performance.now();
+  $('start').classList.add('hidden'); $('death').classList.add('hidden');
+  $('score').classList.remove('hidden'); $('taphint').classList.remove('hidden');
+  $('scoreH').textContent = '0';
+  if (AC && AC.state === 'suspended') AC.resume();
+}
+
+function spawnFalling() {
+  const top = blocks[blocks.length - 1];
+  const level = top.level + 1;
+  fallSpeed = 150 + Math.min(blocks.length * 7, 320); // gentler fall — you steer it by hand
+  // each slab is a continuously random size — no two are alike
+  const w = clamp(Math.round(baseWidth() * (0.4 + Math.random() * 0.68)), 42, VW - 24);
+  // spawn FORCED off to a random side so you must drag it into place
+  const belowC = top.left + top.width / 2;
+  const roomFor = s => s < 0 ? belowC - w / 2 : (VW - w / 2) - belowC;
+  let side = Math.random() < 0.5 ? -1 : 1;
+  if (roomFor(side) < VW * 0.18) side = -side;
+  const dist = clamp(VW * (0.28 + Math.random() * 0.16), VW * 0.18, Math.max(VW * 0.18, roomFor(side)));
+  const cx = clamp(belowC + side * dist, w / 2, VW - w / 2);
+  piece = { left: cx - w / 2, width: w, level, by: -BLOCK_H, fast: false };
+  aim.x = cx; // aim starts at the offset spawn — drag it to balance on the slab below
+}
+
+function hueOf(level) { return (baseHue + level * 8) % 360; }
+function blockColor(level, l) { return `hsl(${hueOf(level)}, 62%, ${l}%)`; }
+
+function landPiece() {
+  $('taphint').classList.add('hidden');
+  const below = blocks[blocks.length - 1];
+  const pL = piece.left, pR = piece.left + piece.width, pc = pL + piece.width / 2;
+  const bL = below.left, bR = below.left + below.width, bc = bL + below.width / 2;
+  const overlap = Math.min(pR, bR) - Math.max(pL, bL);
+
+  // miss entirely, or the slab's CENTER hangs past the edge below -> it tips over and falls
+  if (overlap <= 0 || pc < bL || pc > bR) {
+    const dir = pc < bc ? -1 : 1;
+    debris.push({ left: pL, width: piece.width, level: piece.level, vx: dir * 70, vy: -30, rot: 0, vr: dir * 4.5, t: 0, hue: hueOf(piece.level) });
+    sSlice();
+    gameOver(); return;
+  }
+
+  const off = Math.abs(pc - bc);
+  const perfect = off < 7;
+  if (perfect) {
+    combo++;
+    bestCombo = Math.max(bestCombo, combo);
+    flashes.push({ x: bc, level: piece.level, t: 0, big: combo >= 4 });
+    sPerfect(combo);
+    showCombo();
+  } else {
+    combo = 0;
+    sPlace();
+    $('combo').classList.remove('show');
+  }
+
+  // the slab keeps its full (random) width — the tower silhouette stays varied
+  blocks.push({ left: pL, width: piece.width, level: piece.level });
+  score++;
+  $('scoreH').textContent = String(score);
+  camTarget = VH * 0.42 - ((VH - GROUND) - piece.level * BLOCK_H);
+  spawnFalling();
+}
+
+function showCombo() {
+  if (combo < 2) return;
+  const el = $('combo');
+  el.textContent = combo + '× PERFECT';
+  el.classList.add('show');
+}
+
+let shareText = '';
+function gameOver() {
+  state = 'over'; sOver();
+  const best = Number(store.get('gf-stack-best') || 0);
+  const isNew = score > best;
+  if (isNew) store.set('gf-stack-best', String(score));
+  $('d-h').textContent = score;
+  $('d-best').textContent = bestCombo;
+  const db = $('dbest');
+  if (isNew) { db.textContent = '★ New best height!'; db.classList.add('new'); }
+  else { db.textContent = 'Best: ' + best; db.classList.remove('new'); }
+  shareText = `I stacked a tower ${score} high (best combo ${bestCombo}×) in Skyline. Can you beat me? https://gamed.fun/stacker/`;
+  $('score').classList.add('hidden'); $('combo').classList.remove('show'); $('taphint').classList.add('hidden');
+  setTimeout(() => { if (state === 'over') $('death').classList.remove('hidden'); }, 650);
+}
+
+/* ===== UPDATE ===== */
+function update(dt) {
+  if (state === 'playing' && piece) {
+    // keyboard nudge takes over the aim point
+    let kd = 0;
+    if (keyState['a'] || keyState['arrowleft']) kd -= 1;
+    if (keyState['d'] || keyState['arrowright']) kd += 1;
+    if (kd) aim.x = clamp(aim.x + kd * 680 * dt, 0, VW);
+    // ease the piece horizontally toward the aim point (finite speed = a bit of weight)
+    const targetLeft = clamp(aim.x - piece.width / 2, 0, VW - piece.width);
+    const hs = 780;
+    piece.left += clamp(targetLeft - piece.left, -hs * dt, hs * dt);
+    // fall
+    piece.by += fallSpeed * (piece.fast ? 4 : 1) * dt;
+    const landingY = screenBottomY(piece.level);
+    if (piece.by >= landingY) { piece.by = landingY; landPiece(); }
+  }
+  camY += (camTarget - camY) * Math.min(1, dt * 6);
+  for (let i = debris.length - 1; i >= 0; i--) {
+    const d = debris[i]; d.t += dt; d.vy += 900 * dt;
+    d.left += d.vx * dt; d._y = (d._y || 0) + d.vy * dt; d.rot += d.vr * dt;
+    if (d.t > 2.2) debris.splice(i, 1);
+  }
+  for (let i = flashes.length - 1; i >= 0; i--) { flashes[i].t += dt; if (flashes[i].t > 0.5) flashes.splice(i, 1); }
+}
+
+/* ===== DRAW ===== */
+function draw() {
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const topLevel = state === 'start' ? 0 : blocks[blocks.length - 1].level;
+  const bg = ctx.createLinearGradient(0, 0, 0, VH);
+  bg.addColorStop(0, `hsl(${(baseHue || 220) + topLevel * 8}, 40%, 12%)`);
+  bg.addColorStop(1, '#070a14');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, VW, VH);
+
+  if (state === 'start') { drawStartScene(); return; }
+
+  // placed blocks
+  for (const b of blocks) {
+    const by = screenBottomY(b.level);
+    if (by < -BLOCK_H || by - BLOCK_H > VH) continue;
+    drawSlab(b.left, by, b.width, b.level, false);
+  }
+  // falling piece
+  if (state === 'playing' && piece) {
+    // a faint guide line showing where it will land
+    ctx.strokeStyle = 'rgba(255,255,255,.10)'; ctx.lineWidth = 1; ctx.setLineDash([4, 6]);
+    ctx.beginPath(); ctx.moveTo(piece.left + piece.width / 2, piece.by); ctx.lineTo(piece.left + piece.width / 2, screenBottomY(piece.level)); ctx.stroke();
+    ctx.setLineDash([]);
+    drawSlab(piece.left, piece.by, piece.width, piece.level, true);
+  }
+  // debris
+  for (const d of debris) {
+    const by = screenBottomY(d.level) + (d._y || 0);
+    ctx.save(); ctx.globalAlpha = clamp(1 - (d.t - 1.4) / 0.8, 0, 1);
+    ctx.translate(d.left + d.width / 2, by - BLOCK_H / 2); ctx.rotate(d.rot);
+    ctx.fillStyle = `hsl(${d.hue}, 60%, 56%)`;
+    ctx.fillRect(-d.width / 2, -BLOCK_H / 2, d.width, BLOCK_H);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+  // perfect flashes
+  for (const f of flashes) {
+    const by = screenBottomY(f.level) - BLOCK_H / 2;
+    const k = f.t / 0.5;
+    ctx.globalAlpha = (1 - k) * 0.9;
+    ctx.strokeStyle = f.big ? '#ffe27a' : '#ffffff'; ctx.lineWidth = 2;
+    const r = 10 + k * (f.big ? 60 : 38);
+    ctx.beginPath(); ctx.arc(f.x, by, r, 0, TAU); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawSlab(left, bottomY, width, level, moving) {
+  const topY = bottomY - BLOCK_H;
+  ctx.fillStyle = blockColor(level, moving ? 60 : 52);
+  ctx.fillRect(left, topY, width, BLOCK_H);
+  // top highlight strip
+  ctx.fillStyle = blockColor(level, moving ? 72 : 64);
+  ctx.fillRect(left, topY, width, 5);
+  // bottom shade
+  ctx.fillStyle = 'rgba(0,0,0,.16)';
+  ctx.fillRect(left, bottomY - 4, width, 4);
+}
+
+function drawStartScene() {
+  // a little decorative tower behind the menu
+  const w0 = baseWidth() * 0.8, cx = VW / 2;
+  for (let i = 0; i < 7; i++) {
+    const w = w0 - i * 6, off = Math.sin(i * 1.3) * 18;
+    const by = (VH - GROUND) - i * BLOCK_H;
+    ctx.fillStyle = `hsl(${(baseHue || 220) + i * 8}, 60%, ${30 + i * 2}%)`;
+    ctx.fillRect(cx - w / 2 + off, by - BLOCK_H, w, BLOCK_H);
+  }
+}
+
+/* ===== LOOP ===== */
+function loop(t) {
+  requestAnimationFrame(loop);
+  let dt = (t - lastT) / 1000; lastT = t;
+  if (dt > 0.05) dt = 0.05;
+  update(dt);
+  draw();
+}
+requestAnimationFrame(loop);
+
+/* ===== INPUT ===== */
+const ptr = { down: false, x: 0, t: 0, moved: false };
+function hardDrop() { if (state === 'playing' && piece) piece.fast = true; }
+function setAim(x) { aim.x = x; }
+function ptrDown(cx) { ptr.down = true; ptr.x = cx; ptr.t = performance.now(); ptr.moved = false; setAim(cx); }
+function ptrMove(cx) { setAim(cx); if (Math.abs(cx - ptr.x) > 8) ptr.moved = true; }
+function ptrUp() { ptr.down = false; } // pure drag — no tap-to-slam to conflict with dragging
+cv.addEventListener('mousedown', e => ptrDown(e.clientX));
+cv.addEventListener('mousemove', e => { if (ptr.down) ptrMove(e.clientX); }); // steer only while held — no hover-follow
+window.addEventListener('mouseup', ptrUp);
+cv.addEventListener('touchstart', e => { ptrDown(e.touches[0].clientX); e.preventDefault(); }, { passive: false });
+cv.addEventListener('touchmove', e => { ptrMove(e.touches[0].clientX); e.preventDefault(); }, { passive: false });
+cv.addEventListener('touchend', e => { ptrUp(); e.preventDefault(); }, { passive: false });
+window.addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  keyState[k] = true;
+  if (k === ' ' || k === 'arrowdown') { e.preventDefault(); hardDrop(); }
+  if (k === 'arrowleft' || k === 'arrowright') e.preventDefault();
+});
+window.addEventListener('keyup', e => { keyState[e.key.toLowerCase()] = false; });
+
+/* ===== UI ===== */
+$('playBtn').addEventListener('click', startGame);
+$('againBtn').addEventListener('click', startGame);
+$('muteBtn').addEventListener('click', () => {
+  muted = !muted; store.set('gf-stack-mute', muted ? '1' : '0');
+  $('muteBtn').classList.toggle('muted', muted);
+});
+$('muteBtn').classList.toggle('muted', muted);
+$('shareBtn').addEventListener('click', async () => {
+  try {
+    if (navigator.share) { await navigator.share({ text: shareText }); return; }
+    await navigator.clipboard.writeText(shareText);
+    const s = $('shareBtn').querySelector('span'); const old = s.textContent;
+    s.textContent = 'COPIED!'; setTimeout(() => s.textContent = old, 1500);
+  } catch (e) {}
+});
+document.addEventListener('visibilitychange', () => { if (!document.hidden && state === 'playing') lastT = performance.now(); });
+</script>
+</body>
+</html>

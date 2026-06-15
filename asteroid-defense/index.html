@@ -168,7 +168,7 @@
     <h1 id="go-title">EARTH LOST</h1>
     <p>The bombardment broke through.</p>
     <div class="big" id="go-stats">0 destroyed</div>
-    <p style="font-size:.78rem; color:rgba(230,236,255,.5)">Your coins and unlocks are kept. Try again — buy a few upgrades first.</p>
+    <p id="go-loss" style="font-size:.78rem; color:rgba(230,236,255,.5)">Your coins, upgrades &amp; unlocks are safe.</p>
     <button id="retry-btn">DEFEND AGAIN</button>
   </div>
 
@@ -497,8 +497,35 @@
     return { color: new THREE.Color(0xffffff), emissive: new THREE.Color(0x0a0a10), shininess: 6 };  // natural brown-gray rock
   }
 
+  // equipped skin for a rock. boss with the DEFAULT skin keeps its signature
+  // red; equip any other skin and the boss wears it too (glowing hotter so it stays menacing)
+  function astSkinFor(boss) {
+    if (boss && SAVE.equip.ast === 'rock') {
+      return { color: new THREE.Color(0xc06050), emissive: new THREE.Color(0xff2a40).multiplyScalar(0.4), shininess: 18 };
+    }
+    const ap = astAppearance();
+    if (boss) ap.emissive = ap.emissive.clone().addScalar(0.16);
+    return ap;
+  }
+
+  // re-apply the current skin to every rock already on screen (so equipping updates them all, not just new spawns)
+  function reskinAll() {
+    const apply = (obj) => {
+      if (!obj) return;
+      const ap = astSkinFor(obj.boss);
+      obj.mesh.material.color.copy(ap.color);
+      obj.mesh.material.shininess = ap.shininess;
+      obj.baseEmissive = ap.emissive.clone();
+      obj.mesh.material.emissive.copy(ap.emissive);
+      obj.mesh.material.needsUpdate = true;
+    };
+    for (const a of G.asteroids) apply(a);
+    apply(G.boss);
+  }
+
   function makeAsteroid(boss = false) {
-    const radius = boss ? 15 : 5.5 + Math.random() * 4;
+    // bias toward smaller rocks: power curve skews most spawns to the low end
+    const radius = boss ? 15 : 4.5 + Math.pow(Math.random(), 2.2) * 6;
     // finely subdivided sphere, then displaced by a few smooth plane-waves so
     // it's an irregular potato (not a chunky low-poly chunk)
     const detail = boss ? 4 : 3;
@@ -518,9 +545,7 @@
     }
     geo.computeVertexNormals();                    // smooth shading — no choppy facets
 
-    const ap = boss
-      ? { color: new THREE.Color(0xc06050), emissive: new THREE.Color(0xff2a40).multiplyScalar(0.4), shininess: 18 }
-      : astAppearance();
+    const ap = astSkinFor(boss);
     const mat = new THREE.MeshPhongMaterial({
       map: rockTexture(), bumpMap: rockTexture(), bumpScale: 0.7,
       color: ap.color, emissive: ap.emissive, shininess: ap.shininess, flatShading: false,
@@ -533,7 +558,7 @@
     mesh.position.set(Math.cos(ang) * spread, Math.sin(ang) * spread * 0.6, (boss ? -200 : -180) - Math.random() * 90);
     const obj = {
       mesh, boss, radius,
-      hp: boss ? 40 + G.wave * 6 : (radius > 8 ? 2 : 1),     // most pop in one click
+      hp: boss ? 40 + G.wave * 6 : Math.max(1, Math.round(radius / 3.5)),   // HP scales with size (1–3)
       maxHp: 0,
       speed: boss ? 9 : 11 + Math.random() * 5 + G.wave * 0.3,   // much slower
       spin: new THREE.Vector3((Math.random()-0.5)*1.4, (Math.random()-0.5)*1.4, (Math.random()-0.5)*1.4),
@@ -590,7 +615,7 @@
   }
 
   function destroy(obj) {
-    let reward = coinsForKill(obj.boss ? 200 + G.wave * 20 : 8 + Math.round(obj.radius * 2));
+    let reward = coinsForKill(obj.boss ? 200 + G.wave * 20 : Math.max(1, Math.round(obj.radius * 2.5)));   // coins scale with size
     const lucky = !obj.boss && Math.random() < luckyChance();
     if (lucky) reward *= 2;
     G.coins += reward; G.destroyed++;
@@ -696,7 +721,7 @@
     // spawn cadence — plenty of slow rocks on screen to collect
     G.spawnTimer -= dt;
     const interval = Math.max(0.45, 1.3 - G.wave * 0.05);
-    const cap = 10 + G.wave;
+    const cap = 5;   // at most 5 asteroids on screen at once
     if (G.spawnTimer <= 0 && G.asteroids.length < cap) {
       G.spawnTimer = interval * (0.6 + Math.random() * 0.7);
       G.asteroids.push(makeAsteroid(false));
@@ -756,7 +781,7 @@
   // ── HUD sync ────────────────────────────────────────────────────
   function syncHud() {
     $('coins').textContent = G.coins.toLocaleString();
-    $('sub').textContent = G.destroyed + ' destroyed · +' + coinsForKill(8) + '/kill';
+    $('sub').textContent = G.destroyed + ' destroyed · ~' + coinsForKill(15) + '/kill';
     $('hp').style.width = Math.max(0, G.health) / G.maxHealth * 100 + '%';
     const h = G.health / G.maxHealth;
     $('hp').style.background = h > 0.5 ? 'linear-gradient(90deg,#2bd2ff,#7dffce)' : h > 0.25 ? 'linear-gradient(90deg,#ffd76a,#ff9d4a)' : 'linear-gradient(90deg,#ff5a7a,#ff2a40)';
@@ -864,7 +889,7 @@
     SAVE.equip[kind] = id; save();
     if (kind === 'cursor') applyCursor();
     if (kind === 'bg') applyBackground();
-    // asteroid skin applies to newly spawned rocks
+    if (kind === 'ast') reskinAll();   // update rocks already on screen, not just new spawns
     renderShop(); syncHud();
     blip(520, 0.08, 'sine', 0.05);
   }
@@ -908,9 +933,14 @@
   }
   function gameOver() {
     G.state = 'over';
+    // lose a quarter of your coins on death — keep the rest, plus all upgrades & cosmetics
+    const lost = Math.floor(G.coins * 0.25);
+    G.coins -= lost;
+    SAVE.coins = G.coins;
     $('go-stats').textContent = G.destroyed + ' destroyed · wave ' + G.wave;
+    $('go-loss').textContent = lost > 0 ? 'You lost ' + lost.toLocaleString() + ' 💰 (25%). Your upgrades & unlocks are safe.' : 'Your coins, upgrades & unlocks are safe.';
     $('gameover').classList.add('on');
-    save();
+    save(); syncHud();
   }
 
   // ── events ──────────────────────────────────────────────────────
