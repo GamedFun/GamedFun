@@ -269,11 +269,11 @@
     pairsPerLevel:   1,      // extra pairs added each level
     maxPairs:        8,      // most pairs the game will ever show
     planetBaseRadius: 0.75,  // how big planets start
-    growthBase:      0.05,   // how fast planets grow on level 1 (bigger = harder)
-    growthPerLevel:  0.012,  // extra growth speed each level
-    driftSpeed:      1.1,    // how fast planets float around
-    mismatchHideMs:  850,    // how long a wrong pair stays revealed
-    chargeNeeded:    3,      // matches needed to charge the ship
+    growthBase:      0.022,  // how fast planets grow on level 1 (bigger = harder)
+    growthPerLevel:  0.005,  // extra growth speed each level
+    driftSpeed:      0.7,    // how fast planets float around
+    mismatchHideMs:  1300,   // how long a wrong pair stays revealed
+    chargeNeeded:    2,      // matches needed to charge the ship
     shipDuration:    9,      // seconds the ship lasts
     shipTurn:        3.2,    // how fast the ship turns
     shipThrust:      15,     // how hard the ship accelerates
@@ -664,7 +664,7 @@
     if (p.mesh.position.y >  bounds.y - r) { p.mesh.position.y =  bounds.y - r; p.vy = -Math.abs(p.vy); }
     if (p.mesh.position.y < -bounds.y + r) { p.mesh.position.y = -bounds.y + r; p.vy =  Math.abs(p.vy); }
   }
-  const DANGER = CONFIG.planetBaseRadius * 2.0;
+  const DANGER = CONFIG.planetBaseRadius * 2.6;
   function updatePlay(dt, t) {
     const gr = growthRate();
     for (const p of planets) {
