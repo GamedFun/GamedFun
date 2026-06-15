@@ -542,6 +542,18 @@
       box-shadow: 0 6px 18px rgba(0,0,0,.2);
       text-decoration: none;
     }
+    .bmc-fixed {
+      position: fixed;
+      top: 14px;
+      left: 16px;
+      z-index: 100;
+      padding: 8px 14px;
+      font-size: 0.82rem;
+      box-shadow: 0 3px 14px rgba(0,0,0,.22);
+    }
+    @media (max-width: 420px) {
+      .bmc-fixed { font-size: 0.76rem; padding: 7px 12px; }
+    }
 
     /* ── RESPONSIVE ── */
     @media (max-width: 640px) {
@@ -567,6 +579,7 @@
 </head>
 <body>
 <button id="themeBtn-home" onclick="toggleTheme()">🌙</button>
+<a class="bmc-btn bmc-fixed" href="https://buymeacoffee.com/pleasedonok" target="_blank" rel="noopener">☕ Buy me a coffee</a>
 <div class="blob-wrap">
   <div class="blob blob-1"></div>
   <div class="blob blob-2"></div>
