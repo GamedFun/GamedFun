@@ -558,8 +558,6 @@
         <div class="controls">
           <button class="uno-btn" id="unoBtn" type="button" disabled>UNO</button>
           <button class="secondary" id="difficultyBtn" type="button">Difficulty: Medium</button>
-          <button class="secondary" id="twistsBtn" type="button" aria-pressed="true">Twists: On</button>
-          <button class="secondary" id="stackingBtn" type="button" aria-pressed="false">Stacking: Off</button>
           <button class="secondary" id="newGameBtn" type="button">New game</button>
         </div>
       </div>
@@ -587,9 +585,7 @@
     const npcCountEl = document.getElementById('npcCount');
     const drawBtn = document.getElementById('drawBtn');
     const unoBtn = document.getElementById('unoBtn');
-    const stackingBtn = document.getElementById('stackingBtn');
     const difficultyBtn = document.getElementById('difficultyBtn');
-    const twistsBtn = document.getElementById('twistsBtn');
     const twistsEl = document.getElementById('twists');
     const drawLabel = document.getElementById('drawLabel');
     const newGameBtn = document.getElementById('newGameBtn');
@@ -609,9 +605,9 @@
     let unoPending = false;
     let unoTimer = null;
     let audioCtx = null;
-    let stackingEnabled = localStorage.getItem('uno_stacking') === 'on';
+    const stackingEnabled = true;   // stacking is always on
     let difficulty = localStorage.getItem('uno_difficulty') || 'medium';
-    let twistsEnabled = localStorage.getItem('uno_twists') !== 'off';
+    const twistsEnabled = true;     // twists are always on
     let activeTwists = [];
     let activeEffects = [];
 
@@ -1067,11 +1063,6 @@
       unoBtn.disabled = !unoPending || gameOver;
       unoBtn.classList.toggle('active', unoPending && !gameOver);
       difficultyBtn.textContent = `Difficulty: ${difficulty[0].toUpperCase()}${difficulty.slice(1)}`;
-      twistsBtn.textContent = `Twists: ${twistsEnabled ? 'On' : 'Off'}`;
-      twistsBtn.setAttribute('aria-pressed', String(twistsEnabled));
-      stackingBtn.textContent = `Stacking: ${stackingEnabled ? 'On' : 'Off'}`;
-      stackingBtn.setAttribute('aria-pressed', String(stackingEnabled));
-      stackingBtn.disabled = Boolean(pendingDraw) || turn === 'choosing';
       colorDot.style.color = `var(--${currentColor})`;
       colorName.textContent = currentColor;
     }
@@ -1190,26 +1181,12 @@
       render();
     });
 
-    stackingBtn.addEventListener('click', () => {
-      stackingEnabled = !stackingEnabled;
-      localStorage.setItem('uno_stacking', stackingEnabled ? 'on' : 'off');
-      messageEl.textContent = `Stacking ${stackingEnabled ? 'on' : 'off'}.`;
-      render();
-    });
-
     const difficultyOrder = ['easy', 'medium', 'hard'];
     difficultyBtn.addEventListener('click', () => {
       difficulty = difficultyOrder[(difficultyOrder.indexOf(difficulty) + 1) % difficultyOrder.length];
       localStorage.setItem('uno_difficulty', difficulty);
       messageEl.textContent = `Difficulty set to ${difficulty}.`;
       render();
-    });
-
-    twistsBtn.addEventListener('click', () => {
-      twistsEnabled = !twistsEnabled;
-      localStorage.setItem('uno_twists', twistsEnabled ? 'on' : 'off');
-      startGame();
-      messageEl.textContent = twistsEnabled ? 'Twists on — new game with 3 fresh twists.' : 'Twists off — new game.';
     });
 
     newGameBtn.addEventListener('click', startGame);
