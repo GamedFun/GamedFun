@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script>document.documentElement.dataset.theme=localStorage.getItem('gf-theme')||'light';</script>
   <title>Gamed.fun — free browser mini-games</title>
-  <meta name="description" content="Play 13+ free browser games — no download, no login. Asteroid Defense, Emoji Pop, Cosmic Clicker, VOIDRUNNER, Food Chain and more. Instant play on any device.">
+  <meta name="description" content="Play free browser games — no download, no login. Asteroid Defense, Emoji Pop, Cosmic Clicker, Swarm and more. Instant play on any device.">
   <meta property="og:title" content="Gamed.fun — free browser games, no download">
   <meta property="og:description" content="13+ free instant-play games in your browser. Arcade, puzzle, clicker, 3D and more — no download, no login. Play on any device.">
   <meta property="og:url" content="https://gamed.fun/">
@@ -303,11 +303,7 @@
     .logo-ttt { --logo-gradient: linear-gradient(135deg, #818cf8 0%, #f87171 100%); --logo-shadow: rgba(129, 140, 248, 0.7); }
     .logo-emoji    { --logo-gradient: linear-gradient(135deg, #fbbf24 0%, #f87171 48%, #c084fc 100%); --logo-shadow: rgba(251, 191, 36, 0.7); }
     .logo-asteroid { --logo-gradient: linear-gradient(135deg, #ef4444 0%, #fb7185 52%, #f97316 100%); --logo-shadow: rgba(239, 68, 68, 0.7); }
-    .logo-foodchain  { --logo-gradient: linear-gradient(135deg, #22c55e 0%, #84cc16 50%, #f59e0b 100%); --logo-shadow: rgba(34, 197, 94, 0.7); }
-    .logo-speedrun   { --logo-gradient: linear-gradient(135deg, #fde047 0%, #f97316 50%, #ef4444 100%); --logo-shadow: rgba(249, 115, 22, 0.72); }
-    .logo-stacker    { --logo-gradient: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%); --logo-shadow: rgba(14, 165, 233, 0.7); }
     .logo-swarm      { --logo-gradient: linear-gradient(135deg, #f43f5e 0%, #a21caf 100%); --logo-shadow: rgba(244, 63, 94, 0.7); }
-    .logo-voidrunner { --logo-gradient: linear-gradient(135deg, #0ea5e9 0%, #8b5cf6 52%, #1e293b 100%); --logo-shadow: rgba(139, 92, 246, 0.72); }
 
     .card-desc {
       font-size: 0.855rem;
@@ -613,11 +609,7 @@
       <a class="quick-action" href="/the-little-cup/">Play The Little Cup</a>
       <a class="quick-action" href="/tic-tac-toe/">Play Tic Tac Toe</a>
       <a class="quick-action" href="/emoji-catcher/">Play Emoji Pop</a>
-      <a class="quick-action" href="/food-chain/">Play Food Chain</a>
-      <a class="quick-action" href="/voidrunner/">Play VOIDRUNNER</a>
       <a class="quick-action" href="/swarm/">Play Swarm</a>
-      <a class="quick-action" href="/stacker/">Play Skyline</a>
-      <a class="quick-action" href="/speedrun-game/">Play The Speedrun Game</a>
 <a class="quick-action" href="/archive/">Archive</a>
     </div>
   </header>
@@ -842,41 +834,6 @@
         <span class="card-arrow">↗</span>
       </a>
 
-      <!-- Food Chain -->
-      <a class="card card--green" href="/food-chain/">
-        <div class="game-logo logo-foodchain" aria-label="Food Chain">
-          <div class="game-mark" aria-hidden="true">
-            <svg viewBox="0 0 32 32" role="img">
-              <path d="M25 9.5 16 16l9 6.5A11 11 0 1 1 25 9.5Z" fill="currentColor" fill-opacity=".18" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-              <circle cx="13.5" cy="11.5" r="1.7" fill="currentColor"/>
-              <circle cx="27" cy="16" r="1.7" fill="currentColor" opacity=".85"/>
-            </svg>
-          </div>
-          <div class="game-word"><span>Food Chain</span> <span class="badge">new</span></div>
-        </div>
-        <div class="card-desc">Eat smaller fish to grow, dodge the bigger ones, and claw your way to the top of the food chain.</div>
-        <div class="card-cta">Play Food Chain</div>
-        <span class="card-arrow">↗</span>
-      </a>
-
-      <!-- VOIDRUNNER -->
-      <a class="card card--violet" href="/voidrunner/">
-        <div class="game-logo logo-voidrunner" aria-label="VOIDRUNNER">
-          <div class="game-mark" aria-hidden="true">
-            <svg viewBox="0 0 32 32" role="img">
-              <circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="2" opacity=".5"/>
-              <circle cx="16" cy="16" r="7" fill="none" stroke="currentColor" stroke-width="2" opacity=".78"/>
-              <circle cx="16" cy="16" r="3" fill="currentColor"/>
-              <path d="M16 1.5v4M16 26.5v4M1.5 16h4M26.5 16h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".6"/>
-            </svg>
-          </div>
-          <div class="game-word"><span>VOIDRUNNER</span> <span class="badge">new</span></div>
-        </div>
-        <div class="card-desc">Fly through an endless raymarched void, weaving past obstacles at speed in this trippy 3D runner.</div>
-        <div class="card-cta">Play VOIDRUNNER</div>
-        <span class="card-arrow">↗</span>
-      </a>
-
       <!-- Swarm -->
       <a class="card card--red" href="/swarm/">
         <div class="game-logo logo-swarm" aria-label="Swarm">
@@ -894,40 +851,6 @@
         </div>
         <div class="card-desc">Survive endless waves of enemies. Dodge, blast, and outlast the horde for as long as you can.</div>
         <div class="card-cta">Play Swarm</div>
-        <span class="card-arrow">↗</span>
-      </a>
-
-      <!-- Skyline -->
-      <a class="card card--blue" href="/stacker/">
-        <div class="game-logo logo-stacker" aria-label="Skyline">
-          <div class="game-mark" aria-hidden="true">
-            <svg viewBox="0 0 32 32" role="img">
-              <rect x="9" y="20" width="14" height="6" rx="1.5" fill="currentColor" fill-opacity=".18" stroke="currentColor" stroke-width="2"/>
-              <rect x="11" y="13" width="11" height="6" rx="1.5" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="2"/>
-              <rect x="13" y="6" width="8" height="6" rx="1.5" fill="currentColor" fill-opacity=".1" stroke="currentColor" stroke-width="2"/>
-            </svg>
-          </div>
-          <div class="game-word"><span>Skyline</span> <span class="badge">new</span></div>
-        </div>
-        <div class="card-desc">Stack each block as high as you can. Time your drops perfectly to build the tallest tower.</div>
-        <div class="card-cta">Play Skyline</div>
-        <span class="card-arrow">↗</span>
-      </a>
-
-      <!-- The Speedrun Game -->
-      <a class="card card--amber" href="/speedrun-game/">
-        <div class="game-logo logo-speedrun" aria-label="The Speedrun Game">
-          <div class="game-mark" aria-hidden="true">
-            <svg viewBox="0 0 32 32" role="img">
-              <circle cx="16" cy="18" r="9" fill="currentColor" fill-opacity=".15" stroke="currentColor" stroke-width="2"/>
-              <path d="M13 5h6M16 5v3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M16.5 13.5 13 19h3l-.5 4 4-6h-3l.5-3.5Z" fill="currentColor"/>
-            </svg>
-          </div>
-          <div class="game-word"><span>The Speedrun Game</span> <span class="badge">new</span></div>
-        </div>
-        <div class="card-desc">Race through fast reaction and speed challenges — beat the clock and chase your best time.</div>
-        <div class="card-cta">Play The Speedrun Game</div>
         <span class="card-arrow">↗</span>
       </a>
 
