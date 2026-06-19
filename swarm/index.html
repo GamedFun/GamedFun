@@ -21,8 +21,10 @@
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { height: 100%; overflow: hidden; background: #05060f; color: #eaf0ff;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-      -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; touch-action: none; }
-    canvas { position: fixed; inset: 0; display: block; }
+      -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none;
+      touch-action: none; overscroll-behavior: none; -webkit-touch-callout: none;
+      position: fixed; width: 100%; }
+    canvas { position: fixed; inset: 0; display: block; touch-action: none; }
 
     /* TOP HUD */
     #hud { position: fixed; top: 0; left: 0; right: 0; z-index: 3; padding: 10px 14px calc(10px); pointer-events: none;
@@ -158,16 +160,16 @@
     </button>
   </div>
 
-  <div id="pauseHint" class="hidden">move to aim · weapons fire where you face</div>
+  <div id="pauseHint" class="hidden">ship follows your cursor · weapons fire where you face</div>
   <a class="home" href="/">← gamed.fun</a>
 
   <!-- START -->
   <div class="overlay" id="start">
     <div class="panel">
       <h1>SW<span class="g">ARM</span></h1>
-      <div class="tag">Drag or use WASD to move. Your weapons auto-fire in the direction you're facing.<br>Kill to level up, pick power-ups, and survive as long as you can.</div>
+      <div class="tag">Your ship follows your cursor — just move (or drag on mobile). No clicking or holding needed. Weapons auto-fire where you're facing.<br>Kill to level up, pick power-ups, and survive as long as you can.</div>
       <button class="btn" id="playBtn">PLAY</button>
-      <div class="hint">Move: drag / mouse / WASD · Pause: P or Esc<br>Aim by moving — your ship shoots where it points</div>
+      <div class="hint">Move: cursor / touch / WASD · Pause: P or Esc<br>Aim by moving — your ship shoots where it points</div>
     </div>
   </div>
 
@@ -489,13 +491,16 @@ window.addEventListener('keydown', e => {
   }
 });
 window.addEventListener('keyup', e => { input.keys[e.key.toLowerCase()] = false; });
-function pointerPos(e) { const t = e.touches ? e.touches[0] : e; input.px = t.clientX; input.py = t.clientY; }
-cv.addEventListener('mousedown', e => { input.down = true; input.usePointer = true; pointerPos(e); });
-cv.addEventListener('mousemove', e => { if (input.down) pointerPos(e); });
-window.addEventListener('mouseup', () => { input.down = false; });
-cv.addEventListener('touchstart', e => { input.down = true; input.usePointer = true; pointerPos(e); e.preventDefault(); }, { passive: false });
-cv.addEventListener('touchmove', e => { pointerPos(e); e.preventDefault(); }, { passive: false });
-cv.addEventListener('touchend', e => { input.down = false; e.preventDefault(); }, { passive: false });
+// Unified pointer input — ship follows the cursor / finger automatically (no hold needed)
+function pointerPos(e) { input.px = e.clientX; input.py = e.clientY; }
+cv.addEventListener('pointerdown', e => {
+  input.down = true; input.usePointer = true; pointerPos(e);
+  if (cv.setPointerCapture) { try { cv.setPointerCapture(e.pointerId); } catch (_) {} }
+  e.preventDefault();
+}, { passive: false });
+cv.addEventListener('pointermove', e => { input.usePointer = true; pointerPos(e); }, { passive: false });
+cv.addEventListener('pointerup', () => { input.down = false; });
+cv.addEventListener('pointercancel', () => { input.down = false; });
 
 /* ========== HELPERS ========== */
 function nearestEnemy(x, y, maxD) {
@@ -566,9 +571,9 @@ function update(dt) {
   if (k['w'] || k['arrowup']) dy -= 1;
   if (k['s'] || k['arrowdown']) dy += 1;
   if (dx || dy) { input.usePointer = false; const l = Math.hypot(dx, dy); dx /= l; dy /= l; }
-  else if (input.usePointer && input.down) {
+  else if (input.usePointer) {  // follow cursor / finger automatically — no hold needed
     const ddx = input.px - p.x, ddy = input.py - p.y, d = Math.hypot(ddx, ddy);
-    if (d > 6) { dx = ddx / d; dy = ddy / d; }
+    if (d > 4) { dx = ddx / d; dy = ddy / d; }
   }
   p.x = clamp(p.x + dx * p.speed * dt, 16, VW - 16);
   p.y = clamp(p.y + dy * p.speed * dt, 16, VH - 16);
