@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="en">
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Milo — One Little Guy | Gamed.fun</title>
-<meta name="description" content="Jump, dash, and discover Milo's secrets in One Little Guy, a free keyboard-controlled browser platformer.">
+<meta name="description" content="Jump, dash, and discover Milo's secrets in One Little Guy, a free browser platformer with touch and keyboard controls.">
 <link rel="canonical" href="https://gamed.fun/milo/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap">
@@ -494,6 +494,38 @@
   .settings-row input { margin-right:10px; accent-color:var(--accent2); }
   #menu-detail-screen #full-menu { display:block; }
   #frame.menu-mode #game { visibility:hidden; }
+  #touch-controls,#mobile-menu { display:none; }
+  @media (pointer:coarse), (max-width:650px) {
+    body { align-items:flex-start; padding: max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left)); }
+    #wrap { min-width:0; }
+    #game-messages.has-play-info { min-height:0; }
+    #game-messages { gap:6px; margin-bottom:8px; }
+    .hud-top,.hud-top>div { flex-wrap:wrap; gap:5px !important; }
+    #game-messages .hud-hint { font-size:12px; }
+    #game-messages #tutorial-hud { min-height:0; }
+    #game-messages #tutorial-text { font-size:13px; }
+    #pause-btn,#tutorial-skip { min-width:44px; min-height:44px; }
+    #mobile-menu:not(.hidden) { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+    #mobile-menu button { min-height:48px; border:1px solid var(--line); border-radius:12px; background:var(--bg-panel); color:var(--fg); font:inherit; touch-action:manipulation; }
+    #mobile-menu button:first-child { grid-column:1/-1; background:var(--accent); color:var(--accent-ink); }
+    #touch-controls:not(.hidden) { display:flex; justify-content:space-between; gap:12px; position:sticky; bottom:0; padding:10px 0 max(10px,env(safe-area-inset-bottom)); background:var(--bg); z-index:5; user-select:none; -webkit-user-select:none; }
+    .touch-group { display:grid; grid-template-columns:repeat(2,minmax(48px,1fr)); gap:8px; align-content:end; }
+    #touch-controls button { min-width:48px; min-height:52px; padding:8px 12px; border:2px solid var(--line); border-radius:14px; background:var(--bg-panel-2); color:var(--fg); font:600 15px "Fredoka",sans-serif; touch-action:none; -webkit-touch-callout:none; }
+    #touch-controls button.pressed { background:var(--accent); color:var(--accent-ink); }
+    #frame>.overlay:not(#title-screen) { position:fixed; inset:0; z-index:12; overflow-y:auto; align-items:flex-start; padding: max(16px,env(safe-area-inset-top)) 12px max(16px,env(safe-area-inset-bottom)); background:#171329f5; }
+    #frame>.overlay:not(#title-screen)>.panel { margin:auto; max-width:100%; max-height:none; padding:22px 16px; }
+    #frame .menu-panel { max-height:none; }
+    #paper-popup { overflow-y:auto; align-items:flex-start; }
+    #paper-text { font-size:16px; line-height:1.6; }
+    #game { touch-action:none; }
+  }
+  @media (pointer:coarse) and (orientation:landscape) and (max-height:600px) {
+    #frame:not(.menu-mode) { width:min(100%,calc((100dvh - 160px) * 1.7143)); margin:auto; }
+    #game-messages .hud-hint { display:none; }
+    .touch-group { grid-template-columns:repeat(4,minmax(48px,1fr)); }
+    .touch-group:first-child { grid-template-columns:repeat(2,minmax(48px,1fr)); }
+    #touch-controls button { min-height:46px; }
+  }
 </style>
 
 <div id="wrap">
@@ -669,6 +701,18 @@
 <script>
 (function(){
   "use strict";
+
+  var touchUI=document.createElement("div");touchUI.id="touch-controls";touchUI.className="hidden";
+  touchUI.setAttribute("aria-label","Touch game controls");
+  var touchButtons={};
+  [[['left','←'],['right','→']],[['down','Down'],['interact','Inspect'],['dash','Dash'],['jump','Jump']]].forEach(function(group){
+    var row=document.createElement("div");row.className="touch-group";
+    group.forEach(function(entry){var b=document.createElement("button");b.type="button";b.textContent=entry[1];b.setAttribute("aria-label",entry[0]==="down"?"Drop down or crouch":entry[0]);b.setAttribute("aria-pressed","false");touchButtons[entry[0]]=b;row.appendChild(b);});touchUI.appendChild(row);
+  });
+  document.getElementById("wrap").appendChild(touchUI);
+  var mobileMenu=document.createElement("nav");mobileMenu.id="mobile-menu";mobileMenu.setAttribute("aria-label","Mobile main menu");
+  [['play-btn','Play / Continue'],['menu-settings','Settings'],['menu-character','Character'],['menu-levels','Level Select'],['menu-quit','Quit']].forEach(function(entry){var b=document.createElement("button");b.type="button";b.textContent=entry[1];b.addEventListener("click",function(){document.getElementById(entry[0]).click();});mobileMenu.appendChild(b);});
+  document.getElementById("wrap").appendChild(mobileMenu);
 
   // Put information in document flow above the canvas, never over the level.
   var messageRail = document.getElementById("game-messages");
@@ -1322,6 +1366,7 @@
   }
   var typewriterTimer = null;
   function setTutorialText(text){
+    if(window.matchMedia && window.matchMedia("(pointer:coarse)").matches){text=text.replace(/← → or A D/g,"the arrow buttons").replace(/SPACE/g,"Jump").replace(/SHIFT/g,"Dash").replace(/S or ↓/g,"Down");}
     var el = document.getElementById("tutorial-text");
     if (typewriterTimer) clearInterval(typewriterTimer);
     if (reducedMotion){ el.textContent = text; return; }
@@ -1388,12 +1433,16 @@
 
   var wallCutscene = null;
   function startWallCutscene(){
-    wallCutscene = { t: 0, dur: 1.6 };
+    var rescue=player.x+PW>16*TILE;
+    wallCutscene = { t: 0, dur: rescue?2.8:1.6, rescue:rescue, fromX:player.x, fromY:player.y };
+    clearInputs();player.vx=0;player.vy=0;player.isDashing=false;player.oneShot=null;
+    if(rescue)showToast("Milo: ‘Other side. I'll give you a hand.’");
     paused = true;
   }
   function drawWallCutscene(){
     if (!wallCutscene) return;
-    var t = wallCutscene.t;
+    var t = wallCutscene.t-(wallCutscene.rescue?1.2:0);
+    if(t<0){drawMilo(ctx,player.x+PW+4,player.y+PH-32,2,"walk");return;}
     var floorY = 13*TILE, wallBottom = floorY, wallTopFull = 0;
     var leftX = 16*TILE, shaftMidX = 17*TILE;
     var rise = Math.min(1, t/0.4);
@@ -1775,8 +1824,30 @@
   // ---------- input ----------
   var keys = { left:false, right:false, jump:false, dash:false, down:false, interact:false };
   var prevKeys = { jump:false, dash:false, down:false, interact:false };
+  var touchPointers=new Map(),heldKeyboard=new Set();
+  var keyActions={ArrowLeft:"left",KeyA:"left",ArrowRight:"right",KeyD:"right",ArrowUp:"jump",KeyW:"jump",Space:"jump",ArrowDown:"down",KeyS:"down",KeyE:"interact",ShiftLeft:"dash",ShiftRight:"dash",KeyK:"dash"};
+  function syncAction(action){
+    keys[action]=Array.from(touchPointers.values()).indexOf(action)!==-1 || Array.from(heldKeyboard).some(function(code){return keyActions[code]===action;});
+    if(touchButtons[action]){touchButtons[action].classList.toggle("pressed",keys[action]);touchButtons[action].setAttribute("aria-pressed",String(keys[action]));}
+  }
+  Object.keys(touchButtons).forEach(function(action){
+    var button=touchButtons[action];
+    button.addEventListener("pointerdown",function(e){
+      e.preventDefault();if(paused || (state!=="playing" && state!=="tutorial"))return;
+      touchPointers.set(e.pointerId,action);syncAction(action);
+      try{button.setPointerCapture(e.pointerId);}catch(err){}
+    });
+    function release(e){
+      if(e.preventDefault)e.preventDefault();
+      var active=touchPointers.get(e.pointerId);touchPointers.delete(e.pointerId);if(active)syncAction(active);
+    }
+    button.addEventListener("pointerup",release);button.addEventListener("pointercancel",release);button.addEventListener("lostpointercapture",release);
+    button.addEventListener("contextmenu",function(e){e.preventDefault();});
+  });
   function clearInputs(){
     if (!keys || !prevKeys) return;
+    if(touchPointers)touchPointers.clear();if(heldKeyboard)heldKeyboard.clear();
+    if(touchButtons)Object.keys(touchButtons).forEach(function(action){touchButtons[action].classList.remove("pressed");touchButtons[action].setAttribute("aria-pressed","false");});
     Object.keys(keys).forEach(function(k){ keys[k] = false; });
     Object.keys(prevKeys).forEach(function(k){ prevKeys[k] = false; });
   }
@@ -1793,12 +1864,7 @@
     if (["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Space","KeyA","KeyD","KeyW","KeyS","ShiftLeft","ShiftRight","KeyR","Escape"].indexOf(e.code)!==-1){
       e.preventDefault();
     }
-    if (e.code==="ArrowLeft"||e.code==="KeyA") keys.left = true;
-    if (e.code==="ArrowRight"||e.code==="KeyD") keys.right = true;
-    if (e.code==="ArrowUp"||e.code==="KeyW"||e.code==="Space") keys.jump = true;
-    if (e.code==="ArrowDown"||e.code==="KeyS") keys.down = true;
-    if (e.code==="KeyE") keys.interact = true;
-    if (e.code==="ShiftLeft"||e.code==="ShiftRight"||e.code==="KeyK") keys.dash = true;
+    if(keyActions[e.code]){heldKeyboard.add(e.code);syncAction(keyActions[e.code]);}
     if (e.code==="KeyR" && state==="playing" && !e.repeat) resetLevel();
   }, { passive:false });
 
@@ -1820,12 +1886,7 @@
   });
 
   window.addEventListener("keyup", function(e){
-    if (e.code==="ArrowLeft"||e.code==="KeyA") keys.left = false;
-    if (e.code==="ArrowRight"||e.code==="KeyD") keys.right = false;
-    if (e.code==="ArrowUp"||e.code==="KeyW"||e.code==="Space") keys.jump = false;
-    if (e.code==="ArrowDown"||e.code==="KeyS") keys.down = false;
-    if (e.code==="KeyE") keys.interact = false;
-    if (e.code==="ShiftLeft"||e.code==="ShiftRight"||e.code==="KeyK") keys.dash = false;
+    heldKeyboard.delete(e.code);if(keyActions[e.code])syncAction(keyActions[e.code]);
   });
 
   // ---------- physics ----------
@@ -2531,6 +2592,8 @@
   }
 
   function render(){
+    touchUI.classList.toggle("hidden",paused || (state!=="playing" && state!=="tutorial"));
+    mobileMenu.classList.toggle("hidden",state!=="title" || document.getElementById("title-screen").classList.contains("hidden"));
     document.getElementById("frame").classList.toggle("menu-mode",state==="title" || state==="quit");
     if(state==="title")animateMenu();
     messageRail.classList.toggle("has-play-info",state==="playing" || state==="tutorial" || !!miloDialogue);
@@ -2982,6 +3045,12 @@
     flashTimer=Math.max(0,flashTimer-stepDt);
     if (wallCutscene){
       wallCutscene.t += stepDt;
+      if(wallCutscene.rescue){
+        var carryProgress=Math.min(1,wallCutscene.t/1.2),carryEase=carryProgress*carryProgress*(3-2*carryProgress);
+        player.x=wallCutscene.fromX+(16*TILE-PW-24-wallCutscene.fromX)*carryEase;
+        player.y=wallCutscene.fromY+(13*TILE-PH-wallCutscene.fromY)*carryEase-(reducedMotion?0:Math.sin(carryProgress*Math.PI)*26);
+        player.previousFeet=player.y+PH;
+      }
       if (wallCutscene.t >= wallCutscene.dur){
         // The player can reach this spot before the tutorial grows its wall.
         // Keep it open until they step clear, just like the normal timed gate.
