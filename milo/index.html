@@ -2,9 +2,10 @@
 <html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Milo — One Little Guy | Gamed.fun</title>
-<meta name="description" content="Jump, dash, and discover Milo's secrets in One Little Guy, a free browser platformer with touch and keyboard controls.">
+<title>Milo’s Journey — Extended Demo | Gamed.fun</title>
 <link rel="canonical" href="https://gamed.fun/milo/">
+<meta name="description" content="Jump, dash, and discover Milo's secrets in One Little Guy, a free browser platformer with touch and keyboard controls.">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap">
 <style>
@@ -495,6 +496,11 @@
   #menu-detail-screen #full-menu { display:block; }
   #frame.menu-mode #game { visibility:hidden; }
   #touch-controls,#mobile-menu { display:none; }
+  #milo-choices { display:flex; flex-wrap:wrap; gap:8px; width:100%; padding-top:10px; }
+  #milo-choices.hidden { display:none; }
+  #milo-choices button { flex:1 1 180px; min-height:48px; padding:12px; border:1px solid var(--line); border-radius:12px; background:var(--bg-panel-2); color:var(--fg); font:inherit; cursor:pointer; }
+  #milo-choices button:disabled { opacity:.5; cursor:default; }
+  #game-messages #milo-popup { flex-direction:column; }
   @media (pointer:coarse), (max-width:650px) {
     body { align-items:flex-start; padding: max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left)); }
     #wrap { min-width:0; }
@@ -701,6 +707,7 @@
 <script>
 (function(){
   "use strict";
+  var journeyStorage={getItem:function(k){return localStorage.getItem("journey_"+k);},setItem:function(k,v){localStorage.setItem("journey_"+k,v);},removeItem:function(k){localStorage.removeItem("journey_"+k);}};
 
   var touchUI=document.createElement("div");touchUI.id="touch-controls";touchUI.className="hidden";
   touchUI.setAttribute("aria-label","Touch game controls");
@@ -723,9 +730,9 @@
   var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var hintsEnabled=true;
   try{
-    var motionPreference=localStorage.getItem("olg_reduced_motion");
+    var motionPreference=journeyStorage.getItem("olg_reduced_motion");
     if(motionPreference!==null)reducedMotion=motionPreference==="1";
-    hintsEnabled=localStorage.getItem("olg_hints")!=="0";
+    hintsEnabled=journeyStorage.getItem("olg_hints")!=="0";
   }catch(e){}
 
   // Short, non-blocking hints appear only after repeated falls.
@@ -911,6 +918,7 @@
 
   // ---------- constants ----------
   var TILE = 40, COLS = 24, ROWS = 14, W = COLS*TILE, H = ROWS*TILE;
+  var cameraX=0,checkpointSet=false;
   var GRAVITY = 2000, MOVE_SPEED = 230, GROUND_ACCEL = 2600, AIR_ACCEL = 1400;
   var JUMP_VY = -640, DOUBLE_JUMP_VY = -560, MAX_FALL = 820;
   var WALL_SLIDE_CAP = 110, WALL_JUMP_VY = -560, WALL_JUMP_VX = 460, WALL_JUMP_LOCK = 0.2;
@@ -1028,6 +1036,23 @@
     }
   ];
 
+  // Keep the original six lessons, with a second stretch beyond the old exit.
+  // Gauntlet uses stepping-stone climbs instead of a one-wall climb.
+  LEVELS[5].rects=[[0,5,13,13],[8,15,13,13],[18,23,13,13]];
+  LEVELS[5].platforms=[{x0:480,y0:440,x1:480,y1:440,w:100,h:16,speed:0,phase:0},{x0:620,y0:380,x1:620,y1:380,w:120,h:16,speed:0,phase:0},{x0:760,y0:440,x1:760,y1:440,w:100,h:16,speed:0,phase:0}];
+  LEVELS[5].spikes=[];
+  LEVELS[5].brief="Take the stepping stones. Every climb has a landing; no repeated one-wall jumps needed.";
+  LEVELS.forEach(function(L,i){
+    L.cols=48;
+    var extra=i===0?[[24,31,13,13],[34,47,13,13],[39,40,12,12]]:
+      i===2?[[24,28,13,13],[31,36,13,13],[40,47,13,13]]:
+      [[24,47,13,13],[28,29,12,12],[30,31,11,12],[32,33,10,12],[38,39,12,12]];
+    L.rects=L.rects.concat(extra);
+    L.switchObj={x:43*TILE+8,y:13*TILE-14,w:24,h:14};
+    L.door={c0:45,c1:45,r0:0,r1:12};L.door_duration=5;
+    L.goal={x:46*TILE+18,y:13*TILE-46,w:20,h:46};
+  });
+
   var MILO_NOTES = [
     "I kept the first room. Couldn't bring myself to take it apart. — M",
     "I fixed this lift yesterday. Someone has changed it back. — M",
@@ -1036,7 +1061,7 @@
   // A timed gate reaches the ceiling, so jumping cannot bypass its switch.
   LEVELS.forEach(function(L){ L.door.r0 = 0; });
   var foundNotes = [];
-  try { var savedNotes = JSON.parse(localStorage.getItem("olg_notes") || "[]");
+  try { var savedNotes = JSON.parse(journeyStorage.getItem("olg_notes") || "[]");
     if (Array.isArray(savedNotes)) foundNotes = savedNotes.filter(function(n,i,a){ return Number.isInteger(n) && n>=0 && n<3 && a.indexOf(n)===i; });
   } catch(e){}
   var levelNote = null, levelTint = "#6c8cf0";
@@ -1044,7 +1069,7 @@
   var roomProgress = 0, roomEndingDone = false;
   var completedCourses = [];
   for(var savedCourse=0;savedCourse<6;savedCourse++){
-    try { if(localStorage.getItem("olg_clear_"+savedCourse)==="1")completedCourses.push(savedCourse); } catch(e){}
+    try { if(journeyStorage.getItem("olg_clear_"+savedCourse)==="1")completedCourses.push(savedCourse); } catch(e){}
   }
   function campaignComplete(){return completedCourses.length===6;}
   var miloEscort = null;
@@ -1060,9 +1085,9 @@
     duck:{title:"A very small duck",text:"A wooden duck sits behind the boxes. On the bottom: HEAD OF SECURITY.\n\nIt appears to be doing an excellent job."},
     mirror:{title:"The covered mirror",text:"There are eyeholes in the cloth, but they are on the wall side. A note is pinned behind it: DON'T PRACTICE WHILE THEY'RE HERE."}
   };
-  try{var storedFinds=JSON.parse(localStorage.getItem("olg_hideout_finds")||"[]");if(Array.isArray(storedFinds))hideoutFinds=storedFinds.filter(function(k,i,a){return Object.prototype.hasOwnProperty.call(SECRET_DETAILS,k)&&a.indexOf(k)===i;});}catch(e){}
+  try{var storedFinds=JSON.parse(journeyStorage.getItem("olg_hideout_finds")||"[]");if(Array.isArray(storedFinds))hideoutFinds=storedFinds.filter(function(k,i,a){return Object.prototype.hasOwnProperty.call(SECRET_DETAILS,k)&&a.indexOf(k)===i;});}catch(e){}
   function inspectSecretDetail(id){
-    if(hideoutFinds.indexOf(id)===-1){hideoutFinds.push(id);try{localStorage.setItem("olg_hideout_finds",JSON.stringify(hideoutFinds));}catch(e){}}
+    if(hideoutFinds.indexOf(id)===-1){hideoutFinds.push(id);try{journeyStorage.setItem("olg_hideout_finds",JSON.stringify(hideoutFinds));}catch(e){}}
     var detail=SECRET_DETAILS[id];openPaper(detail.text,detail.title);
   }
   var WALK_DETAILS=[{id:"sign",x:230,y:480},{id:"toy",x:460,y:492},{id:"picture",x:670,y:470}];
@@ -1071,14 +1096,14 @@
   var ROOM_ORDER = [0,1,2], roomReversed = false, roomClues = [false,false];
   var ROOM_GLYPHS = ["○","◇","×"];
   try {
-    var roomSave=JSON.parse(localStorage.getItem("olg_room_pattern_v2")||"null");
+    var roomSave=JSON.parse(journeyStorage.getItem("olg_room_pattern_v2")||"null");
     if(!roomSave || !Array.isArray(roomSave.order) || !roomSave.order.every(Number.isInteger) || roomSave.order.slice().sort().join(",")!=="0,1,2" || typeof roomSave.reverse!=="boolean"){
       for(var shuffle=2;shuffle>0;shuffle--){var pick=Math.floor(Math.random()*(shuffle+1));var temp=ROOM_ORDER[shuffle];ROOM_ORDER[shuffle]=ROOM_ORDER[pick];ROOM_ORDER[pick]=temp;}
       roomSave={order:ROOM_ORDER,reverse:Math.random()<0.5};
-      localStorage.setItem("olg_room_pattern_v2",JSON.stringify(roomSave));
+      journeyStorage.setItem("olg_room_pattern_v2",JSON.stringify(roomSave));
     }
     ROOM_ORDER=roomSave.order;roomReversed=roomSave.reverse;
-    var clueSave=JSON.parse(localStorage.getItem("olg_room_clues_v2")||"[false,false]");
+    var clueSave=JSON.parse(journeyStorage.getItem("olg_room_clues_v2")||"[false,false]");
     if(Array.isArray(clueSave))roomClues=[clueSave[0]===true,clueSave[1]===true];
   } catch(e){}
   var ROOM_CLUE_SPOTS=[{x:160,y:488,w:28,h:32},{x:620,y:488,w:28,h:32}];
@@ -1130,13 +1155,62 @@
 
   function savedLevel(){
     try {
-      var n = Number(localStorage.getItem("olg_level"));
+      var n = Number(journeyStorage.getItem("olg_level"));
       return Number.isInteger(n) && n>=0 && n<LEVELS.length && (n<3 || levelsUnlocked()) ? n : 0;
     } catch(e){ return 0; }
   }
+  var chapterIndex=0,chapterUnlocked=false,chapterLocks=[false,false],chapterRead=[],chapterCheckpoint=0;
+  try{chapterUnlocked=journeyStorage.getItem("chapter_unlocked")==="1";var savedChapter=Number(journeyStorage.getItem("chapter_index"));if(Number.isInteger(savedChapter)&&savedChapter>=0&&savedChapter<4)chapterIndex=savedChapter;}catch(e){}
+  function chapterPlatform(x,y,endX,endY,w,speed){return {x0:x,y0:y,x1:endX,y1:endY,w:w,h:16,speed:speed||0,phase:0};}
+  var CHAPTER_LEVELS=[
+    {name:"The Service Tunnels",style:"moss",rects:[[0,11,13,13],[14,26,13,13],[29,41,13,13],[44,59,13,13],[20,21,12,12],[22,23,11,12]],platforms:[chapterPlatform(490,470,490,470,60),chapterPlatform(1100,460,1100,460,60),chapterPlatform(1690,470,1690,470,70)],levers:[{x:680,y:488},{x:1880,y:488}],spikes:[],notes:["The same repair is listed every Tuesday. The handwriting changes; Milo's signature never does.","A sealed hatch is labeled ROOM SEVEN. There were only six courses above."]},
+    {name:"The Quiet Waterworks",style:"steel",rects:[[0,7,13,13],[18,27,13,13],[38,59,13,13]],platforms:[chapterPlatform(330,480,590,480,130,.8),chapterPlatform(1140,470,1400,470,140,.7),chapterPlatform(1690,440,1690,440,100)],levers:[{x:820,y:488},{x:1800,y:488}],spikes:[],notes:["These pipes carry messages, not water. Someone has wrapped cloth around every bell.","A maintenance note: If both bells ring, do not answer the second voice."]},
+    {name:"Rooftops Without Windows",style:"wood",rects:[[0,59,13,13],[22,25,11,12]],platforms:[chapterPlatform(280,440,280,440,130),chapterPlatform(455,365,455,365,130),chapterPlatform(620,300,620,300,150),chapterPlatform(1410,455,1410,455,130),chapterPlatform(1620,420,1620,420,150)],levers:[{x:665,y:268},{x:1680,y:388}],spikes:[],notes:["Every roof has a weather vane. They all point toward the hideout, even with no wind.","You find a sketch of this roof with two Milos standing on it. One has been crossed out. The other is labeled NOT THIS ONE."]},
+    {name:"The Last Platform",style:"ruins",rects:[[0,12,13,13],[16,29,13,13],[33,59,13,13]],platforms:[chapterPlatform(540,450,540,450,90),chapterPlatform(1230,450,1230,450,70)],levers:[{x:820,y:488},{x:1800,y:488}],spikes:[{x:960,y:504,w:30,h:16}],notes:["The station timetable has no destinations. Just names. Yours has been added in pencil.","A message left under the bench: He can show you the way. He cannot choose which door you open."]}
+  ];
+  CHAPTER_LEVELS.forEach(function(L){L.cols=60;L.spawn={x:47,y:13*TILE-PH};L.door={c0:56,c1:56,r0:0,r1:12};L.door_duration=999;L.switchObj={x:-1000,y:-1000,w:1,h:1};L.goal={x:58*TILE+18,y:13*TILE-46,w:20,h:46};L.brief="Find both latch panels. E / Inspect to use them. Small flags mark checkpoints.";});
+  var chapterClues=[];
+  try{var savedClues=JSON.parse(journeyStorage.getItem("chapter_clues")||"[]");if(Array.isArray(savedClues))chapterClues=savedClues.filter(function(n,i,a){return Number.isInteger(n)&&n>=0&&n<8&&a.indexOf(n)===i;});}catch(e){}
+  function startChapter(index){
+    if(!campaignComplete()&&!chapterUnlocked)return;
+    chapterIndex=index;chapterUnlocked=true;gameMode="chapter";miloDialogue=null;miloChoicePending=false;miloEscort=null;
+    try{journeyStorage.setItem("chapter_unlocked","1");journeyStorage.setItem("chapter_index",String(index));if(currentEnding)journeyStorage.setItem("chapter_route",currentEnding);}catch(e){}
+    closeMenuPages();setOverlay("milo-popup",false);setOverlay("win-screen",false);setOverlay("title-screen",false);
+    resetLevel();state="playing";document.getElementById("hud").classList.remove("hidden");
+  }
+  function chapterRoute(){try{var route=journeyStorage.getItem("chapter_route");return ["keeper","truth","leave"].indexOf(route)!==-1?route:"leave";}catch(e){return "leave";}}
+  function updateChapter(){
+    if(chapterLocks.every(Boolean)){doorTimer=999;door.open=true;}
+    if(player.onGround&&!player.standingOn&&player.x>chapterCheckpoint+600){chapterCheckpoint=player.x;spawn={x:player.x,y:player.y};showToast("Checkpoint. The path behind you is safe.");}
+    if(!keys.interact||prevKeys.interact)return;
+    var L=CHAPTER_LEVELS[chapterIndex];
+    for(var i=0;i<2;i++){
+      var lever=L.levers[i];
+      if(Math.abs(player.x+PW/2-lever.x)<46&&Math.abs(player.y+PH-(lever.y+32))<30&&player.onGround){chapterLocks[i]=true;showToast(chapterLocks.every(Boolean)?"Both latches released. The far gate is open.":"One latch released. The other panel is farther along.");}
+      var noteX=i===0?180:2060;
+      if(Math.abs(player.x+PW/2-noteX)<44&&player.onGround&&player.y+PH>490){
+        var id=chapterIndex*2+i;if(chapterClues.indexOf(id)===-1)chapterClues.push(id);
+        try{journeyStorage.setItem("chapter_clues",JSON.stringify(chapterClues));}catch(e){}
+        openPaper(L.notes[i],L.name+" — a loose page");return;
+      }
+    }
+    if(chapterLocks.every(Boolean)){doorTimer=999;door.open=true;}
+  }
+  function drawChapter(){
+    var L=CHAPTER_LEVELS[chapterIndex];
+    L.levers.forEach(function(lever,i){
+      ctx.fillStyle="#202329";ctx.fillRect(lever.x-15,lever.y,30,32);ctx.fillStyle=chapterLocks[i]?"#8bd17c":"#c08d55";ctx.fillRect(lever.x-8,lever.y+8,16,14);
+      if(Math.abs(player.x-lever.x)<70){ctx.fillStyle="#e5dac2";ctx.font="12px monospace";ctx.fillText(chapterLocks[i]?"open":"Inspect",lever.x-20,lever.y-10);}
+    });
+    [180,2060].forEach(function(x){ctx.fillStyle="#d4c7a8";ctx.fillRect(x-7,501,14,12);ctx.fillStyle="#675b47";ctx.fillRect(x-4,505,8,1);ctx.fillRect(x-4,509,6,1);});
+    for(var x=640;x<2200;x+=640){ctx.fillStyle="#8f8873";ctx.fillRect(x,482,3,38);ctx.fillStyle=chapterCheckpoint>=x-40?"#e6b852":"#71685a";ctx.fillRect(x+3,482,17,10);}
+    if(chapterRoute()==="keeper")drawMilo(ctx,2190,488,2,"idle");
+    ctx.fillStyle="#c3b69b";ctx.font="14px monospace";
+    if(Math.abs(player.x-2190)<130)ctx.fillText(chapterRoute()==="keeper"?"Milo: ‘Nearly there. Don't answer the voice.’":chapterRoute()==="truth"?"A fresh footprint. Milo got here first.":"Someone has left the next gate unlatched.",1970,450);
+  }
   function saveLevel(){
     if (gameMode === "campaign" && curLevel>=0){
-      try { localStorage.setItem("olg_level", String(curLevel)); } catch(e){}
+      try { journeyStorage.setItem("olg_level", String(curLevel)); } catch(e){}
     }
   }
   var curLevel = savedLevel();
@@ -1158,7 +1232,7 @@
   var currentTimerLevel = null;
   var timerBestMs = null;
   (function(){
-    try { var tb = Number(localStorage.getItem("timer_best_ms")); if (Number.isFinite(tb) && tb>0) timerBestMs = tb; } catch(e){}
+    try { var tb = Number(journeyStorage.getItem("timer_best_ms")); if (Number.isFinite(tb) && tb>0) timerBestMs = tb; } catch(e){}
   })();
 
   function shuffleArr(arr){
@@ -1239,6 +1313,7 @@
     var L;
     if (typeof idxOrDef === "number"){ curLevel = idxOrDef; L = LEVELS[idxOrDef]; }
     else { curLevel = -1; L = idxOrDef; }
+    COLS=L.cols||24;cameraX=0;
     levelNote = L.note || null;
     levelTint = L.tint || "#6c8cf0";
     grid = [];
@@ -1318,7 +1393,7 @@
   var pendingLevelAfterTutorial = 0;
 
   function tutorialDone(){
-    try { return localStorage.getItem("tutorial_done") === "1"; } catch(e){ return true; }
+    try { return journeyStorage.getItem("tutorial_done") === "1"; } catch(e){ return true; }
   }
   function startTutorial(afterLevel, greetingOverride){
     closeMenuPages();
@@ -1495,13 +1570,13 @@
     else if (tutorialStep===7){ if (p.x > 880){ advanceTutorialStep(); } }
   }
   function levelsUnlocked(){
-    try { return localStorage.getItem("levels_1_3_done") === "1"; } catch(e){ return true; }
+    try { return journeyStorage.getItem("levels_1_3_done") === "1"; } catch(e){ return true; }
   }
   function markLevelsUnlocked(){
-    try { localStorage.setItem("levels_1_3_done", "1"); } catch(e){}
+    try { journeyStorage.setItem("levels_1_3_done", "1"); } catch(e){}
   }
   function advancedTutorialDone(){
-    try { return localStorage.getItem("tutorial2_done") === "1"; } catch(e){ return true; }
+    try { return journeyStorage.getItem("tutorial2_done") === "1"; } catch(e){ return true; }
   }
   function finishTutorial(){
     wallCutscene = null;
@@ -1509,9 +1584,9 @@
     clearInterval(typewriterTimer);
     clearInputs();
     if (tutorialKind === "advanced"){
-      try { localStorage.setItem("tutorial2_done", "1"); } catch(e){}
+      try { journeyStorage.setItem("tutorial2_done", "1"); } catch(e){}
     } else {
-      try { localStorage.setItem("tutorial_done", "1"); } catch(e){}
+      try { journeyStorage.setItem("tutorial_done", "1"); } catch(e){}
     }
     document.getElementById("tutorial-hud").classList.add("hidden");
     curLevel = pendingLevelAfterTutorial;
@@ -1521,12 +1596,36 @@
   }
 
   function miloSeen(){
-    try { return localStorage.getItem("milo_seen") === "1"; } catch(e){ return false; }
+    try { return journeyStorage.getItem("milo_seen") === "1"; } catch(e){ return false; }
   }
   function markMiloSeen(){
-    try { localStorage.setItem("milo_seen", "1"); } catch(e){}
+    try { journeyStorage.setItem("milo_seen", "1"); } catch(e){}
   }
   var miloDialogue = null;
+  var miloStance="quiet",miloChoicePending=false,currentEnding=null,seenEndings=[];
+  try{var stanceSave=journeyStorage.getItem("olg_stance");if(["trust","question","quiet"].indexOf(stanceSave)!==-1)miloStance=stanceSave;var endingSave=JSON.parse(journeyStorage.getItem("olg_endings")||"[]");if(Array.isArray(endingSave))seenEndings=endingSave.filter(function(e,i,a){return ["keeper","truth","leave"].indexOf(e)!==-1&&a.indexOf(e)===i;});}catch(e){}
+  var ENDINGS={
+    keeper:{title:"Milo's Route",lines:["‘Then there's something else I need you to see.’ Milo unlocks a service hatch.","He keeps the ledger under his arm. He still hasn't explained the names.","You follow him below the courses. The real journey is only beginning."]},
+    truth:{title:"The Paper Trail",lines:["You put the ledger beside the mirror. Milo goes quiet.","‘Those records aren't mine. The originals are at the station. Come and see.’", "You take a page as proof and head down the service stairs. This isn't an answer yet."]},
+    leave:{title:"Your Own Way",lines:["‘I'm finding my own way out.’ You take the open passage instead of Milo's hand.","‘Fine,’ he says. ‘But if you hear yourself calling, don't answer.’", "The path slopes down toward an old station. Behind you, Milo closes only one of the doors."]}
+  };
+  var miloChoices=document.createElement("div");miloChoices.id="milo-choices";miloChoices.className="hidden";document.getElementById("milo-popup").appendChild(miloChoices);
+  function presentMiloChoices(options){
+    miloChoicePending=true;miloChoices.innerHTML="";miloChoices.classList.remove("hidden");document.getElementById("milo-next").classList.add("hidden");
+    options.forEach(function(option){var button=document.createElement("button");button.type="button";button.textContent=option.text;button.disabled=!!option.disabled;button.addEventListener("click",option.choose);miloChoices.appendChild(button);});
+    if(miloChoices.children[0])miloChoices.children[0].focus();
+  }
+  function chooseMiloStance(stance){
+    miloStance=stance;try{journeyStorage.setItem("olg_stance",stance);}catch(e){}
+    miloDialogue.choiceMade=true;
+    miloDialogue.lines[2]=stance==="trust"?"‘Then I'll leave the shelf latch loose for you. Just ask it to open.’":stance==="question"?"‘Why the old signs? ...Look at the clock. Then the desk behind the shelves. That's all I'm saying.’":"Milo watches your face. ‘Quiet one. Fine. I'll walk ahead.’";
+    miloDialogue.lines[3]="You can answer differently next time. What you find matters too.";
+    showMiloLine();
+  }
+  function chooseMiloEnding(id){
+    if(id==="truth" && !(hideoutFinds.indexOf("ledger")!==-1 && hideoutFinds.indexOf("mirror")!==-1))return;
+    currentEnding=id;miloDialogue={index:0,ending:true,choiceMade:true,lines:ENDINGS[id].lines.slice()};showMiloLine();
+  }
   var paperOpen = false, paperWasPaused = false, paperFocus = null;
   function openPaper(text,title){
     if(!paperOpen){paperWasPaused=paused;paperFocus=document.activeElement;}
@@ -1566,11 +1665,20 @@
     document.getElementById("milo-next").focus();
   }
   function showMiloLine(){
+    miloChoicePending=false;miloChoices.classList.add("hidden");document.getElementById("milo-next").classList.remove("hidden");
     document.getElementById("milo-line").textContent = miloDialogue.lines[miloDialogue.index];
     var portrait = document.getElementById("milo-portrait").getContext("2d");
     portrait.clearRect(0,0,84,96);
     drawMilo(portrait,14,12,4,"idle");
     document.getElementById("milo-next").textContent = miloDialogue.index === miloDialogue.lines.length-1 ? (miloDialogue.ending ? "Finish" : "Follow Milo") : "Continue";
+    if(!miloDialogue.ending && miloDialogue.index===2 && !miloDialogue.choiceMade){
+      document.getElementById("milo-line").textContent="Milo: ‘You trust me, don't you?’";
+      presentMiloChoices([{text:"I trust you.",choose:function(){chooseMiloStance("trust");}},{text:"Tell me what you're hiding.",choose:function(){chooseMiloStance("question");}},{text:"I'll decide for myself.",choose:function(){chooseMiloStance("quiet");}}]);
+    }
+    if(miloDialogue.ending && !miloDialogue.choiceMade){
+      var evidence=hideoutFinds.indexOf("ledger")!==-1&&hideoutFinds.indexOf("mirror")!==-1;
+      presentMiloChoices([{text:"Follow Milo farther.",choose:function(){chooseMiloEnding("keeper");}},{text:evidence?"Ask him about the evidence.":"Ask about the records — find the ledger and mirror first.",disabled:!evidence,choose:function(){chooseMiloEnding("truth");}},{text:"Look for my own way out.",choose:function(){chooseMiloEnding("leave");}},{text:"I'm not finished looking around.",choose:function(){miloDialogue=null;miloChoicePending=false;paused=false;clearInputs();setOverlay("milo-popup",false);player.x=825;}}]);
+    }
   }
   function startSecretRoom(){
     if(!campaignComplete())return;
@@ -1676,7 +1784,7 @@
   resetPlayer();
 
   var playerColor = COLORS[0];
-  try { var savedColor = localStorage.getItem("olg_color"); if (COLORS.indexOf(savedColor)!==-1) playerColor = savedColor; } catch(e){}
+  try { var savedColor = journeyStorage.getItem("olg_color"); if (COLORS.indexOf(savedColor)!==-1) playerColor = savedColor; } catch(e){}
   var hatOn = false;
 
   // ---------- state ----------
@@ -1687,6 +1795,8 @@
   var flashTimer = 0;
 
   function resetLevel(){
+    chapterLocks=[false,false];chapterCheckpoint=0;
+    checkpointSet=false;
     closePaper();
     clearTimeout(tipTimeout);
     flashTimer=0;
@@ -1698,7 +1808,9 @@
     setOverlay("pause-screen", false);
     setOverlay("tip-popup", false);
     document.getElementById("door-timer").classList.add("hidden");
-    if (gameMode === "secret"){
+    if(gameMode==="chapter"){
+      loadLevel(CHAPTER_LEVELS[chapterIndex]);
+    } else if (gameMode === "secret"){
       loadLevel(hideoutSection==="archive"?HIDEOUT_ARCHIVE:SECRET_ROOM);
     } else if(gameMode==="escort"){
       loadLevel(MILO_WALK);
@@ -1714,7 +1826,10 @@
     particles = []; dashTrail = [];
     var lvlNumEl = document.getElementById("hud-levelnum");
     var lvlNameEl = document.getElementById("hud-levelname");
-    if (gameMode === "secret"){
+    if(gameMode==="chapter"){
+      if(lvlNumEl)lvlNumEl.textContent="Beyond the hideout · "+(chapterIndex+1)+" / 4";
+      if(lvlNameEl)lvlNameEl.textContent=CHAPTER_LEVELS[chapterIndex].name;
+    } else if (gameMode === "secret"){
       if (lvlNumEl) lvlNumEl.textContent = "???";
       if (lvlNameEl) lvlNameEl.textContent = hideoutSection==="archive"?HIDEOUT_ARCHIVE.name:SECRET_ROOM.name;
     } else if(gameMode==="escort"){
@@ -1730,6 +1845,7 @@
     if (gameMode === "campaign") showToast(LEVELS[curLevel].brief);
     if (gameMode === "secret") showToast(hideoutSection==="archive"?HIDEOUT_ARCHIVE.brief:SECRET_ROOM.brief);
     if (gameMode === "escort") showToast(MILO_WALK.brief);
+    if(gameMode==="chapter")showToast(CHAPTER_LEVELS[chapterIndex].brief);
   }
   function startTimerRun(){
     closeMenuPages();
@@ -1752,6 +1868,17 @@
   }
 
   function winLevel(){
+    if(gameMode==="chapter"){
+      if(!chapterLocks.every(Boolean))return;
+      state="win";clearInputs();setOverlay("tip-popup",false);setOverlay("win-screen",true);document.getElementById("hud").classList.add("hidden");
+      document.getElementById("win-eyebrow").textContent=chapterIndex===3?"Demo · To be continued":CHAPTER_LEVELS[chapterIndex].name+" clear";
+      document.getElementById("win-message").textContent=chapterIndex===3?"Beyond the station gate, someone with Milo's voice says your name. Milo whispers: ‘That isn't me.’ Your choices are saved. The mystery continues in the next chapter.":"The gate opens onto another part of the old route. There is still more to find.";
+      document.getElementById("win-time").textContent=fmtTime(elapsed);document.getElementById("win-deaths").textContent=String(deaths);
+      document.getElementById("next-btn").classList.toggle("hidden",chapterIndex===3);document.getElementById("outro-wrap").classList.add("hidden");document.getElementById("win-best-row").classList.add("hidden");
+      try{journeyStorage.setItem("chapter_index",String(Math.min(3,chapterIndex+1)));if(chapterIndex===3)journeyStorage.setItem("demo_complete","1");}catch(e){}
+      return;
+    }
+    if(gameMode==="secret"&&roomEndingDone&&currentEnding){startChapter(0);return;}
     if (gameMode === "secret" && !roomEndingDone){
       if (roomProgress < ROOM_ORDER.length) return;
       clearInputs();
@@ -1774,9 +1901,9 @@
     document.getElementById("win-time").textContent = fmtTime(elapsed);
     document.getElementById("win-deaths").textContent = String(deaths);
     if (gameMode === "secret"){
-      try { localStorage.setItem("olg_milo_home", "1"); } catch(e){}
-      document.getElementById("win-eyebrow").textContent = "The first room";
-      document.getElementById("win-message").textContent = "Milo gave you an old brass key. It's tucked beside your scraps.";
+      try { if(currentEnding!=="leave")journeyStorage.setItem("olg_milo_home", "1");if(currentEnding&&seenEndings.indexOf(currentEnding)===-1)seenEndings.push(currentEnding);journeyStorage.setItem("olg_endings",JSON.stringify(seenEndings)); } catch(e){}
+      document.getElementById("win-eyebrow").textContent = currentEnding?ENDINGS[currentEnding].title:"The first room";
+      document.getElementById("win-message").textContent = currentEnding?ENDINGS[currentEnding].lines[2]:"Milo gave you an old brass key.";
       document.getElementById("next-btn").classList.add("hidden");
       document.getElementById("outro-wrap").classList.add("hidden");
       document.getElementById("win-best-row").classList.add("hidden");
@@ -1785,7 +1912,7 @@
       var isBest = (timerBestMs === null) || (ms < timerBestMs);
       if (isBest){
         timerBestMs = ms;
-        try { localStorage.setItem("timer_best_ms", String(ms)); } catch(e){}
+        try { journeyStorage.setItem("timer_best_ms", String(ms)); } catch(e){}
       }
       document.getElementById("win-eyebrow").textContent = "Timer Run clear" + (isBest ? " \u2014 new best!" : "");
       document.getElementById("win-best-row").classList.remove("hidden");
@@ -1797,11 +1924,11 @@
       if(completedCourses.indexOf(curLevel)===-1)completedCourses.push(curLevel);
       var courseBest=null,newCourseBest=false;
       try{
-        var oldBest=Number(localStorage.getItem("olg_best_"+curLevel));
+        var oldBest=Number(journeyStorage.getItem("olg_best_"+curLevel));
         courseBest=oldBest>0?oldBest:null;
-        if(courseBest===null || elapsed<courseBest){courseBest=elapsed;newCourseBest=true;localStorage.setItem("olg_best_"+curLevel,String(elapsed));}
+        if(courseBest===null || elapsed<courseBest){courseBest=elapsed;newCourseBest=true;journeyStorage.setItem("olg_best_"+curLevel,String(elapsed));}
       }catch(e){}
-      try { localStorage.setItem("olg_clear_"+curLevel, "1"); localStorage.setItem("olg_level", String(Math.min(curLevel+1, LEVELS.length-1))); } catch(e){}
+      try { journeyStorage.setItem("olg_clear_"+curLevel, "1"); journeyStorage.setItem("olg_level", String(Math.min(curLevel+1, LEVELS.length-1))); } catch(e){}
       document.getElementById("win-eyebrow").textContent = LEVELS[curLevel].name + " clear";
       var hasNext = curLevel < LEVELS.length-1;
       var offerMilo = !hasNext && campaignComplete();
@@ -2084,10 +2211,16 @@
       if (aabb({x:p.x+3,y:p.y+2,w:PW-6,h:PH-4}, spikes[i])){ respawn(); return; }
     }
     if (p.y > H+120){ respawn(); return; }
+    if(gameMode==="campaign" && !checkpointSet && p.x>=W+40 && p.onGround && !p.standingOn){
+      checkpointSet=true;spawn={x:p.x,y:p.y};showToast("Checkpoint. Milo left a little flag here.");
+    }
 
     if(gameMode==="escort"){
       updateMiloWalk(dt);
       if(paused || gameMode!=="escort")return;
+    }
+    if(gameMode==="chapter"){
+      updateChapter();if(paused)return;
     }
     if(gameMode==="secret" && keys.interact && !prevKeys.interact){
       if(hideoutSection==="archive" && player.x<70 && player.onGround){enterHideoutSection("main");return;}
@@ -2095,7 +2228,7 @@
       for(var detailIndex=0;detailIndex<details.length;detailIndex++){
         var detail=details[detailIndex];
         if(nearSecretDetail(detail)){
-          if(detail.id==="shelf" && keys.down){enterHideoutSection("archive");return;}
+          if(detail.id==="shelf" && (keys.down || miloStance==="trust")){enterHideoutSection("archive");return;}
           inspectSecretDetail(detail.id);return;
         }
       }
@@ -2104,7 +2237,7 @@
       ROOM_CLUE_SPOTS.forEach(function(spot,idx){
         if(!aabb(p,{x:spot.x-15,y:spot.y-8,w:spot.w+30,h:spot.h+16}))return;
         roomClues[idx]=true;
-        try{localStorage.setItem("olg_room_clues_v2",JSON.stringify(roomClues));}catch(e){}
+        try{journeyStorage.setItem("olg_room_clues_v2",JSON.stringify(roomClues));}catch(e){}
         openPaper(roomClueText(idx),idx===0?"A torn notebook page":"A note in the margin");
       });
       ROOM_PLATES.forEach(function(plate,idx){
@@ -2141,7 +2274,7 @@
     if (state === "playing" && gameMode === "campaign" && levelNote && aabb(p,{x:levelNote.x-5,y:levelNote.y-5,w:30,h:34}) && (player.readLetters.indexOf(levelNote.id)===-1 || keys.interact && !prevKeys.interact)){
       if(player.readLetters.indexOf(levelNote.id)===-1)player.readLetters.push(levelNote.id);
       if(foundNotes.indexOf(levelNote.id)===-1)foundNotes.push(levelNote.id);
-      try { localStorage.setItem("olg_notes", JSON.stringify(foundNotes)); } catch(e){}
+      try { journeyStorage.setItem("olg_notes", JSON.stringify(foundNotes)); } catch(e){}
       openPaper(MILO_NOTES[levelNote.id],"A folded scrap");
     }
 
@@ -2193,6 +2326,7 @@
   var ctx = canvas.getContext("2d");
 
   function environmentStyle(){
+    if(gameMode==="chapter")return CHAPTER_LEVELS[chapterIndex].style;
     if(state==="tutorial")return "grass";
     if(gameMode==="escort")return "moss";
     if(gameMode==="secret")return "moss";
@@ -2313,7 +2447,7 @@
       ctx.restore();
     }
     if(style==="grass")drawOutdoorSky();
-    ctx.save();ctx.globalAlpha=style==="grass"?0.8:0.24;
+    ctx.save();ctx.translate(-Math.round(cameraX),0);ctx.globalAlpha=style==="grass"?0.8:0.24;
     for(var n=0;n<backgroundProps.length;n++){
       var prop=backgroundProps[n],x=prop.x-12,y=prop.y,ht=prop.h;
       if(style==="ruins"||style==="moss"){
@@ -2596,6 +2730,8 @@
   }
 
   function render(){
+    var cameraTarget=Math.max(0,Math.min(COLS*TILE-W,player.x+PW/2-W*0.4));
+    cameraX=reducedMotion?cameraTarget:cameraX+(cameraTarget-cameraX)*0.14;
     touchUI.classList.toggle("hidden",paused || (state!=="playing" && state!=="tutorial"));
     mobileMenu.classList.toggle("hidden",state!=="title" || document.getElementById("title-screen").classList.contains("hidden"));
     document.getElementById("frame").classList.toggle("menu-mode",state==="title" || state==="quit");
@@ -2614,6 +2750,7 @@
       drawMilo(portrait,14,12,4,expression);
     }
     drawWorldBG();
+    ctx.save();ctx.translate(-Math.round(cameraX),0);
     drawTiles();drawPlatforms();drawDiscoveries();
     drawParticles();
     if (state === "tutorial" && tutorialKind === "basic" && tutorialStep === 7){
@@ -2628,6 +2765,7 @@
       drawSpriteFrame("idle", pidx, 19, 30, 1, playerColor, 1, pctx);
     }
     if (state!=="win") drawPlayer();
+    ctx.restore();
 
     if (flashTimer>0){
       document.getElementById("flash").style.opacity = String(Math.max(0, flashTimer/0.18*0.5));
@@ -2790,6 +2928,11 @@
   function drawDiscoveries(){
     if (state!=="playing") return;
     ctx.save();
+    if(gameMode==="chapter"){drawChapter();ctx.restore();return;}
+    if(gameMode==="campaign"){
+      ctx.fillStyle="#938d79";ctx.fillRect(W+62,480,3,40);
+      ctx.fillStyle=checkpointSet?"#e6b852":"#796d64";ctx.fillRect(W+65,480,20,12);
+    }
     if(gameMode==="escort"){
       WALK_DETAILS.forEach(drawSecretProp);
       // A narrow slit and worn boards, not a glowing quest portal.
@@ -2860,7 +3003,7 @@
     b.setAttribute("aria-label", "Choose color " + (idx+1));
     b.addEventListener("click", function(){
       playerColor = c;
-      try { localStorage.setItem("olg_color", c); } catch(e){}
+      try { journeyStorage.setItem("olg_color", c); } catch(e){}
       Array.prototype.forEach.call(swatchesEl.children, function(el2){ el2.classList.remove("active"); });
       b.classList.add("active");
     });
@@ -2869,6 +3012,7 @@
 
   var levelPickerEl = document.getElementById("level-picker");
   function renderLevelPicker(){
+    if(document.getElementById("chapter-resume"))document.getElementById("chapter-resume").classList.toggle("hidden",!chapterUnlocked);
     document.getElementById("menu-save-label").textContent=tutorialDone()?"Continue · Level "+(curLevel+1)+" · "+completedCourses.length+" / 6 cleared":"A little adventure. Start with Play.";
     document.getElementById("course-progress").textContent=completedCourses.length+" / 6 courses cleared";
     document.getElementById("full-menu").classList.remove("hidden");
@@ -2886,9 +3030,9 @@
       lb.type = "button";
       lb.textContent = locked ? "\ud83d\udd12" : "Level " + (idx+1);
       lb.title = locked ? "Finish level 3 to unlock" : L.name;
-      try{var best=Number(localStorage.getItem("olg_best_"+idx));if(best>0 && !locked)lb.title+=" · best "+fmtTime(best);}catch(e){}
+      try{var best=Number(journeyStorage.getItem("olg_best_"+idx));if(best>0 && !locked)lb.title+=" · best "+fmtTime(best);}catch(e){}
       lb.setAttribute("aria-label", locked ? "Level "+(idx+1)+", locked until level 3 is complete" : "Level "+(idx+1)+": "+L.name);
-      try { if (!locked && localStorage.getItem("olg_clear_"+idx)==="1") lb.textContent += " ✓"; } catch(e){}
+      try { if (!locked && journeyStorage.getItem("olg_clear_"+idx)==="1") lb.textContent += " ✓"; } catch(e){}
       if (locked){
         lb.disabled = true;
         lb.style.opacity = "0.45";
@@ -2922,10 +3066,10 @@
   });
   document.getElementById("setting-motion").addEventListener("change",function(e){
     reducedMotion=e.target.checked;
-    try{localStorage.setItem("olg_reduced_motion",reducedMotion?"1":"0");}catch(e){}
+    try{journeyStorage.setItem("olg_reduced_motion",reducedMotion?"1":"0");}catch(e){}
     if(reducedMotion){menuArt.src="one-little-guy-menu-assets/milo_menu_0000.png";menuShown=0;}
   });
-  document.getElementById("setting-hints").addEventListener("change",function(e){hintsEnabled=e.target.checked;try{localStorage.setItem("olg_hints",hintsEnabled?"1":"0");}catch(e){}});
+  document.getElementById("setting-hints").addEventListener("change",function(e){hintsEnabled=e.target.checked;try{journeyStorage.setItem("olg_hints",hintsEnabled?"1":"0");}catch(e){}});
   document.getElementById("practice-btn").addEventListener("click",function(){gameMode="campaign";startTutorial(savedLevel());});
   document.getElementById("menu-quit").addEventListener("click",function(){closeMenuPages();setOverlay("title-screen",false);state="quit";setOverlay("quit-screen",true);document.getElementById("quit-back").focus();});
 
@@ -2934,6 +3078,8 @@
   document.getElementById("menu-btn").addEventListener("click", returnToMenu);
   document.getElementById("win-menu-btn").addEventListener("click", returnToMenu);
   document.getElementById("secret-room-btn").addEventListener("click", startSecretRoom);
+  var chapterResume=document.createElement("button");chapterResume.id="chapter-resume";chapterResume.type="button";chapterResume.className="play-btn";chapterResume.textContent="Continue beyond the hideout";chapterResume.classList.toggle("hidden",!chapterUnlocked);document.getElementById("level-section").appendChild(chapterResume);
+  chapterResume.addEventListener("click",function(){var index=chapterIndex;try{var saved=Number(journeyStorage.getItem("chapter_index"));if(Number.isInteger(saved)&&saved>=0&&saved<4)index=saved;}catch(e){}startChapter(index);});
   document.getElementById("milo-journal").addEventListener("click", function(){
     closeMenuPages();
     var journal = document.getElementById("journal-notes");
@@ -2946,7 +3092,9 @@
     });
     roomClues.forEach(function(found,idx){if(found){var clue=document.createElement("p");clue.textContent=roomClueText(idx);journal.appendChild(clue);}});
     hideoutFinds.forEach(function(id){var entry=document.createElement("p");entry.textContent=SECRET_DETAILS[id].title+" — "+SECRET_DETAILS[id].text;journal.appendChild(entry);});
-    try { if (localStorage.getItem("olg_milo_home")==="1"){
+    if(chapterUnlocked){var routeEntry=document.createElement("p");routeEntry.textContent="Path chosen: "+ENDINGS[chapterRoute()].title;journal.appendChild(routeEntry);}
+    chapterClues.forEach(function(id){var entry=document.createElement("p");entry.textContent=CHAPTER_LEVELS[Math.floor(id/2)].notes[id%2];journal.appendChild(entry);});
+    try { if (journeyStorage.getItem("olg_milo_home")==="1"){
       var keepsake=document.createElement("p");
       keepsake.textContent="An old brass key. Scratched into the back: FOR THE ONE WHO FOUND IT. — M";
       journal.appendChild(keepsake);
@@ -3009,7 +3157,7 @@
   });
 
   document.getElementById("milo-next").addEventListener("click", function(){
-    if (!miloDialogue) return;
+    if (!miloDialogue || miloChoicePending) return;
     miloDialogue.index++;
     if (miloDialogue.index>=miloDialogue.lines.length){
       if (miloDialogue.ending){roomEndingDone=true;miloDialogue=null;paused=false;setOverlay("milo-popup",false);winLevel();}
@@ -3025,6 +3173,7 @@
   });
 
   document.getElementById("next-btn").addEventListener("click", function(){
+    if(state==="win" && gameMode==="chapter" && chapterIndex<3){startChapter(chapterIndex+1);return;}
     if(state!=="win" || gameMode!=="campaign" || curLevel>=LEVELS.length-1)return;
     setOverlay("win-screen",false);
     var goingTo3to4 = (curLevel === 2);
