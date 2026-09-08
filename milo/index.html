@@ -553,7 +553,7 @@
         <div class="track"><div class="fill" id="door-fill"></div></div>
         <div class="lbl">door closing</div>
       </div>
-      <div class="hud-hint">&larr;&rarr; / A D move &middot; SPACE jump (x2 in air) &middot; SHIFT dash &middot; hold into a wall to slide &middot; R restart</div>
+      <div class="hud-hint">Move: A/D or &larr;/&rarr; &middot; Jump: W, &uarr;, or Space &middot; Dash: Shift &middot; Restart: R</div>
     </div>
 
     <div class="flash" id="flash"></div>
@@ -618,10 +618,10 @@
         <h1>How to Play</h1>
         <div class="howto-list">
           <div><b>&larr; &rarr;</b> or <b>A D</b> &mdash; move</div>
-          <div><b>SPACE</b> &mdash; jump (press again in the air to double-jump)</div>
+          <div><b>W, &uarr;, or Space</b> &mdash; jump. Press again to double-jump.</div>
           <div><b>SHIFT</b> &mdash; dash</div>
           <div><b>S / &darr;</b> &mdash; drop through thin platforms</div>
-          <div>Hold toward a wall while falling to slide down it, then <b>SPACE</b> to wall-jump off</div>
+          <div>Hold toward a wall to slide. Press <b>W, &uarr;, or Space</b> to wall-jump.</div>
           <div>Step on the <b>switch</b> to open the door &mdash; it only stays open a few seconds</div>
           <div>Reach the <b>goal</b> before the door shuts</div>
           <div><b>R</b> restart &nbsp;&middot;&nbsp; <b>ESC</b> or the corner button to pause</div>
@@ -1284,8 +1284,8 @@
   var TUTORIAL_STEPS = [
     "Hey, nice to meet you! Before you jump into a real level, let me show you around real quick.",
     "Try walking with \u2190 \u2192 or A D. You'll speed up the longer you hold it, and that speed carries right into your jumps!",
-    "Go ahead and hit SPACE to jump. Little tip: a running jump carries you a lot further than a standing one does.",
-    "Now try pressing SPACE again while you're still in the air \u2014 that's your double-jump! It's how you'll clear the bigger gaps.",
+    "Jump: W, ↑, or Space.",
+    "Press jump again in the air to double-jump.",
     "Give SHIFT a try to dash \u2014 a quick burst forward, even mid-air. You'll get it back the moment you touch ground or a wall again.",
     "See that tower up ahead? Run at it and jump, then hold toward the wall while you're in the air \u2014 you'll slide down it instead of dropping straight. Press SPACE again to launch off away from the wall. That's a wall-jump! (There's also a switch by its base that makes the wall come and go, if you want to try that too.)",
     "Nice work, you picked that up fast! Walk, jump, double-jump, dash, wall-jump \u2014 that's really the whole toolkit right there.",
@@ -1366,6 +1366,7 @@
   }
   var typewriterTimer = null;
   function setTutorialText(text){
+    if(window.matchMedia && window.matchMedia("(pointer:coarse)").matches && text==="Jump: W, ↑, or Space.")text="Tap Jump.";
     if(window.matchMedia && window.matchMedia("(pointer:coarse)").matches){text=text.replace(/← → or A D/g,"the arrow buttons").replace(/SPACE/g,"Jump").replace(/SHIFT/g,"Dash").replace(/S or ↓/g,"Down");}
     var el = document.getElementById("tutorial-text");
     if (typewriterTimer) clearInterval(typewriterTimer);
