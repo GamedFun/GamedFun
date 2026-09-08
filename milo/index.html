@@ -496,6 +496,9 @@
   #menu-detail-screen #full-menu { display:block; }
   #frame.menu-mode #game { visibility:hidden; }
   #touch-controls,#mobile-menu { display:none; }
+  #side-puzzle-controls { margin:12px 0; }
+  #side-puzzle-controls button { min-width:56px; min-height:48px; margin:4px; font-size:24px; border:1px solid #75614c; border-radius:8px; background:#e0cda8; color:#302d29; cursor:pointer; }
+  #route-objective { padding:9px 12px; border-left:3px solid var(--accent2); background:var(--bg-panel); border-radius:6px; font-size:14px; line-height:1.5; }
   #notebook-overlay { position:fixed; inset:0; z-index:40; background:#090b13d9; padding:max(16px,env(safe-area-inset-top)) 12px max(16px,env(safe-area-inset-bottom)); display:flex; align-items:center; justify-content:center; }
   #notebook-overlay.hidden { display:none; }
   .notebook-cover { width:min(680px,100%); max-height:90dvh; overflow:auto; border:8px solid #5b4232; border-radius:8px 15px 15px 8px; padding:22px; color:#302d29; background:linear-gradient(90deg,#b9a583 0,#e9ddbf 5%,#f1e7cd 100%); box-shadow:0 20px 80px #0008; }
@@ -649,6 +652,11 @@
       <div class="paper-sheet">
         <h2 id="paper-title">A folded scrap</h2>
         <p id="paper-text"></p>
+        <div id="side-puzzle-controls" class="hidden" aria-label="Optional combination lock">
+          <button id="cache-glyph-0" type="button" aria-label="Circle">○</button>
+          <button id="cache-glyph-1" type="button" aria-label="Diamond">◇</button>
+          <button id="cache-glyph-2" type="button" aria-label="Cross">×</button>
+        </div>
         <button class="play-btn" id="paper-close" type="button">Put away</button>
       </div>
     </div>
@@ -732,6 +740,7 @@
 
   // Put information in document flow above the canvas, never over the level.
   var messageRail = document.getElementById("game-messages");
+  var routeObjective=document.createElement("div");routeObjective.id="route-objective";routeObjective.className="hidden";messageRail.appendChild(routeObjective);
   ["hud","tutorial-hud","milo-popup","tip-popup"].forEach(function(id){
     messageRail.appendChild(document.getElementById(id));
   });
@@ -1075,7 +1084,7 @@
   } catch(e){}
   var levelNote = null, levelTint = "#6c8cf0";
   var backgroundProps = [];
-  var roomProgress = 0, roomEndingDone = false;
+  var roomProgress = 0, roomEndingDone = false,mainGateHelp=false;
   var completedCourses = [];
   for(var savedCourse=0;savedCourse<6;savedCourse++){
     try { if(journeyStorage.getItem("olg_clear_"+savedCourse)==="1")completedCourses.push(savedCourse); } catch(e){}
@@ -1142,8 +1151,9 @@
     resetLevel();state="playing";document.getElementById("hud").classList.remove("hidden");
   }
   function enterHideoutSection(section){
-    var progress=roomProgress,time=elapsed,falls=deaths;
+    var progress=roomProgress,time=elapsed,falls=deaths,help=mainGateHelp;
     hideoutSection=section;resetLevel();roomProgress=progress;elapsed=time;deaths=falls;
+    mainGateHelp=help;
     if(section==="main"){player.x=115;if(progress===ROOM_ORDER.length){doorTimer=DOOR_OPEN_DURATION;door.open=true;}showToast("Milo: ‘You took a while. There's nothing behind those shelves, you know.’");}
   }
   function nearSecretDetail(spot){return Math.abs(player.x+PW/2-spot.x)<48 && Math.abs(player.y+PH-(spot.y+28))<64;}
@@ -1179,6 +1189,22 @@
   ];
   CHAPTER_LEVELS.forEach(function(L){L.cols=60;L.spawn={x:47,y:13*TILE-PH};L.door={c0:56,c1:56,r0:0,r1:12};L.door_duration=999;L.switchObj={x:-1000,y:-1000,w:1,h:1};L.goal={x:58*TILE+18,y:13*TILE-46,w:20,h:46};L.brief="Find both latch panels. E / Inspect to use them. Small flags mark checkpoints.";});
   var chapterClues=[];
+  var cacheFound=[],activeCache=-1,cacheProgress=[];
+  var CACHE_RULES=["Repeat the first room's plate order.","Read the first room's order backwards.","Move the first mark of the first room's order to the end.","Swap the first two marks of the first room's order. Leave the last mark alone."];
+  var CACHE_REWARDS=["A second signature under Milo's: RECEIVED BY M. Two different hands. The same initial.","Inside the bell is a folded warning: The second voice learned your name from the first.","A roof survey lists the hideout twice. Same address. Different depths.","An unused ticket. Destination: BEFORE YOU ARRIVED. Milo's name has been scratched off the passenger line."];
+  try{var cacheSave=JSON.parse(journeyStorage.getItem("optional_caches")||"[]");if(Array.isArray(cacheSave))cacheFound=cacheSave.filter(function(n,i,a){return Number.isInteger(n)&&n>=0&&n<4&&a.indexOf(n)===i;});}catch(e){}
+  function cacheOrder(index){var order=ROOM_ORDER.slice();if(index===1)order.reverse();if(index===2)order.push(order.shift());if(index===3){var first=order[0];order[0]=order[1];order[1]=first;}return order;}
+  function openCache(index){
+    if(cacheFound.indexOf(index)!==-1){openPaper(CACHE_REWARDS[index],"An opened side box");return;}
+    openPaper("Optional lock. Three marks, one at a time. The small margin on notebook page "+(index+4)+" explains how this lock differs from the first room. You can leave it and continue to the main gate.","A small combination box");
+    activeCache=index;cacheProgress=[];document.getElementById("side-puzzle-controls").classList.remove("hidden");document.getElementById("cache-glyph-0").focus();
+  }
+  for(var cacheGlyph=0;cacheGlyph<3;cacheGlyph++)(function(glyph){document.getElementById("cache-glyph-"+glyph).addEventListener("click",function(){
+    if(activeCache<0||!paperOpen)return;
+    if(glyph!==cacheOrder(activeCache)[cacheProgress.length]){cacheProgress=[];document.getElementById("paper-text").textContent="The marks reset. No penalty. Check the notebook margin, or put this away and continue.";return;}
+    cacheProgress.push(glyph);document.getElementById("paper-text").textContent=cacheProgress.map(function(n){return ROOM_GLYPHS[n];}).join("   ")+"   ·   "+cacheProgress.length+" / 3";
+    if(cacheProgress.length===3){var id=activeCache;if(cacheFound.indexOf(id)===-1)cacheFound.push(id);try{journeyStorage.setItem("optional_caches",JSON.stringify(cacheFound));}catch(e){}activeCache=-1;document.getElementById("side-puzzle-controls").classList.add("hidden");document.getElementById("paper-title").textContent="Something Milo put away";document.getElementById("paper-text").textContent=crypticNote(CACHE_REWARDS[id]);document.getElementById("paper-close").focus();}
+  });})(cacheGlyph);
   try{var savedClues=JSON.parse(journeyStorage.getItem("chapter_clues")||"[]");if(Array.isArray(savedClues))chapterClues=savedClues.filter(function(n,i,a){return Number.isInteger(n)&&n>=0&&n<8&&a.indexOf(n)===i;});}catch(e){}
   function startChapter(index){
     if(!campaignComplete()&&!chapterUnlocked)return;
@@ -1193,6 +1219,7 @@
     if(player.onGround&&!player.standingOn&&player.x>chapterCheckpoint+600){chapterCheckpoint=player.x;spawn={x:player.x,y:player.y};showToast("Checkpoint. The path behind you is safe.");}
     if(!keys.interact||prevKeys.interact)return;
     var L=CHAPTER_LEVELS[chapterIndex];
+    if(Math.abs(player.x+PW/2-2160)<38&&player.onGround&&player.y+PH>490){openCache(chapterIndex);return;}
     for(var i=0;i<2;i++){
       var lever=L.levers[i];
       if(Math.abs(player.x+PW/2-lever.x)<46&&Math.abs(player.y+PH-(lever.y+32))<30&&player.onGround){chapterLocks[i]=true;showToast(chapterLocks.every(Boolean)?"Both latches released. The far gate is open.":"One latch released. The other panel is farther along.");}
@@ -1209,9 +1236,11 @@
     var L=CHAPTER_LEVELS[chapterIndex];
     L.levers.forEach(function(lever,i){
       ctx.fillStyle="#202329";ctx.fillRect(lever.x-15,lever.y,30,32);ctx.fillStyle=chapterLocks[i]?"#8bd17c":"#c08d55";ctx.fillRect(lever.x-8,lever.y+8,16,14);
-      if(Math.abs(player.x-lever.x)<70){ctx.fillStyle="#e5dac2";ctx.font="12px monospace";ctx.fillText(chapterLocks[i]?"open":"Inspect",lever.x-20,lever.y-10);}
+      ctx.fillStyle="#e5dac2";ctx.font="12px monospace";ctx.fillText("Panel "+(i+1)+(chapterLocks[i]?" ✓":""),lever.x-20,lever.y-10);
     });
     [180,2060].forEach(function(x){ctx.fillStyle="#d4c7a8";ctx.fillRect(x-7,501,14,12);ctx.fillStyle="#675b47";ctx.fillRect(x-4,505,8,1);ctx.fillRect(x-4,509,6,1);});
+    ctx.fillStyle="#64493b";ctx.fillRect(2144,496,32,24);ctx.fillStyle=cacheFound.indexOf(chapterIndex)!==-1?"#80937b":"#a58b64";ctx.fillRect(2153,501,14,8);
+    if(Math.abs(player.x-2160)<75){ctx.fillStyle="#c4b89d";ctx.font="12px monospace";ctx.fillText("Inspect · optional",2098,484);}
     for(var x=640;x<2200;x+=640){ctx.fillStyle="#8f8873";ctx.fillRect(x,482,3,38);ctx.fillStyle=chapterCheckpoint>=x-40?"#e6b852":"#71685a";ctx.fillRect(x+3,482,17,10);}
     if(chapterRoute()==="keeper")drawMilo(ctx,2190,488,2,"idle");
     ctx.fillStyle="#c3b69b";ctx.font="14px monospace";
@@ -1627,7 +1656,7 @@
     var pages=[
       {title:"Milo's notebook",text:"If I lend you this, give it back.\n\nSome pages are missing. Someone erased the connecting lines. I don't remember doing that.\n\nLook at a room before you decide what the page means. The book won't fill in the answers for you.\n\n— M"},
       {title:"Inside the cover · my old ink",text:"A missing letter looks like this: _\n\nWords inside {braces} use the next letter of the alphabet. Move each letter BACK once to read them.\nB → A     C → B     A → Z\n{MPDL} = LOCK\n\nOld mark numbers:\n1 = ○     2 = ◇     3 = ×\n\nLeave the unmarked words alone."},
-      {title:"3 · the first room",text:"Three marks. Three plates.\n\n"+sequence+"\n\n[The lines between the marks are erased.]\n\nWhich edge comes first? I left a bootprint in the room's margin note. Don't guess from this page alone."}
+      {title:"3 · the first room",text:"Optional mechanism. Milo can open the main gate; these plates unlock a deeper investigation.\n\nThree marks. Three plates.\n\n"+sequence+"\n\n[The lines between the marks are erased.]\n\nWhich edge comes first? I left a bootprint in the room's margin note. Don't guess from this page alone."}
     ];
     CHAPTER_LEVELS.forEach(function(L,i){
       var available=chapterUnlocked&&i<=chapterIndex;
@@ -1636,9 +1665,10 @@
         "Bell r_ute\n\n[bank]     [ferry]     [bank]     [ferry]\n\nOne latch on each far bank. {CPUI} must stay awake.\nThe water isn't the thing making that noise.",
         "Roof sk_tch\n\n       [high panel]\n[ledge]            [ledge]       [lower panel]\n\nFalling takes you back to the street, not back to the start.\n[The drawn route is missing.]",
         "St_tion plan\n\n[platform]       [two latches]       [sealed door]\n\nThe timetable lists names. Don't write yours again.\n[The last half of this page has been torn away.]"
-      ][i]:"The ink is too faint to make out.\n\nVisit this part of the old route to recognize the landmarks."});
+      ][i]+"\n\nSmall margin — optional side box:\n"+crypticNote(CACHE_RULES[i]):"The ink is too faint to make out.\n\nVisit this part of the old route to recognize the landmarks."});
     });
     var scraps=foundNotes.map(function(id){return crypticNote(MILO_NOTES[id]);}).concat(hideoutFinds.map(function(id){return SECRET_DETAILS[id].title+"\n"+crypticNote(SECRET_DETAILS[id].text);})).concat(chapterClues.map(function(id){return crypticNote(CHAPTER_LEVELS[Math.floor(id/2)].notes[id%2]);}));
+    scraps=scraps.concat(cacheFound.map(function(id){return "From a side box\n"+crypticNote(CACHE_REWARDS[id]);}));
     pages.push({title:"Loose pages",text:scraps.length?scraps.join("\n\n———\n\n"):"Nothing tucked here yet.\n\nInspect loose notes along the old route."});
     return pages;
   }
@@ -1687,6 +1717,7 @@
   }
   var paperOpen = false, paperWasPaused = false, paperFocus = null;
   function openPaper(text,title){
+    activeCache=-1;cacheProgress=[];document.getElementById("side-puzzle-controls").classList.add("hidden");
     if(!paperOpen){paperWasPaused=paused;paperFocus=document.activeElement;}
     paperOpen=true;paused=true;clearInputs();
     setOverlay("tip-popup",false);
@@ -1697,6 +1728,7 @@
   }
   function closePaper(){
     if(!paperOpen)return;
+    activeCache=-1;cacheProgress=[];document.getElementById("side-puzzle-controls").classList.add("hidden");
     paperOpen=false;paused=paperWasPaused;clearInputs();
     setOverlay("paper-popup",false);
     if(paperFocus && paperFocus.focus)paperFocus.focus();
@@ -1704,7 +1736,7 @@
   document.getElementById("paper-close").addEventListener("click",closePaper);
   document.getElementById("paper-popup").addEventListener("keydown",function(e){
     if(e.code==="Escape"){e.preventDefault();e.stopPropagation();closePaper();}
-    if(e.code==="Tab"){e.preventDefault();document.getElementById("paper-close").focus();}
+    if(e.code==="Tab"){e.preventDefault();var controls=activeCache>=0?[document.getElementById("cache-glyph-0"),document.getElementById("cache-glyph-1"),document.getElementById("cache-glyph-2"),document.getElementById("paper-close")]:[document.getElementById("paper-close")];var index=controls.indexOf(document.activeElement);controls[(index+(e.shiftKey?-1:1)+controls.length)%controls.length].focus();}
   });
   function triggerMilo(){
     if(!campaignComplete())return;
@@ -1856,6 +1888,7 @@
   var flashTimer = 0;
 
   function resetLevel(){
+    mainGateHelp=false;
     closeNotebook();
     chapterLocks=[false,false];chapterCheckpoint=0;
     checkpointSet=false;
@@ -1942,7 +1975,7 @@
     }
     if(gameMode==="secret"&&roomEndingDone&&currentEnding){startChapter(0);return;}
     if (gameMode === "secret" && !roomEndingDone){
-      if (roomProgress < ROOM_ORDER.length) return;
+      if (roomProgress < ROOM_ORDER.length && !mainGateHelp) return;
       clearInputs();
       paused = true;
       miloDialogue = {index:0,ending:true,lines:[
@@ -2287,12 +2320,16 @@
       updateChapter();if(paused)return;
     }
     if(gameMode==="secret" && keys.interact && !prevKeys.interact){
+      if(hideoutSection==="main"&&player.x>815&&player.x<870&&player.onGround&&player.y+PH<380&&roomProgress<3&&!mainGateHelp){mainGateHelp=true;doorTimer=999;door.open=true;openPaper("Milo opens the main gate. You can continue now. The marked plates and hidden shelf are optional — solve them if you want to investigate his records.","The way forward");return;}
       if(hideoutSection==="archive" && player.x<70 && player.onGround){enterHideoutSection("main");return;}
       var details=hideoutSection==="archive"?ARCHIVE_DETAILS:DEN_DETAILS;
       for(var detailIndex=0;detailIndex<details.length;detailIndex++){
         var detail=details[detailIndex];
         if(nearSecretDetail(detail)){
-          if(detail.id==="shelf" && (keys.down || miloStance==="trust")){enterHideoutSection("archive");return;}
+          if(detail.id==="shelf" && (keys.down || miloStance==="trust")){
+            if(roomProgress===3||miloStance==="trust"){enterHideoutSection("archive");return;}
+            openPaper("Three marks are carved around the shelf latch. Settle the three plates in notebook order, then reach underneath the shelf. Milo can open the main gate if you just want to keep going.","An optional route");return;
+          }
           inspectSecretDetail(detail.id);return;
         }
       }
@@ -2313,7 +2350,8 @@
         } else { roomProgress=0;showToast("The plates go quiet. Something about the order is wrong."); }
       });
     }
-    if (doorTimer<=0 && aabb(p, switchObj) && (gameMode!=="secret" || roomProgress===ROOM_ORDER.length)){
+    if(gameMode==="secret"&&hideoutSection==="main"&&mainGateHelp){doorTimer=999;door.open=true;}
+    if (doorTimer<=0 && aabb(p, switchObj) && (gameMode!=="secret" || roomProgress===ROOM_ORDER.length || mainGateHelp)){
       doorTimer = DOOR_OPEN_DURATION;
     }
     if (doorTimer>0){
@@ -2794,6 +2832,15 @@
   }
 
   function render(){
+    routeObjective.classList.toggle("hidden",state!=="playing"||!!miloDialogue);
+    if(state==="playing"){
+      if(gameMode==="chapter"){
+        var nextPanel=chapterLocks[0]?1:0,routeTarget=CHAPTER_LEVELS[chapterIndex].levers[nextPanel];
+        routeObjective.textContent=chapterLocks.every(Boolean)?"Main route: both panels are active. Continue right → to the open gate.":"Main route: "+chapterLocks.filter(Boolean).length+" / 2 panels active. "+(routeTarget.x<player.x?"← ":"→ ")+"Panel "+(nextPanel+1)+(routeTarget.y+32<player.y+PH-45?" is above you. Use the ledges.":" is along the route.")+" Press E / Inspect beside it. Side boxes are optional.";
+      }else if(gameMode==="secret")routeObjective.textContent=hideoutSection==="archive"?"Optional archive: inspect the evidence. Return through the left shelf with E / Inspect.":(mainGateHelp||roomProgress===3)?"Main route: the gate is open. Continue right →. You can still investigate the optional plates and shelf.":"Main route: use the stepping stones to reach Milo on the right →. Inspect beside him to open the gate. The notebook lock is optional.";
+      else if(gameMode==="escort")routeObjective.textContent="Main route: follow Milo right →. Inspect beside the doorway to enter. Looking at other objects is optional.";
+      else routeObjective.textContent=doorTimer>0?"Main route: gate open! Continue right → to the exit.":"Main route: continue right →, step on the red switch, then go through the gate. Papers and side routes are optional.";
+    }
     bookButton.classList.toggle("hidden",!notebookOwned);bookMenuButton.classList.toggle("hidden",!notebookOwned);
     var cameraTarget=Math.max(0,Math.min(COLS*TILE-W,player.x+PW/2-W*0.4));
     cameraX=reducedMotion?cameraTarget:cameraX+(cameraTarget-cameraX)*0.14;
@@ -3035,6 +3082,7 @@
     if (gameMode === "secret"){
       DEN_DETAILS.forEach(drawSecretProp);
       drawMilo(ctx,835,328,2);
+      if(!mainGateHelp&&roomProgress<3&&player.x>730){ctx.fillStyle="#d8cfb6";ctx.font="12px monospace";ctx.fillText("Inspect Milo · open main gate",735,302);}
       ctx.fillStyle = "#f2ede0"; ctx.font = "14px Fredoka, sans-serif";
       ctx.fillStyle = "#b9b2d9";
       // The sequence belongs in the notebook, not spelled out on the wall.
@@ -3159,6 +3207,7 @@
     hideoutFinds.forEach(function(id){var entry=document.createElement("p");entry.textContent=SECRET_DETAILS[id].title+" — "+crypticNote(SECRET_DETAILS[id].text);journal.appendChild(entry);});
     if(chapterUnlocked){var routeEntry=document.createElement("p");routeEntry.textContent="Path chosen: "+ENDINGS[chapterRoute()].title;journal.appendChild(routeEntry);}
     chapterClues.forEach(function(id){var entry=document.createElement("p");entry.textContent=crypticNote(CHAPTER_LEVELS[Math.floor(id/2)].notes[id%2]);journal.appendChild(entry);});
+    cacheFound.forEach(function(id){var entry=document.createElement("p");entry.textContent="Side box — "+crypticNote(CACHE_REWARDS[id]);journal.appendChild(entry);});
     try { if (journeyStorage.getItem("olg_milo_home")==="1"){
       var keepsake=document.createElement("p");
       keepsake.textContent="An old brass key. Scratched into the back: FOR THE ONE WHO FOUND IT. — M";
