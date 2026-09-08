@@ -304,6 +304,8 @@
     .logo-emoji    { --logo-gradient: linear-gradient(135deg, #fbbf24 0%, #f87171 48%, #c084fc 100%); --logo-shadow: rgba(251, 191, 36, 0.7); }
     .logo-asteroid { --logo-gradient: linear-gradient(135deg, #ef4444 0%, #fb7185 52%, #f97316 100%); --logo-shadow: rgba(239, 68, 68, 0.7); }
     .logo-swarm      { --logo-gradient: linear-gradient(135deg, #f43f5e 0%, #a21caf 100%); --logo-shadow: rgba(244, 63, 94, 0.7); }
+    .logo-milo { --logo-gradient: linear-gradient(135deg, #22c55e, #14b8a6); --logo-shadow: rgba(20,184,166,.6); }
+    .logo-ricochet { --logo-gradient: linear-gradient(135deg, #6366f1, #06b6d4); --logo-shadow: rgba(99,102,241,.6); }
 
     .card-desc {
       font-size: 0.855rem;
@@ -601,6 +603,8 @@
     </a>
     <p class="site-tagline">a collection of games &amp; interactive things</p>
     <div class="quick-actions" aria-label="Quick game links">
+      <a class="quick-action" href="/milo/">Play Milo</a>
+      <a class="quick-action" href="/ricochet/">Play Ricochet</a>
       <a class="quick-action" href="/asteroid-defense/">Play Asteroid Defense</a>
       <a class="quick-action" href="/popplanet/">Play PopPlanet</a>
       <a class="quick-action" href="/universe-clicker/">Play Cosmic Clicker</a>
@@ -675,6 +679,28 @@
 
     <p class="section-label">All Games</p>
     <div class="grid">
+
+      <a class="card card--green" href="/milo/">
+        <div class="game-logo logo-milo" aria-label="Milo">
+          <div class="game-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32"><path d="M5 3h22v22H5z" fill="currentColor" fill-opacity=".12" stroke="currentColor" stroke-width="2"/><path d="M9 25v5m14-5v5" stroke="currentColor" stroke-width="3"/><path d="M10 9h3v3h-3zm9 0h3v3h-3zM12 18h8v2h-8z" fill="currentColor"/></svg>
+          </div>
+          <div class="game-word"><span>Milo</span> <span class="badge">new</span></div>
+        </div>
+        <div class="card-desc">Jump, dash, and wall-jump through six courses, then follow Milo off the beaten path. A little platformer with secrets to discover. Keyboard required.</div>
+        <div class="card-cta">Play Milo</div><span class="card-arrow">↗</span>
+      </a>
+
+      <a class="card card--violet" href="/ricochet/">
+        <div class="game-logo logo-ricochet" aria-label="Ricochet">
+          <div class="game-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32"><path d="M4 25 15 7l8 17" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3 2"/><path d="M8 4h16" stroke="currentColor" stroke-width="3"/><circle cx="4" cy="25" r="3" fill="currentColor"/><circle cx="24" cy="25" r="5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+          </div>
+          <div class="game-word"><span>Ricochet</span> <span class="badge">new</span></div>
+        </div>
+        <div class="card-desc">Aim your shot, bank off walls, and hit the target. Work around obstacles and master the bounce in this physics puzzle game.</div>
+        <div class="card-cta">Play Ricochet</div><span class="card-arrow">↗</span>
+      </a>
 
       <!-- Asteroid Defense -->
       <a class="card card--red" href="/asteroid-defense/">
