@@ -496,6 +496,15 @@
   #menu-detail-screen #full-menu { display:block; }
   #frame.menu-mode #game { visibility:hidden; }
   #touch-controls,#mobile-menu { display:none; }
+  #notebook-overlay { position:fixed; inset:0; z-index:40; background:#090b13d9; padding:max(16px,env(safe-area-inset-top)) 12px max(16px,env(safe-area-inset-bottom)); display:flex; align-items:center; justify-content:center; }
+  #notebook-overlay.hidden { display:none; }
+  .notebook-cover { width:min(680px,100%); max-height:90dvh; overflow:auto; border:8px solid #5b4232; border-radius:8px 15px 15px 8px; padding:22px; color:#302d29; background:linear-gradient(90deg,#b9a583 0,#e9ddbf 5%,#f1e7cd 100%); box-shadow:0 20px 80px #0008; }
+  #notebook-page { white-space:pre-wrap; font:17px/1.8 Georgia,serif; min-height:220px; }
+  .notebook-nav { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; align-items:center; border-top:1px solid #aa9472; padding-top:14px; }
+  .notebook-nav button,#book-btn,#book-menu-btn { min-height:44px; padding:10px 14px; border:1px solid #75614c; border-radius:8px; font:inherit; cursor:pointer; }
+  .notebook-nav button { background:#e0cda8; color:#302d29; }
+  .notebook-nav button:disabled { opacity:.4; cursor:default; }
+  #book-btn,#book-menu-btn { background:var(--bg-panel); color:var(--fg); }
   #milo-choices { display:flex; flex-wrap:wrap; gap:8px; width:100%; padding-top:10px; }
   #milo-choices.hidden { display:none; }
   #milo-choices button { flex:1 1 180px; min-height:48px; padding:12px; border:1px solid var(--line); border-radius:12px; background:var(--bg-panel-2); color:var(--fg); font:inherit; cursor:pointer; }
@@ -1108,9 +1117,9 @@
   } catch(e){}
   var ROOM_CLUE_SPOTS=[{x:160,y:488,w:28,h:32},{x:620,y:488,w:28,h:32}];
   function roomClueText(index){
-    if(index===1)return roomReversed ? "A margin note: I always read my old routes backwards. — M" : "A margin note: First mark to last. Don't reverse it. — M";
+    if(index===1)return roomReversed ? "A bootprint in the margin. Start at the heel: the right edge of page 3. The arrows have been rubbed away. — M" : "A bootprint in the margin. Start at the toe: the left edge of page 3. The arrows have been rubbed away. — M";
     var sequence=roomReversed ? ROOM_ORDER.slice().reverse() : ROOM_ORDER;
-    return "A torn page: " + sequence.map(function(n){return ROOM_GLYPHS[n];}).join("  ") + ". Someone has rubbed out the arrow.";
+    return "A loose corner from page 3: " + sequence.map(function(n){return String(n+1);}).join("     ") + ". The marks use Milo's old numbering. No connecting lines remain.";
   }
   var ROOM_PLATES = [{x:310,y:440,w:26,h:10},{x:510,y:390,w:26,h:10},{x:780,y:350,w:26,h:10}];
   var SECRET_ROOM = {
@@ -1602,6 +1611,56 @@
     try { journeyStorage.setItem("milo_seen", "1"); } catch(e){}
   }
   var miloDialogue = null;
+  var notebookOwned=false,notebookOpen=false,notebookWasPaused=false,notebookPage=0;
+  try{notebookOwned=journeyStorage.getItem("notebook_owned")==="1"||miloSeen()||chapterUnlocked;}catch(e){}
+  function crypticNote(text){
+    var wordIndex=0;
+    return text.replace(/[A-Za-z]+/g,function(word){
+      wordIndex++;
+      if(word.length>3&&wordIndex%9===0)return "{"+word.toUpperCase().replace(/[A-Z]/g,function(c){return String.fromCharCode(65+(c.charCodeAt(0)-64)%26);})+"}";
+      if(word.length>4&&wordIndex%4===0)return word[0]+word.slice(1,-1).replace(/[aeiou]/i,"_")+word.slice(-1);
+      return word;
+    });
+  }
+  function notebookPages(){
+    var sequence=(roomReversed?ROOM_ORDER.slice().reverse():ROOM_ORDER).map(function(n){return n+1;}).join("         ");
+    var pages=[
+      {title:"Milo's notebook",text:"If I lend you this, give it back.\n\nSome pages are missing. Someone erased the connecting lines. I don't remember doing that.\n\nLook at a room before you decide what the page means. The book won't fill in the answers for you.\n\n— M"},
+      {title:"Inside the cover · my old ink",text:"A missing letter looks like this: _\n\nWords inside {braces} use the next letter of the alphabet. Move each letter BACK once to read them.\nB → A     C → B     A → Z\n{MPDL} = LOCK\n\nOld mark numbers:\n1 = ○     2 = ◇     3 = ×\n\nLeave the unmarked words alone."},
+      {title:"3 · the first room",text:"Three marks. Three plates.\n\n"+sequence+"\n\n[The lines between the marks are erased.]\n\nWhich edge comes first? I left a bootprint in the room's margin note. Don't guess from this page alone."}
+    ];
+    CHAPTER_LEVELS.forEach(function(L,i){
+      var available=chapterUnlocked&&i<=chapterIndex;
+      pages.push({title:(i+4)+" · "+L.name,text:available?[
+        "T_nn_l plan\n\n[west latch]       [east latch]       [gate]\n\nTwo witnesses. Neither works alone.\n[All wiring lines have been rubbed away.]",
+        "Bell r_ute\n\n[bank]     [ferry]     [bank]     [ferry]\n\nOne latch on each far bank. {CPUI} must stay awake.\nThe water isn't the thing making that noise.",
+        "Roof sk_tch\n\n       [high panel]\n[ledge]            [ledge]       [lower panel]\n\nFalling takes you back to the street, not back to the start.\n[The drawn route is missing.]",
+        "St_tion plan\n\n[platform]       [two latches]       [sealed door]\n\nThe timetable lists names. Don't write yours again.\n[The last half of this page has been torn away.]"
+      ][i]:"The ink is too faint to make out.\n\nVisit this part of the old route to recognize the landmarks."});
+    });
+    var scraps=foundNotes.map(function(id){return crypticNote(MILO_NOTES[id]);}).concat(hideoutFinds.map(function(id){return SECRET_DETAILS[id].title+"\n"+crypticNote(SECRET_DETAILS[id].text);})).concat(chapterClues.map(function(id){return crypticNote(CHAPTER_LEVELS[Math.floor(id/2)].notes[id%2]);}));
+    pages.push({title:"Loose pages",text:scraps.length?scraps.join("\n\n———\n\n"):"Nothing tucked here yet.\n\nInspect loose notes along the old route."});
+    return pages;
+  }
+  var notebookOverlay=document.createElement("div");notebookOverlay.id="notebook-overlay";notebookOverlay.className="hidden";notebookOverlay.setAttribute("role","dialog");notebookOverlay.setAttribute("aria-modal","true");notebookOverlay.setAttribute("aria-label","Milo's notebook");
+  var notebookCover=document.createElement("section");notebookCover.className="notebook-cover";notebookOverlay.appendChild(notebookCover);
+  var notebookTitle=document.createElement("h2"),notebookText=document.createElement("p"),notebookNav=document.createElement("div"),notebookCounter=document.createElement("span");notebookText.id="notebook-page";notebookNav.className="notebook-nav";notebookCounter.setAttribute("aria-live","polite");
+  var notebookPrev=document.createElement("button"),notebookNext=document.createElement("button"),notebookClose=document.createElement("button");
+  notebookPrev.textContent="← Previous";notebookNext.textContent="Next →";notebookClose.textContent="Close book";
+  [notebookPrev,notebookNext,notebookClose].forEach(function(b){b.type="button";});
+  notebookCover.appendChild(notebookTitle);notebookCover.appendChild(notebookText);notebookCover.appendChild(notebookNav);[notebookPrev,notebookCounter,notebookNext,notebookClose].forEach(function(el){notebookNav.appendChild(el);});document.getElementById("wrap").appendChild(notebookOverlay);
+  function renderNotebook(){var pages=notebookPages();notebookPage=Math.max(0,Math.min(pages.length-1,notebookPage));notebookTitle.textContent=pages[notebookPage].title;notebookText.textContent=pages[notebookPage].text;notebookCounter.textContent=(notebookPage+1)+" / "+pages.length;notebookPrev.disabled=notebookPage===0;notebookNext.disabled=notebookPage===pages.length-1;}
+  function openNotebook(page){if(!notebookOwned)return;if(!notebookOpen)notebookWasPaused=paused;notebookOpen=true;paused=true;clearInputs();if(typeof page==="number")notebookPage=page;renderNotebook();notebookOverlay.classList.remove("hidden");notebookClose.focus();}
+  function closeNotebook(){if(!notebookOpen)return;notebookOpen=false;paused=notebookWasPaused;clearInputs();notebookOverlay.classList.add("hidden");document.getElementById(state==="title"?"book-menu-btn":miloDialogue?"milo-next":"game").focus();}
+  function giveNotebook(){notebookOwned=true;try{journeyStorage.setItem("notebook_owned","1");}catch(e){}openNotebook(0);}
+  notebookPrev.addEventListener("click",function(){notebookPage--;renderNotebook();});notebookNext.addEventListener("click",function(){notebookPage++;renderNotebook();});notebookClose.addEventListener("click",closeNotebook);
+  notebookOverlay.addEventListener("keydown",function(e){
+    if(e.code==="Escape"){e.preventDefault();e.stopPropagation();closeNotebook();}
+    if(e.code==="ArrowLeft"||e.code==="ArrowRight"){e.preventDefault();e.stopPropagation();notebookPage+=e.code==="ArrowLeft"?-1:1;renderNotebook();}
+    if(e.code==="Tab"){e.preventDefault();var buttons=[notebookPrev,notebookNext,notebookClose].filter(function(b){return !b.disabled;});var index=buttons.indexOf(document.activeElement);buttons[(index+(e.shiftKey?-1:1)+buttons.length)%buttons.length].focus();}
+  });
+  var bookButton=document.createElement("button");bookButton.id="book-btn";bookButton.type="button";bookButton.textContent="Notebook";bookButton.className="hidden";bookButton.addEventListener("click",function(){openNotebook();});document.getElementById("hud").appendChild(bookButton);
+  var bookMenuButton=document.createElement("button");bookMenuButton.id="book-menu-btn";bookMenuButton.type="button";bookMenuButton.textContent="Milo's notebook";bookMenuButton.className="hidden";bookMenuButton.addEventListener("click",function(){openNotebook();});document.getElementById("level-section").appendChild(bookMenuButton);
   var miloStance="quiet",miloChoicePending=false,currentEnding=null,seenEndings=[];
   try{var stanceSave=journeyStorage.getItem("olg_stance");if(["trust","question","quiet"].indexOf(stanceSave)!==-1)miloStance=stanceSave;var endingSave=JSON.parse(journeyStorage.getItem("olg_endings")||"[]");if(Array.isArray(endingSave))seenEndings=endingSave.filter(function(e,i,a){return ["keeper","truth","leave"].indexOf(e)!==-1&&a.indexOf(e)===i;});}catch(e){}
   var ENDINGS={
@@ -1632,7 +1691,7 @@
     paperOpen=true;paused=true;clearInputs();
     setOverlay("tip-popup",false);
     document.getElementById("paper-title").textContent=title||"A folded scrap";
-    document.getElementById("paper-text").textContent=text;
+    document.getElementById("paper-text").textContent=crypticNote(text);
     setOverlay("paper-popup",true);
     document.getElementById("paper-close").focus();
   }
@@ -1654,7 +1713,7 @@
     paused = true;
     miloDialogue = { index:0, lines:[
       "All six. You remember how you got here, right?",
-      "Hey, follow me. There's a path behind the last room.",
+      "Here. Take my notebook. The missing lines weren't missing yesterday.",
       "It's just somewhere I keep things. Nothing important.",
       "If you see any old signs, don't worry about them.",
       "Stay close. And leave the covered things covered.",
@@ -1682,6 +1741,7 @@
   }
   function startSecretRoom(){
     if(!campaignComplete())return;
+    notebookOwned=true;try{journeyStorage.setItem("notebook_owned","1");}catch(e){}
     closeMenuPages();
     miloDialogue = null;
     miloEscort=null;hideoutSection="main";
@@ -1694,6 +1754,7 @@
     document.getElementById("hud").classList.remove("hidden");
   }
   function returnToMenu(){
+    closeNotebook();
     closeMenuPages();
     closePaper();
     miloEscort=null;
@@ -1795,6 +1856,7 @@
   var flashTimer = 0;
 
   function resetLevel(){
+    closeNotebook();
     chapterLocks=[false,false];chapterCheckpoint=0;
     checkpointSet=false;
     closePaper();
@@ -1983,6 +2045,7 @@
   }
 
   window.addEventListener("keydown", function(e){
+    if(e.code==="KeyN" && !e.repeat && notebookOwned){e.preventDefault();if(notebookOpen)closeNotebook();else if(!paperOpen)openNotebook();return;}
     if (e.code==="Escape"){
       e.preventDefault();
       if((state==="title" || state==="quit") && !e.repeat){showMainMenu();return;}
@@ -2000,6 +2063,7 @@
 
   var paused = false;
   function togglePause(){
+    if(notebookOpen){closeNotebook();return;}
     if(paperOpen){closePaper();return;}
     if ((state !== "playing" && state !== "tutorial") || miloDialogue || wallCutscene) return;
     paused = !paused;
@@ -2730,6 +2794,7 @@
   }
 
   function render(){
+    bookButton.classList.toggle("hidden",!notebookOwned);bookMenuButton.classList.toggle("hidden",!notebookOwned);
     var cameraTarget=Math.max(0,Math.min(COLS*TILE-W,player.x+PW/2-W*0.4));
     cameraX=reducedMotion?cameraTarget:cameraX+(cameraTarget-cameraX)*0.14;
     touchUI.classList.toggle("hidden",paused || (state!=="playing" && state!=="tutorial"));
@@ -3087,13 +3152,13 @@
     MILO_NOTES.forEach(function(note,idx){
       if (foundNotes.indexOf(idx)===-1) return;
       var entry = document.createElement("p");
-      entry.textContent = note;
+      entry.textContent = crypticNote(note);
       journal.appendChild(entry);
     });
-    roomClues.forEach(function(found,idx){if(found){var clue=document.createElement("p");clue.textContent=roomClueText(idx);journal.appendChild(clue);}});
-    hideoutFinds.forEach(function(id){var entry=document.createElement("p");entry.textContent=SECRET_DETAILS[id].title+" — "+SECRET_DETAILS[id].text;journal.appendChild(entry);});
+    roomClues.forEach(function(found,idx){if(found){var clue=document.createElement("p");clue.textContent=crypticNote(roomClueText(idx));journal.appendChild(clue);}});
+    hideoutFinds.forEach(function(id){var entry=document.createElement("p");entry.textContent=SECRET_DETAILS[id].title+" — "+crypticNote(SECRET_DETAILS[id].text);journal.appendChild(entry);});
     if(chapterUnlocked){var routeEntry=document.createElement("p");routeEntry.textContent="Path chosen: "+ENDINGS[chapterRoute()].title;journal.appendChild(routeEntry);}
-    chapterClues.forEach(function(id){var entry=document.createElement("p");entry.textContent=CHAPTER_LEVELS[Math.floor(id/2)].notes[id%2];journal.appendChild(entry);});
+    chapterClues.forEach(function(id){var entry=document.createElement("p");entry.textContent=crypticNote(CHAPTER_LEVELS[Math.floor(id/2)].notes[id%2]);journal.appendChild(entry);});
     try { if (journeyStorage.getItem("olg_milo_home")==="1"){
       var keepsake=document.createElement("p");
       keepsake.textContent="An old brass key. Scratched into the back: FOR THE ONE WHO FOUND IT. — M";
@@ -3157,8 +3222,9 @@
   });
 
   document.getElementById("milo-next").addEventListener("click", function(){
-    if (!miloDialogue || miloChoicePending) return;
+    if (!miloDialogue || miloChoicePending || notebookOpen) return;
     miloDialogue.index++;
+    if(!miloDialogue.ending && miloDialogue.index===1 && !notebookOwned){showMiloLine();giveNotebook();return;}
     if (miloDialogue.index>=miloDialogue.lines.length){
       if (miloDialogue.ending){roomEndingDone=true;miloDialogue=null;paused=false;setOverlay("milo-popup",false);winLevel();}
       else beginMiloWalk();
