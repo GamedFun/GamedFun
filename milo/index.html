@@ -1656,6 +1656,8 @@
   var spawn = { x: 1*TILE+7, y: 13*TILE-PH };
   var player = {};
   function resetPlayer(){
+    // Journal discoveries persist, but physical letters reset each life.
+    player.readLetters=[];
     player.x = spawn.x; player.y = spawn.y;
     player.vx = 0; player.vy = 0;
     player.onGround = true; player.facing = 1;
@@ -2136,8 +2138,9 @@
 
     if (aabb(p, goalObj)){ winLevel(); return; }
 
-    if (state === "playing" && gameMode === "campaign" && levelNote && foundNotes.indexOf(levelNote.id)===-1 && aabb(p,{x:levelNote.x-5,y:levelNote.y-5,w:30,h:34})){
-      foundNotes.push(levelNote.id);
+    if (state === "playing" && gameMode === "campaign" && levelNote && aabb(p,{x:levelNote.x-5,y:levelNote.y-5,w:30,h:34}) && (player.readLetters.indexOf(levelNote.id)===-1 || keys.interact && !prevKeys.interact)){
+      if(player.readLetters.indexOf(levelNote.id)===-1)player.readLetters.push(levelNote.id);
+      if(foundNotes.indexOf(levelNote.id)===-1)foundNotes.push(levelNote.id);
       try { localStorage.setItem("olg_notes", JSON.stringify(foundNotes)); } catch(e){}
       openPaper(MILO_NOTES[levelNote.id],"A folded scrap");
     }
@@ -2802,7 +2805,7 @@
       if(player.x<105){ctx.fillStyle="#d0c6aa";ctx.font="12px monospace";ctx.fillText("E · back",24,399);}
       ctx.restore();return;
     }
-    if (levelNote && foundNotes.indexOf(levelNote.id)===-1){
+    if (levelNote){
       var nx = levelNote.x+5, ny = levelNote.y+12;
       ctx.fillStyle = "#0d0d0d";
       ctx.fillRect(nx-1,ny-1,12,10);
