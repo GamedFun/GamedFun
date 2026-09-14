@@ -1,0 +1,801 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Loop Park - Console</title>
+<style>
+  :root {
+    --bg: #101410;
+    --panel: #161c16;
+    --line: #263426;
+    --fg: #d8f0d8;
+    --fg-dim: #6f8a6f;
+    --accent: #7ee2a0;
+    --accent-b: #ff9166;
+    --danger: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: ui-monospace, "SF Mono", Menlo, "IBM Plex Mono", monospace;
+    font-size: 14px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+
+  .gate {
+    position: fixed; inset: 0; z-index: 100; background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .gate-box {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 2rem 2.2rem; width: min(320px, 88vw); text-align: center;
+  }
+  .gate-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 0.4rem; }
+  .gate-sub { color: var(--fg-dim); font-size: 0.85rem; margin-bottom: 1.2rem; }
+  .gate-box input {
+    width: 100%; background: #0c0f0c; color: var(--fg); border: 1px solid var(--line);
+    border-radius: 6px; padding: 0.6rem 0.7rem; font-family: inherit; font-size: 0.9rem;
+    margin-bottom: 0.8rem; text-align: center;
+  }
+  .gate-box input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .gate-box button {
+    width: 100%; background: var(--accent); color: #0c1a10; border: none; border-radius: 6px;
+    padding: 0.6rem; font-family: inherit; font-weight: 700; font-size: 0.9rem; cursor: pointer;
+  }
+  .gate-box button:disabled { opacity: 0.5; cursor: default; }
+  .gate-box button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .gate-error { color: var(--danger); font-size: 0.82rem; min-height: 1.2em; margin-top: 0.7rem; }
+  h1 { font-size: 1.3rem; margin: 0 0 0.2rem; letter-spacing: 0.02em; }
+  .sub { color: var(--fg-dim); margin-bottom: 1.6rem; }
+
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 1.1rem 1.3rem; margin-bottom: 1.2rem; }
+  .row { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; }
+  .field { display: flex; flex-direction: column; gap: 0.3rem; min-width: 150px; }
+  .field.grow { flex: 1; min-width: 220px; }
+  label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-dim); }
+  select, input[type=text], input[type=number] {
+    background: #0c0f0c; color: var(--fg); border: 1px solid var(--line);
+    border-radius: 6px; padding: 0.45rem 0.55rem; font-family: inherit; font-size: 0.85rem;
+  }
+  select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .agent-block { border: 1px dashed var(--line); border-radius: 8px; padding: 0.8rem; flex: 1; min-width: 260px; }
+  .agent-block .row { gap: 0.6rem; }
+
+  button {
+    background: var(--accent); color: #0c1a10; border: none; border-radius: 6px;
+    padding: 0.6rem 1.3rem; font-family: inherit; font-weight: 700; font-size: 0.9rem;
+    cursor: pointer; letter-spacing: 0.02em;
+  }
+  button:disabled { opacity: 0.5; cursor: default; }
+  button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  button.ghost { background: transparent; border: 1px solid var(--line); color: var(--fg); }
+
+  #status { margin-top: 0.8rem; color: var(--fg-dim); min-height: 1.2em; font-size: 0.85rem; }
+  #status.err { color: var(--danger); }
+
+  .stage { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+  @media (max-width: 780px) { .stage { grid-template-columns: 1fr; } }
+
+  #gridFrame { display: inline-block; padding: 10px; background: #0b0e0b; border: 1px solid var(--line); border-radius: 10px; }
+  #grid { position: relative; }
+
+  .tile, .bot {
+    position: absolute; top: 0; left: 0; width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.16s ease;
+  }
+  .tile { border-radius: 3px; box-sizing: border-box; overflow: hidden; }
+  .tile.floor { background: #0d100d; border: 1px solid var(--line); }
+  .tile.wall { background: #171b17; border: 1px solid #303830; }
+  .tile.lava {
+    border: 1px solid var(--accent-b);
+    animation: lavaPulse 1.5s ease-in-out infinite;
+  }
+  .tile.goal {
+    background: #0d100d;
+    border: 2px solid var(--accent);
+    box-shadow: 0 0 8px 1px rgba(126, 226, 160, 0.35);
+    animation: goalPulse 1.8s ease-in-out infinite;
+  }
+  .tile.plate { background: #0d100d; border: 2px solid #6fb8e0; }
+  .tile.door { border: 1px solid var(--accent-b); transition: border-color 0.2s ease, transform 0.16s ease; }
+  .tile.door.open { border-color: var(--accent); border-style: dashed; }
+
+  .tile-img-fill { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .tile-img-icon { width: 22px; height: auto; object-fit: contain; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.5)); }
+  .tile-icon { width: 22px; height: 22px; image-rendering: pixelated; image-rendering: crisp-edges; }
+  .door-img {
+    width: 30px; height: auto; transition: opacity 0.2s ease, filter 0.2s ease;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.5));
+  }
+  .tile.door.open .door-img { opacity: 0.35; filter: hue-rotate(80deg) brightness(1.3); }
+
+  @keyframes lavaPulse { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.3); } }
+  @keyframes goalPulse {
+    0%, 100% { box-shadow: 0 0 6px 1px rgba(126, 226, 160, 0.3); }
+    50% { box-shadow: 0 0 15px 3px rgba(126, 226, 160, 0.65); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tile.lava, .tile.goal { animation: none; }
+    .tile, .bot { transition: none; }
+  }
+
+  .bot { z-index: 5; pointer-events: none; }
+
+  /* Milo, from the shared asset pack, recolored per AI backend. */
+  .bot::after {
+    content: ""; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
+    width: 18px; height: 4px; background: rgba(0,0,0,0.32); border-radius: 50%; filter: blur(0.5px);
+  }
+  .bot-sprite {
+    position: absolute; left: 50%; top: 1px; transform: translateX(-50%);
+    width: 32px; height: auto;
+  }
+  .bot-tag {
+    position: absolute; top: -3px; right: -3px; width: 14px; height: 14px;
+    border-radius: 50%; background: rgba(10, 12, 10, 0.75); border: 1px solid rgba(255,255,255,0.55);
+    color: #fff; font-size: 8px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+  }
+
+
+  #log { background: #0b0e0b; border: 1px solid var(--line); border-radius: 8px; padding: 0.8rem 1rem;
+         height: 420px; overflow-y: auto; font-size: 0.82rem; line-height: 1.6; }
+  #log .ep { color: var(--accent); margin-top: 0.6rem; font-weight: 700; }
+  #log .a { color: var(--accent); }
+  #log .b { color: #ffd27a; }
+  #log .result { color: var(--fg); font-weight: 700; margin-top: 0.2rem; }
+  #log .dim { color: var(--fg-dim); }
+
+  #costTable .num { text-align: right; font-variant-numeric: tabular-nums; }
+  #costTable th.num { text-align: right; }
+  #costTable td, #costTable th { border-top: 1px solid var(--line); }
+  #costTable thead th { border-top: none; }
+  #costTable input[type=number] {
+    background: #0c0f0c; color: var(--fg); border: 1px solid var(--line);
+    border-radius: 5px; padding: 0.25rem 0.4rem; font-family: inherit; font-size: 0.8rem;
+  }
+  .rate-unknown { border-color: var(--accent-b) !important; }
+  #costRowB.hidden { display: none; }
+</style>
+</head>
+<body>
+<div id="gate" class="gate">
+  <div class="gate-box">
+    <div class="gate-title">Loop Park</div>
+    <div class="gate-sub">Enter the access code to continue.</div>
+    <input type="password" id="gateInput" placeholder="Access code" autocomplete="off">
+    <button id="gateSubmit">Enter</button>
+    <div id="gateError" class="gate-error"></div>
+  </div>
+</div>
+
+<div class="wrap" id="appRoot" hidden>
+  <h1>Loop Park &mdash; Local Console</h1>
+  <div class="sub">Real LLM calls, real levels, played back at whatever speed you want.</div>
+
+  <div class="panel">
+    <div class="row">
+      <div class="field">
+        <label for="mode">Mode</label>
+        <select id="mode">
+          <option value="single">Single bot</option>
+          <option value="coop">Two bots (coop)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="difficulty">Difficulty</label>
+        <select id="difficulty">
+          <option value="easy">Easy</option>
+          <option value="medium">Medium</option>
+          <option value="hard">Hard</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="episodes">Episodes</label>
+        <input type="number" id="episodes" value="4" min="1" max="20">
+      </div>
+      <div class="field">
+        <label for="seed">Seed (optional)</label>
+        <input type="text" id="seed" placeholder="random">
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:1rem;">
+      <div class="agent-block">
+        <label>Robot A</label>
+        <div class="row">
+          <div class="field grow">
+            <label for="backendA">Backend</label>
+            <select id="backendA"></select>
+          </div>
+          <div class="field grow">
+            <label for="modelA">Model</label>
+            <select id="modelA"></select>
+          </div>
+        </div>
+        <div class="field" id="customA-wrap" style="display:none; margin-top:0.5rem;">
+          <label for="customA">Custom model id</label>
+          <input type="text" id="customA">
+        </div>
+      </div>
+
+      <div class="agent-block" id="agentB-block">
+        <label>Robot B</label>
+        <div class="row">
+          <div class="field grow">
+            <label for="backendB">Backend</label>
+            <select id="backendB"></select>
+          </div>
+          <div class="field grow">
+            <label for="modelB">Model</label>
+            <select id="modelB"></select>
+          </div>
+        </div>
+        <div class="field" id="customB-wrap" style="display:none; margin-top:0.5rem;">
+          <label for="customB">Custom model id</label>
+          <input type="text" id="customB">
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:1rem;">
+      <div class="field grow">
+        <label for="speed">Playback speed &mdash; <span id="speedLabel"></span></label>
+        <input type="range" id="speed" min="30" max="900" value="250" step="10">
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:1.1rem;">
+      <button id="runBtn">Run</button>
+      <button id="replayBtn" class="ghost" disabled>Replay</button>
+    </div>
+    <div id="status"></div>
+  </div>
+
+  <div class="panel" id="costPanel">
+    <div class="row" style="justify-content:space-between; align-items:center;">
+      <label style="font-size:0.78rem;">Token / cost calculator &mdash; real token counts from the API, rates are estimates you can edit</label>
+      <div id="costTotal" style="font-weight:700;">$0.0000</div>
+    </div>
+    <div style="overflow-x:auto; margin-top:0.6rem;">
+      <table id="costTable" style="width:100%; border-collapse:collapse; font-size:0.82rem;">
+        <thead>
+          <tr style="color:var(--fg-dim); text-align:left;">
+            <th style="padding:0.3rem 0.5rem;">Robot</th>
+            <th style="padding:0.3rem 0.5rem;">Model</th>
+            <th style="padding:0.3rem 0.5rem;" class="num">Tokens in</th>
+            <th style="padding:0.3rem 0.5rem;" class="num">Tokens out</th>
+            <th style="padding:0.3rem 0.5rem;">$/1M in</th>
+            <th style="padding:0.3rem 0.5rem;">$/1M out</th>
+            <th style="padding:0.3rem 0.5rem;" class="num">Est. cost</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr id="costRowA">
+            <td style="padding:0.3rem 0.5rem;">A</td>
+            <td style="padding:0.3rem 0.5rem;" id="costModelA">&mdash;</td>
+            <td style="padding:0.3rem 0.5rem;" class="num" id="costInA">0</td>
+            <td style="padding:0.3rem 0.5rem;" class="num" id="costOutA">0</td>
+            <td style="padding:0.2rem 0.5rem;"><input type="number" id="rateInA" step="0.01" min="0" style="width:80px;"></td>
+            <td style="padding:0.2rem 0.5rem;"><input type="number" id="rateOutA" step="0.01" min="0" style="width:80px;"></td>
+            <td style="padding:0.3rem 0.5rem;" class="num" id="costA">$0.0000</td>
+          </tr>
+          <tr id="costRowB">
+            <td style="padding:0.3rem 0.5rem;">B</td>
+            <td style="padding:0.3rem 0.5rem;" id="costModelB">&mdash;</td>
+            <td style="padding:0.3rem 0.5rem;" class="num" id="costInB">0</td>
+            <td style="padding:0.3rem 0.5rem;" class="num" id="costOutB">0</td>
+            <td style="padding:0.2rem 0.5rem;"><input type="number" id="rateInB" step="0.01" min="0" style="width:80px;"></td>
+            <td style="padding:0.2rem 0.5rem;"><input type="number" id="rateOutB" step="0.01" min="0" style="width:80px;"></td>
+            <td style="padding:0.3rem 0.5rem;" class="num" id="costB">$0.0000</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="costNote" class="sub" style="margin:0.5rem 0 0; font-size:0.76rem;"></div>
+  </div>
+
+  <div class="stage">
+    <div id="gridFrame"><div id="grid"></div></div>
+    <div id="log"></div>
+  </div>
+</div>
+
+<script>
+// Points at the loop-park-backend Render service (github.com/GamedFun/loop-park-backend).
+// If Render assigns a different subdomain than this, update it here.
+const BACKEND_URL = "https://loop-park-backend.onrender.com";
+const API_BASE = BACKEND_URL;
+
+const BACKEND_MODELS = {
+  claude: { models: [
+      ["claude-haiku-4-5-20251001", "Claude Haiku 4.5"],
+      ["claude-sonnet-4-5-20250929", "Claude Sonnet 4.5"],
+      ["claude-sonnet-4-6", "Claude Sonnet 4.6"],
+      ["claude-sonnet-5", "Claude Sonnet 5"],
+    ], custom: false },
+  openai: { models: [
+      ["gpt-3.5-turbo", "GPT-3.5 Turbo"],
+      ["gpt-4", "GPT-4"],
+      ["gpt-4o-mini", "GPT-4o mini"],
+      ["gpt-4o", "GPT-4o"],
+      ["gpt-4.1-mini", "GPT-4.1 mini"],
+      ["gpt-4.1", "GPT-4.1"],
+      ["o3-mini", "o3-mini"],
+      ["o4-mini", "o4-mini"],
+      ["gpt-5-mini", "GPT-5 mini"],
+      ["gpt-5", "GPT-5"],
+      ["gpt-5.1", "GPT-5.1"],
+      ["gpt-5.2", "GPT-5.2"],
+      ["gpt-5.4", "GPT-5.4"],
+      ["gpt-5.5", "GPT-5.5"],
+      ["gpt-5.6-luna", "GPT-5.6 Luna"],
+      ["gpt-5.6-terra", "GPT-5.6 Terra"],
+    ], custom: true },
+  gemini: { models: [
+      "gemini-3.6-flash", "gemini-3.5-flash",
+      "gemini-flash-latest", "gemini-pro-latest", "gemini-flash-lite-latest",
+    ], custom: true },
+};
+
+// $ per 1,000,000 tokens. Only filled in where I'm actually confident the
+// number is current - everything else is left unknown (0, known:false)
+// rather than guessed, and the rate fields in the UI are editable so you
+// can paste in the real number from the provider's pricing page.
+const PRICING = {
+  "openai:gpt-3.5-turbo": { in: 0.50, out: 1.50, known: true },
+  "openai:gpt-4": { in: 30.00, out: 60.00, known: true },
+  "openai:gpt-4o-mini": { in: 0.15, out: 0.60, known: true },
+  "openai:gpt-4o": { in: 2.50, out: 10.00, known: true },
+  "openai:gpt-4.1-mini": { in: 0.40, out: 1.60, known: true },
+  "openai:gpt-4.1": { in: 2.00, out: 8.00, known: true },
+  "openai:o3-mini": { in: 1.10, out: 4.40, known: true },
+  "claude:claude-haiku-4-5-20251001": { in: 1.00, out: 5.00, known: true },
+  "claude:claude-sonnet-4-5-20250929": { in: 3.00, out: 15.00, known: true },
+};
+
+function getRate(spec) {
+  if (spec.startsWith("ollama:") || spec === "ollama") return { in: 0, out: 0, known: true, free: true };
+  return PRICING[spec] || { in: 0, out: 0, known: false };
+}
+
+function fillBackendSelect(sel) {
+  sel.innerHTML = "";
+  for (const key of Object.keys(BACKEND_MODELS)) {
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = key[0].toUpperCase() + key.slice(1);
+    sel.appendChild(opt);
+  }
+}
+
+function fillModelSelect(backend, modelSel) {
+  modelSel.innerHTML = "";
+  const cfg = BACKEND_MODELS[backend];
+  for (const m of cfg.models) {
+    const [value, label] = Array.isArray(m) ? m : [m, m];
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = label;
+    modelSel.appendChild(opt);
+  }
+  if (cfg.custom) {
+    const opt = document.createElement("option");
+    opt.value = "__custom__";
+    opt.textContent = "Custom…";
+    modelSel.appendChild(opt);
+  }
+}
+
+function wireAgent(prefix) {
+  const backendSel = document.getElementById("backend" + prefix);
+  const modelSel = document.getElementById("model" + prefix);
+  const customWrap = document.getElementById("custom" + prefix + "-wrap");
+  const customInput = document.getElementById("custom" + prefix);
+
+  fillBackendSelect(backendSel);
+  backendSel.value = "claude";
+  fillModelSelect(backendSel.value, modelSel);
+
+  backendSel.addEventListener("change", () => {
+    fillModelSelect(backendSel.value, modelSel);
+    customWrap.style.display = "none";
+  });
+  modelSel.addEventListener("change", () => {
+    customWrap.style.display = modelSel.value === "__custom__" ? "block" : "none";
+    if (modelSel.value === "__custom__") customInput.focus();
+  });
+
+  return () => {
+    const backend = backendSel.value;
+    const model = modelSel.value === "__custom__" ? (customInput.value.trim() || "") : modelSel.value;
+    return model ? `${backend}:${model}` : backend;
+  };
+}
+
+const getSpecA = wireAgent("A");
+const getSpecB = wireAgent("B");
+
+const modeSel = document.getElementById("mode");
+const agentBBlock = document.getElementById("agentB-block");
+function syncMode() {
+  agentBBlock.style.display = modeSel.value === "coop" ? "block" : "none";
+  document.getElementById("costRowB").classList.toggle("hidden", modeSel.value !== "coop");
+}
+modeSel.addEventListener("change", syncMode);
+syncMode();
+
+// ---------------------------------------------------------------- access gate
+// The page itself stays locked (appRoot hidden) until a code is confirmed
+// against the server via /api/check-code - there's no client-side "just
+// trust it" path, and nothing about the run() flow below is reachable
+// without passing through here first.
+let accessCode = "";
+try { accessCode = sessionStorage.getItem("loopParkAccessCode") || ""; } catch (e) {}
+
+const gateEl = document.getElementById("gate");
+const appRoot = document.getElementById("appRoot");
+const gateInput = document.getElementById("gateInput");
+const gateSubmit = document.getElementById("gateSubmit");
+const gateError = document.getElementById("gateError");
+
+async function attemptUnlock(code, silent) {
+  gateSubmit.disabled = true;
+  gateError.textContent = silent ? "" : "Checking…";
+  try {
+    const resp = await fetch(API_BASE + "/api/check-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+    });
+    const data = await resp.json();
+    if (resp.ok && data.ok) {
+      accessCode = code;
+      try { sessionStorage.setItem("loopParkAccessCode", code); } catch (e) {}
+      gateEl.hidden = true;
+      appRoot.hidden = false;
+      return;
+    }
+    gateError.textContent = silent ? "" : (data.error || "Incorrect code.");
+  } catch (e) {
+    gateError.textContent = silent ? "" : "Couldn't reach the server - try again.";
+  } finally {
+    gateSubmit.disabled = false;
+  }
+}
+
+gateSubmit.addEventListener("click", () => attemptUnlock(gateInput.value, false));
+gateInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") attemptUnlock(gateInput.value, false);
+});
+
+if (accessCode) {
+  gateInput.value = accessCode;
+  attemptUnlock(accessCode, true);
+} else {
+  gateInput.focus();
+}
+
+const speed = document.getElementById("speed");
+const speedLabel = document.getElementById("speedLabel");
+function syncSpeedLabel() { speedLabel.textContent = speed.value + " ms / move"; }
+speed.addEventListener("input", syncSpeedLabel);
+syncSpeedLabel();
+
+const statusEl = document.getElementById("status");
+const gridEl = document.getElementById("grid");
+const logEl = document.getElementById("log");
+const runBtn = document.getElementById("runBtn");
+const replayBtn = document.getElementById("replayBtn");
+
+let lastRun = null;
+let playbackTimer = null;
+let botA = null, botB = null, doorEl = null;
+let runSpecA = "claude:claude-haiku-4-5-20251001", runSpecB = "claude:claude-haiku-4-5-20251001";
+
+const CELL = 44, GAP = 4, STEP = CELL + GAP;
+
+function posTransform(x, y) { return `translate(${x * STEP}px, ${y * STEP}px)`; }
+
+function drawPixelIcon(canvas, rows, colorMap) {
+  const w = rows[0].length, h = rows.length;
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled = false;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const ch = rows[y][x];
+      if (ch === ".") continue;
+      ctx.fillStyle = colorMap[ch];
+      ctx.fillRect(x, y, 1, 1);
+    }
+  }
+}
+
+const PLATE_ROWS = [
+  ".######.", "#bbbbbb#", "#bbbbbb#", "#bbWbbb#",
+  "#bbbbbb#", "#bbbbbb#", "#bbbbbb#", ".######.",
+];
+
+function addImg(parent, src, cls) {
+  const img = document.createElement("img");
+  img.src = "assets/" + src;
+  img.className = cls;
+  img.alt = "";
+  parent.appendChild(img);
+  return img;
+}
+
+// Tile art comes from the shared asset pack (env tiles, hazards, flag, door);
+// there's no matching "pressure plate" piece in that pack, so it keeps the
+// hand-drawn pixel icon.
+function makeTile(cls, x, y) {
+  const t = document.createElement("div");
+  t.className = "tile " + cls;
+  t.style.transform = posTransform(x, y);
+
+  const base = cls.split(" ")[0];
+  if (base === "floor") {
+    addImg(t, "tile_floor.png", "tile-img-fill");
+  } else if (base === "wall") {
+    addImg(t, "tile_wall.png", "tile-img-fill");
+  } else if (base === "lava") {
+    addImg(t, "tile_lava.png", "tile-img-fill");
+  } else if (base === "goal") {
+    addImg(t, "tile_floor.png", "tile-img-fill");
+    addImg(t, "icon_flag.png", "tile-img-icon");
+  } else if (base === "door") {
+    addImg(t, "tile_floor.png", "tile-img-fill");
+    addImg(t, "icon_door.png", "door-img");
+  } else if (base === "plate") {
+    addImg(t, "tile_floor.png", "tile-img-fill");
+    const icon = document.createElement("canvas");
+    icon.className = "tile-icon";
+    drawPixelIcon(icon, PLATE_ROWS, { "#": "#223154", "b": "#6fb8e0", "W": "#ffffff" });
+    t.appendChild(icon);
+  }
+
+  gridEl.appendChild(t);
+  return t;
+}
+
+function buildStage(level, mode) {
+  gridEl.style.width = (level.cols * STEP - GAP) + "px";
+  gridEl.style.height = (level.rows * STEP - GAP) + "px";
+  gridEl.innerHTML = "";
+  botA = botB = doorEl = null;
+
+  for (let y = 0; y < level.rows; y++)
+    for (let x = 0; x < level.cols; x++)
+      makeTile("floor", x, y);
+  for (const [x, y] of level.walls) makeTile("wall", x, y);
+  for (const [x, y] of level.lava) makeTile("lava", x, y);
+  if (mode === "coop") {
+    makeTile("plate", ...level.plate);
+    doorEl = makeTile("door closed", ...level.door);
+  }
+  makeTile("goal", ...level.goal);
+}
+
+function addPart(parent, cls) {
+  const el = document.createElement("div");
+  el.className = cls;
+  parent.appendChild(el);
+  return el;
+}
+
+// Milo (from the shared asset pack) pre-recolored per backend: bot_claude.png
+// (orange), bot_openai.png (white, its native color), bot_gemini.png (blue),
+// bot_ollama.png (pink) - same face/outline, different body-fill color.
+function createBot(letter, provider) {
+  const bot = document.createElement("div");
+  bot.className = `bot provider-${provider}`;
+
+  addImg(bot, `bot_${provider}.png`, "bot-sprite");
+
+  const tag = addPart(bot, "bot-tag");
+  tag.textContent = letter;
+
+  gridEl.appendChild(bot);
+  return bot;
+}
+
+function moveBot(el, x, y) { el.style.transform = posTransform(x, y); }
+
+function setDoorOpen(open) {
+  if (!doorEl) return;
+  doorEl.classList.toggle("open", open);
+  doorEl.classList.toggle("closed", !open);
+}
+
+function log(html, cls) {
+  const div = document.createElement("div");
+  if (cls) div.className = cls;
+  div.innerHTML = html;
+  logEl.appendChild(div);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function stopPlayback() {
+  if (playbackTimer) { clearInterval(playbackTimer); playbackTimer = null; }
+}
+
+function playback(data) {
+  stopPlayback();
+  logEl.innerHTML = "";
+  const level = data.level;
+  const steps = [];
+  buildStage(level, data.mode);
+
+  if (data.mode === "single") {
+    for (const ep of data.episodes) {
+      steps.push({ type: "epstart", ep: ep.episode });
+      for (const t of ep.turns) steps.push({ type: "turn", ep: ep.episode, turn: t });
+      steps.push({ type: "result", ep: ep.episode, result: ep.result });
+    }
+    botA = createBot("A", runSpecA.split(":")[0]);
+    moveBot(botA, ...level.start);
+  } else {
+    for (const ep of data.episodes) {
+      steps.push({ type: "epstart", ep: ep.episode });
+      for (const t of ep.turns) steps.push({ type: "turn", ep: ep.episode, turn: t });
+      steps.push({ type: "result", ep: ep.episode, result: ep.result });
+    }
+    botA = createBot("A", runSpecA.split(":")[0]); moveBot(botA, ...level.startA);
+    botB = createBot("B", runSpecB.split(":")[0]); moveBot(botB, ...level.startB);
+    setDoorOpen(false);
+  }
+
+  let i = 0;
+  function tick() {
+    if (i >= steps.length) { stopPlayback(); return; }
+    const s = steps[i++];
+    if (s.type === "epstart") {
+      log(`EPISODE ${s.ep}`, "ep");
+      if (data.mode === "single") { moveBot(botA, ...level.start); }
+      else { moveBot(botA, ...level.startA); moveBot(botB, ...level.startB); setDoorOpen(false); }
+    } else if (s.type === "result") {
+      log(s.result, "result");
+    } else if (data.mode === "single") {
+      const t = s.turn;
+      log(`&gt; THOUGHT: ${escapeHtml(t.thought)}`);
+      log(`&gt; ACTION: <b>${t.action}</b> &rarr; ${escapeHtml(t.outcome)} (${t.reward >= 0 ? "+" : ""}${t.reward})`);
+      moveBot(botA, ...t.pos);
+      costState.A.tokensIn += t.tokens_in;
+      costState.A.tokensOut += t.tokens_out;
+      updateCostRow("A");
+    } else {
+      const t = s.turn;
+      log(`[A] &gt; ${escapeHtml(t.thoughtA)}`, "a");
+      log(`[A] ${t.actionA} &rarr; ${escapeHtml(t.outcomeA)} (${t.rewardA >= 0 ? "+" : ""}${t.rewardA})`, "dim");
+      log(`[B] &gt; ${escapeHtml(t.thoughtB)}`, "b");
+      log(`[B] ${t.actionB} &rarr; ${escapeHtml(t.outcomeB)} (${t.rewardB >= 0 ? "+" : ""}${t.rewardB})`, "dim");
+      costState.A.tokensIn += t.tokensA_in; costState.A.tokensOut += t.tokensA_out;
+      costState.B.tokensIn += t.tokensB_in; costState.B.tokensOut += t.tokensB_out;
+      updateCostRow("A"); updateCostRow("B");
+      const doorOpen = (t.posA[0] === level.plate[0] && t.posA[1] === level.plate[1]) ||
+                        (t.posB[0] === level.plate[0] && t.posB[1] === level.plate[1]);
+      setDoorOpen(doorOpen);
+      moveBot(botA, ...t.posA);
+      moveBot(botB, ...t.posB);
+    }
+  }
+  tick();
+  playbackTimer = setInterval(tick, Number(speed.value));
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+}
+
+// ---------------------------------------------------------------- cost calculator
+const costState = {
+  A: { spec: "", tokensIn: 0, tokensOut: 0 },
+  B: { spec: "", tokensIn: 0, tokensOut: 0 },
+};
+
+function setupCostRow(letter, spec) {
+  const rate = getRate(spec);
+  costState[letter] = { spec, tokensIn: 0, tokensOut: 0 };
+  document.getElementById("costModel" + letter).textContent = spec;
+  const rateIn = document.getElementById("rateIn" + letter);
+  const rateOut = document.getElementById("rateOut" + letter);
+  rateIn.value = rate.in;
+  rateOut.value = rate.out;
+  rateIn.classList.toggle("rate-unknown", !rate.known);
+  rateOut.classList.toggle("rate-unknown", !rate.known);
+  updateCostRow(letter);
+}
+
+function updateCostRow(letter) {
+  const s = costState[letter];
+  document.getElementById("costIn" + letter).textContent = s.tokensIn.toLocaleString();
+  document.getElementById("costOut" + letter).textContent = s.tokensOut.toLocaleString();
+  const rateIn = Number(document.getElementById("rateIn" + letter).value) || 0;
+  const rateOut = Number(document.getElementById("rateOut" + letter).value) || 0;
+  const cost = (s.tokensIn / 1e6) * rateIn + (s.tokensOut / 1e6) * rateOut;
+  document.getElementById("cost" + letter).textContent = "$" + cost.toFixed(4);
+  updateCostTotal();
+}
+
+function updateCostTotal() {
+  const total = ["A", "B"].reduce((sum, letter) => {
+    const el = document.getElementById("cost" + letter);
+    const row = document.getElementById("costRow" + letter);
+    if (row.classList.contains("hidden")) return sum;
+    return sum + Number(el.textContent.replace("$", "") || 0);
+  }, 0);
+  document.getElementById("costTotal").textContent = "$" + total.toFixed(4);
+
+  const unknownRates = ["A", "B"].some(letter => {
+    const row = document.getElementById("costRow" + letter);
+    if (row.classList.contains("hidden")) return false;
+    return document.getElementById("rateIn" + letter).classList.contains("rate-unknown");
+  });
+  document.getElementById("costNote").textContent = unknownRates
+    ? "Orange rate fields are models I don't have confirmed current pricing for - edit them with the real $/1M rate from the provider's pricing page for an accurate total."
+    : "";
+}
+
+for (const letter of ["A", "B"]) {
+  document.getElementById("rateIn" + letter).addEventListener("input", () => updateCostRow(letter));
+  document.getElementById("rateOut" + letter).addEventListener("input", () => updateCostRow(letter));
+}
+
+async function run() {
+  stopPlayback();
+  runBtn.disabled = true;
+  replayBtn.disabled = true;
+  statusEl.className = "";
+  statusEl.textContent = "Running simulation (real API calls in flight, this can take a bit)…";
+  gridEl.innerHTML = "";
+  logEl.innerHTML = "";
+
+  const mode = modeSel.value;
+  const specA = getSpecA();
+  const body = {
+    mode,
+    difficulty: document.getElementById("difficulty").value,
+    episodes: Number(document.getElementById("episodes").value) || 4,
+    seed: document.getElementById("seed").value || null,
+    agentA: specA,
+    code: accessCode,
+  };
+  runSpecA = specA;
+  document.getElementById("costRowB").classList.toggle("hidden", mode !== "coop");
+  setupCostRow("A", specA);
+  if (mode === "coop") {
+    const specB = getSpecB();
+    body.agentB = specB;
+    runSpecB = specB;
+    setupCostRow("B", specB);
+  }
+
+  try {
+    const resp = await fetch(API_BASE + "/api/run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+    statusEl.textContent = `Done — ${data.episodes.length} episode(s). Playing back at ${speed.value} ms/move.`;
+    lastRun = data;
+    replayBtn.disabled = false;
+    playback(data);
+  } catch (err) {
+    statusEl.className = "err";
+    statusEl.textContent = "Error: " + err.message;
+  } finally {
+    runBtn.disabled = false;
+  }
+}
+
+runBtn.addEventListener("click", run);
+replayBtn.addEventListener("click", () => { if (lastRun) playback(lastRun); });
+</script>
+</body>
+</html>
