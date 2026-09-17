@@ -14,8 +14,11 @@
     --accent: #7ee2a0;
     --accent-b: #ff9166;
     --danger: #ff6b6b;
+    --grad: linear-gradient(135deg, #8b5cf6, #ec4899 55%, #6366f1);
+    --card: linear-gradient(180deg, #171a24, #12141b);
   }
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
     margin: 0;
     background: var(--bg);
@@ -23,7 +26,33 @@
     font-family: ui-monospace, "SF Mono", Menlo, "IBM Plex Mono", monospace;
     font-size: 14px;
   }
-  .wrap { max-width: 980px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 2rem 1.25rem 4rem; position: relative; }
+
+  .glow {
+    position: fixed; top: -140px; right: -140px; width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(236,72,153,0.30), rgba(139,92,246,0.16) 45%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+
+  .shell { display: flex; gap: 1.5rem; align-items: flex-start; position: relative; z-index: 1; }
+
+  .sidebar {
+    width: 190px; flex: none; position: sticky; top: 2rem;
+    background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    padding: 1.1rem 0.8rem; display: flex; flex-direction: column; gap: 0.25rem;
+  }
+  .brand { display: flex; align-items: center; gap: 0.55rem; padding: 0.3rem 0.5rem 1.1rem; font-weight: 800; font-size: 0.92rem; letter-spacing: -0.02em; }
+  .brand-mark { width: 24px; height: 24px; border-radius: 7px; background: var(--grad); flex: none; }
+  .nav-item {
+    display: flex; align-items: center; gap: 0.6rem; padding: 0.55rem 0.65rem;
+    border-radius: 10px; color: var(--fg-dim); text-decoration: none; font-size: 0.82rem;
+    font-weight: 600;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--fg); }
+  .nav-item.active { background: var(--grad); color: #fff; }
+  .nav-icon { width: 15px; height: 15px; flex: none; }
+
+  .main { flex: 1; min-width: 0; }
 
   .gate {
     position: fixed; inset: 0; z-index: 100; background: var(--bg);
@@ -43,7 +72,7 @@
   }
   .gate-box input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
   .gate-box button {
-    width: 100%; background: var(--accent); color: #0c1a10; border: none; border-radius: 6px;
+    width: 100%; background: var(--grad); color: #fff; border: none; border-radius: 8px;
     padding: 0.6rem; font-family: inherit; font-weight: 700; font-size: 0.9rem; cursor: pointer;
   }
   .gate-box button:disabled { opacity: 0.5; cursor: default; }
@@ -52,7 +81,10 @@
   h1 { font-size: 1.3rem; margin: 0 0 0.2rem; letter-spacing: 0.02em; }
   .sub { color: var(--fg-dim); margin-bottom: 1.6rem; }
 
-  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 1.1rem 1.3rem; margin-bottom: 1.2rem; }
+  .panel {
+    background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    padding: 1.3rem 1.4rem; margin-bottom: 1.2rem; box-shadow: 0 16px 34px -22px rgba(0,0,0,0.65);
+  }
   .row { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; }
   .field { display: flex; flex-direction: column; gap: 0.3rem; min-width: 150px; }
   .field.grow { flex: 1; min-width: 220px; }
@@ -67,21 +99,34 @@
   .agent-block .row { gap: 0.6rem; }
 
   button {
-    background: var(--accent); color: #0c1a10; border: none; border-radius: 6px;
+    background: var(--grad); color: #fff; border: none; border-radius: 9px;
     padding: 0.6rem 1.3rem; font-family: inherit; font-weight: 700; font-size: 0.9rem;
-    cursor: pointer; letter-spacing: 0.02em;
+    cursor: pointer; letter-spacing: 0.02em; box-shadow: 0 10px 22px -12px rgba(139,92,246,0.55);
   }
-  button:disabled { opacity: 0.5; cursor: default; }
+  button:disabled { opacity: 0.5; cursor: default; box-shadow: none; }
   button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
-  button.ghost { background: transparent; border: 1px solid var(--line); color: var(--fg); }
+  button.ghost { background: transparent; border: 1px solid var(--line); color: var(--fg); box-shadow: none; }
 
   #status { margin-top: 0.8rem; color: var(--fg-dim); min-height: 1.2em; font-size: 0.85rem; }
   #status.err { color: var(--danger); }
 
   .stage { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
   @media (max-width: 780px) { .stage { grid-template-columns: 1fr; } }
+  @media (max-width: 900px) {
+    .shell { flex-direction: column; }
+    .sidebar { width: 100%; position: static; flex-direction: row; overflow-x: auto; gap: 0.4rem; }
+    .brand { display: none; }
+    .nav-item { white-space: nowrap; }
+  }
 
-  #gridFrame { display: inline-block; padding: 10px; background: #0b0e0b; border: 1px solid var(--line); border-radius: 10px; }
+  /* A moody platformer sky: dark gradient + a soft vignette glow, like a
+     level backdrop rather than a UI panel. */
+  #gridFrame {
+    display: inline-block; padding: 18px; border-radius: 10px; overflow: hidden;
+    background:
+      radial-gradient(ellipse 60% 45% at 50% 38%, rgba(120,110,160,0.16), transparent 70%),
+      linear-gradient(180deg, #14131f 0%, #211f34 55%, #2a2740 100%);
+  }
   #grid { position: relative; }
 
   .tile, .bot {
@@ -89,22 +134,26 @@
     display: flex; align-items: center; justify-content: center;
     transition: transform 0.16s ease;
   }
-  .tile { border-radius: 3px; box-sizing: border-box; overflow: hidden; }
-  .tile.floor { background: #0d100d; border: 1px solid var(--line); }
-  .tile.wall { background: #171b17; border: 1px solid #303830; }
-  .tile.lava {
-    border: 1px solid var(--accent-b);
-    animation: lavaPulse 1.5s ease-in-out infinite;
+  .tile { border-radius: 3px; box-sizing: border-box; overflow: visible; }
+  .tile.floor { background: transparent; }
+  /* Walls read as blocking stone pillars, not floor you can stand on -
+     a narrow column rather than a full tile, echoing the reference scene. */
+  .tile.wall { background: transparent; }
+  .pillar {
+    position: absolute; left: 50%; top: -6px; bottom: -6px; width: 15px;
+    transform: translateX(-50%); border-radius: 5px;
+    background: linear-gradient(180deg, #504d72 0%, #3a3856 100%);
+    box-shadow: inset -3px 0 0 rgba(0,0,0,0.28), inset 3px 0 0 rgba(255,255,255,0.07);
   }
+  /* Lava is now an open gap - no platform at all, just sky showing through,
+     so stepping there reads as falling through, not touching a hazard tile. */
+  .tile.lava { background: transparent; }
   .tile.goal {
-    background: #0d100d;
-    border: 2px solid var(--accent);
-    box-shadow: 0 0 8px 1px rgba(126, 226, 160, 0.35);
+    background: transparent;
     animation: goalPulse 1.8s ease-in-out infinite;
   }
-  .tile.plate { background: #0d100d; border: 2px solid #6fb8e0; }
-  .tile.door { border: 1px solid var(--accent-b); transition: border-color 0.2s ease, transform 0.16s ease; }
-  .tile.door.open { border-color: var(--accent); border-style: dashed; }
+  .tile.plate { background: transparent; }
+  .tile.door { transition: transform 0.16s ease; }
 
   .tile-img-fill { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .tile-img-icon { width: 22px; height: auto; object-fit: contain; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.5)); }
@@ -115,17 +164,16 @@
   }
   .tile.door.open .door-img { opacity: 0.35; filter: hue-rotate(80deg) brightness(1.3); }
 
-  @keyframes lavaPulse { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.3); } }
   @keyframes goalPulse {
     0%, 100% { box-shadow: 0 0 6px 1px rgba(126, 226, 160, 0.3); }
     50% { box-shadow: 0 0 15px 3px rgba(126, 226, 160, 0.65); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .tile.lava, .tile.goal { animation: none; }
+    .tile.goal { animation: none; }
     .tile, .bot { transition: none; }
   }
 
-  .bot { z-index: 5; pointer-events: none; }
+  .bot { z-index: 5; pointer-events: none; transition: none; }
 
   /* Milo, from the shared asset pack, recolored per AI backend. */
   .bot::after {
@@ -141,7 +189,6 @@
     border-radius: 50%; background: rgba(10, 12, 10, 0.75); border: 1px solid rgba(255,255,255,0.55);
     color: #fff; font-size: 8px; font-weight: 700; display: flex; align-items: center; justify-content: center;
   }
-
 
   #log { background: #0b0e0b; border: 1px solid var(--line); border-radius: 8px; padding: 0.8rem 1rem;
          height: 420px; overflow-y: auto; font-size: 0.82rem; line-height: 1.6; }
@@ -175,10 +222,33 @@
 </div>
 
 <div class="wrap" id="appRoot" hidden>
+  <div class="glow" aria-hidden="true"></div>
+  <div class="shell">
+    <nav class="sidebar">
+      <div class="brand"><span class="brand-mark"></span> Loop Park</div>
+      <a class="nav-item active" href="#controls">
+        <svg class="nav-icon" viewBox="0 0 16 16"><line x1="2" y1="4" x2="14" y2="4" stroke="currentColor" stroke-width="1.6"/><circle cx="6" cy="4" r="1.8" fill="currentColor"/><line x1="2" y1="8" x2="14" y2="8" stroke="currentColor" stroke-width="1.6"/><circle cx="10" cy="8" r="1.8" fill="currentColor"/><line x1="2" y1="12" x2="14" y2="12" stroke="currentColor" stroke-width="1.6"/><circle cx="5" cy="12" r="1.8" fill="currentColor"/></svg>
+        Controls
+      </a>
+      <a class="nav-item" href="#costPanel">
+        <svg class="nav-icon" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 4.5v7M10 6c0-1-1-1.5-2-1.5S6 5 6 6s1 1.3 2 1.5 2 .6 2 1.5-1 1.5-2 1.5-2-.5-2-1.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Cost
+      </a>
+      <a class="nav-item" href="#gridFrame">
+        <svg class="nav-icon" viewBox="0 0 16 16"><rect x="1.5" y="5" width="13" height="7" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="11" cy="7.2" r="0.9" fill="currentColor"/><circle cx="12.3" cy="9" r="0.9" fill="currentColor"/><line x1="4" y1="8.5" x2="4" y2="6.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="3" y1="7.5" x2="5" y2="7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        Game
+      </a>
+      <a class="nav-item" href="#log">
+        <svg class="nav-icon" viewBox="0 0 16 16"><line x1="2" y1="4" x2="14" y2="4" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="8" x2="14" y2="8" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="12" x2="10" y2="12" stroke="currentColor" stroke-width="1.5"/></svg>
+        Log
+      </a>
+    </nav>
+
+    <div class="main">
   <h1>Loop Park &mdash; Local Console</h1>
   <div class="sub">Real LLM calls, real levels, played back at whatever speed you want.</div>
 
-  <div class="panel">
+  <div class="panel" id="controls">
     <div class="row">
       <div class="field">
         <label for="mode">Mode</label>
@@ -304,13 +374,21 @@
     <div id="gridFrame"><div id="grid"></div></div>
     <div id="log"></div>
   </div>
+    </div>
+  </div>
 </div>
 
 <script>
 // Points at the loop-park-backend Render service (github.com/GamedFun/loop-park-backend).
-// If Render assigns a different subdomain than this, update it here.
 const BACKEND_URL = "https://loop-park-backend.onrender.com";
 const API_BASE = BACKEND_URL;
+
+document.querySelectorAll(".nav-item").forEach(item => {
+  item.addEventListener("click", () => {
+    document.querySelectorAll(".nav-item").forEach(i => i.classList.remove("active"));
+    item.classList.add("active");
+  });
+});
 
 const BACKEND_MODELS = {
   claude: { models: [
@@ -421,6 +499,34 @@ function wireAgent(prefix) {
 const getSpecA = wireAgent("A");
 const getSpecB = wireAgent("B");
 
+// The lists above are a fallback - once unlocked, replace claude/openai/gemini
+// with every model actually available on the configured keys, fetched live
+// from the server (which is the only thing that holds the keys).
+function refreshModelSelects() {
+  for (const prefix of ["A", "B"]) {
+    const backendSel = document.getElementById("backend" + prefix);
+    const modelSel = document.getElementById("model" + prefix);
+    const prevValue = modelSel.value;
+    fillModelSelect(backendSel.value, modelSel);
+    if ([...modelSel.options].some(o => o.value === prevValue)) modelSel.value = prevValue;
+  }
+}
+
+async function loadDynamicModels() {
+  try {
+    const resp = await fetch(API_BASE + "/api/models");
+    const data = await resp.json();
+    for (const provider of ["claude", "openai", "gemini"]) {
+      if (Array.isArray(data[provider]) && data[provider].length) {
+        BACKEND_MODELS[provider] = { models: data[provider], custom: true };
+      }
+    }
+    refreshModelSelects();
+  } catch (e) {
+    // offline or the endpoint failed - the static fallback lists stay as-is
+  }
+}
+
 const modeSel = document.getElementById("mode");
 const agentBBlock = document.getElementById("agentB-block");
 function syncMode() {
@@ -459,6 +565,7 @@ async function attemptUnlock(code, silent) {
       try { sessionStorage.setItem("loopParkAccessCode", code); } catch (e) {}
       gateEl.hidden = true;
       appRoot.hidden = false;
+      loadDynamicModels();
       return;
     }
     gateError.textContent = silent ? "" : (data.error || "Incorrect code.");
@@ -543,9 +650,11 @@ function makeTile(cls, x, y) {
   if (base === "floor") {
     addImg(t, "tile_floor.png", "tile-img-fill");
   } else if (base === "wall") {
-    addImg(t, "tile_wall.png", "tile-img-fill");
+    const pillar = document.createElement("div");
+    pillar.className = "pillar";
+    t.appendChild(pillar);
   } else if (base === "lava") {
-    addImg(t, "tile_lava.png", "tile-img-fill");
+    // no image at all - an open gap, sky shows straight through
   } else if (base === "goal") {
     addImg(t, "tile_floor.png", "tile-img-fill");
     addImg(t, "icon_flag.png", "tile-img-icon");
@@ -605,7 +714,37 @@ function createBot(letter, provider) {
   return bot;
 }
 
-function moveBot(el, x, y) { el.style.transform = posTransform(x, y); }
+const REDUCE_MOTION = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// Real jump-arc movement: the decision is still "go to this platform" (one
+// LLM call, same as before) but getting there is animated as an actual
+// parabolic hop rather than a flat slide.
+function moveBot(el, x, y) {
+  const toX = x * STEP, toY = y * STEP;
+  if (REDUCE_MOTION) { el.style.transform = `translate(${toX}px, ${toY}px)`; return; }
+
+  const prev = el._pos || { x: toX, y: toY };
+  const fromX = prev.x, fromY = prev.y;
+  el._pos = { x: toX, y: toY };
+
+  const dist = Math.hypot(toX - fromX, toY - fromY);
+  if (dist < 1) { el.style.transform = `translate(${toX}px, ${toY}px)`; return; }
+
+  const duration = 260;
+  const arcHeight = Math.min(26, 10 + dist * 0.14);
+  const start = performance.now();
+
+  if (el._raf) cancelAnimationFrame(el._raf);
+  function frame(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    const curX = fromX + (toX - fromX) * ease;
+    const curY = fromY + (toY - fromY) * ease - arcHeight * 4 * t * (1 - t);
+    el.style.transform = `translate(${curX}px, ${curY}px)`;
+    if (t < 1) el._raf = requestAnimationFrame(frame);
+  }
+  el._raf = requestAnimationFrame(frame);
+}
 
 function setDoorOpen(open) {
   if (!doorEl) return;
