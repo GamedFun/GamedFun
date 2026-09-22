@@ -987,7 +987,15 @@ async function run() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const data = await resp.json();
+    let data;
+    try {
+      data = await resp.json();
+    } catch (e) {
+      // The server can return a plain-text/HTML error (a gateway timeout,
+      // a cold-start hiccup) instead of JSON - don't surface a cryptic
+      // "Unexpected token" parse error for that.
+      throw new Error(`Server returned an unexpected response (HTTP ${resp.status}) - try again in a moment.`);
+    }
     if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
     statusEl.textContent = `Done — ${data.episodes.length} episode(s). Playing back at ${speed.value} ms/move.`;
     lastRun = data;
