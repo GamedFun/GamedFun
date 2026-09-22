@@ -407,13 +407,13 @@
       <table id="costTable" style="width:100%; border-collapse:collapse; font-size:0.82rem;">
         <thead>
           <tr style="color:var(--fg-dim); text-align:left;">
-            <th style="padding:0.3rem 0.5rem;">Robot</th>
-            <th style="padding:0.3rem 0.5rem;">Model</th>
-            <th style="padding:0.3rem 0.5rem;" class="num">Tokens in</th>
-            <th style="padding:0.3rem 0.5rem;" class="num">Tokens out</th>
-            <th style="padding:0.3rem 0.5rem;">$/1M in</th>
-            <th style="padding:0.3rem 0.5rem;">$/1M out</th>
-            <th style="padding:0.3rem 0.5rem;" class="num">Est. cost</th>
+            <th scope="col" style="padding:0.3rem 0.5rem;">Robot</th>
+            <th scope="col" style="padding:0.3rem 0.5rem;">Model</th>
+            <th scope="col" style="padding:0.3rem 0.5rem;" class="num">Tokens in</th>
+            <th scope="col" style="padding:0.3rem 0.5rem;" class="num">Tokens out</th>
+            <th scope="col" style="padding:0.3rem 0.5rem;">$/1M in</th>
+            <th scope="col" style="padding:0.3rem 0.5rem;">$/1M out</th>
+            <th scope="col" style="padding:0.3rem 0.5rem;" class="num">Est. cost</th>
           </tr>
         </thead>
         <tbody>
@@ -422,8 +422,8 @@
             <td style="padding:0.3rem 0.5rem;" id="costModelA">&mdash;</td>
             <td style="padding:0.3rem 0.5rem;" class="num" id="costInA">0</td>
             <td style="padding:0.3rem 0.5rem;" class="num" id="costOutA">0</td>
-            <td style="padding:0.2rem 0.5rem;"><input type="number" id="rateInA" step="0.01" min="0" style="width:80px;"></td>
-            <td style="padding:0.2rem 0.5rem;"><input type="number" id="rateOutA" step="0.01" min="0" style="width:80px;"></td>
+            <td style="padding:0.2rem 0.5rem;"><input type="number" id="rateInA" aria-label="Robot A cost per 1 million input tokens" step="0.01" min="0" style="width:80px;"></td>
+            <td style="padding:0.2rem 0.5rem;"><input type="number" id="rateOutA" aria-label="Robot A cost per 1 million output tokens" step="0.01" min="0" style="width:80px;"></td>
             <td style="padding:0.3rem 0.5rem;" class="num" id="costA">$0.0000</td>
           </tr>
           <tr id="costRowB">
@@ -431,8 +431,8 @@
             <td style="padding:0.3rem 0.5rem;" id="costModelB">&mdash;</td>
             <td style="padding:0.3rem 0.5rem;" class="num" id="costInB">0</td>
             <td style="padding:0.3rem 0.5rem;" class="num" id="costOutB">0</td>
-            <td style="padding:0.2rem 0.5rem;"><input type="number" id="rateInB" step="0.01" min="0" style="width:80px;"></td>
-            <td style="padding:0.2rem 0.5rem;"><input type="number" id="rateOutB" step="0.01" min="0" style="width:80px;"></td>
+            <td style="padding:0.2rem 0.5rem;"><input type="number" id="rateInB" aria-label="Robot B cost per 1 million input tokens" step="0.01" min="0" style="width:80px;"></td>
+            <td style="padding:0.2rem 0.5rem;"><input type="number" id="rateOutB" aria-label="Robot B cost per 1 million output tokens" step="0.01" min="0" style="width:80px;"></td>
             <td style="padding:0.3rem 0.5rem;" class="num" id="costB">$0.0000</td>
           </tr>
         </tbody>
