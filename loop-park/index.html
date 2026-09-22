@@ -157,6 +157,10 @@
      big scene (a 90px sun, 70px clouds) completely overwhelms it. These
      numbers are tuned to read as background ambience peeking through the
      gap cells and the frame's own padding, not as the main event. */
+  /* The grid's own pixel width is fixed (cols * cell size) and can exceed
+     a narrow phone's viewport on bigger levels (e.g. a 7-wide hard coop
+     room) - scroll it inside its own box rather than widening the page. */
+  .grid-scroll { max-width: 100%; overflow-x: auto; }
   #gridFrame {
     display: inline-block; padding: 18px 18px 0; border-radius: 20px; overflow: hidden;
     border: 2.5px solid var(--pop-green); box-shadow: 0 6px 0 rgba(0,0,0,0.4);
@@ -437,7 +441,7 @@
   </div>
 
   <div class="stage">
-    <div id="gridFrame"><div class="clouds"></div><div class="hills"></div><div id="grid"></div></div>
+    <div class="grid-scroll"><div id="gridFrame"><div class="clouds"></div><div class="hills"></div><div id="grid"></div></div></div>
     <div id="log"></div>
   </div>
     </div>
@@ -731,7 +735,10 @@ function makeTile(cls, x, y) {
     addImg(t, "tile_floor.png", "tile-img-fill");
     const icon = document.createElement("canvas");
     icon.className = "tile-icon";
-    drawPixelIcon(icon, PLATE_ROWS, { "#": "#223154", "b": "#6fb8e0", "W": "#ffffff" });
+    // Was #6fb8e0 - nearly identical to the sky's own #6fb8e8, so the
+    // plate barely showed up against the new bright background. Amber
+    // reads as a warm, pressable button against the cool sky/hills.
+    drawPixelIcon(icon, PLATE_ROWS, { "#": "#223154", "b": "#f0983c", "W": "#fff6df" });
     t.appendChild(icon);
   }
 
