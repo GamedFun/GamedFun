@@ -152,33 +152,37 @@
   /* A bright toy-diorama room, not a dark platformer sky: a cheerful sky
      gradient, a soft sun, rolling hills, and drifting clouds behind the
      play area - a real place the bot stands in, not a panel of tiles. */
+  /* Sized small and subtle on purpose - the play area itself is often only
+     ~190-320px square (a 4x4 to 6x6 tile grid), so anything scaled for a
+     big scene (a 90px sun, 70px clouds) completely overwhelms it. These
+     numbers are tuned to read as background ambience peeking through the
+     gap cells and the frame's own padding, not as the main event. */
   #gridFrame {
     display: inline-block; padding: 18px 18px 0; border-radius: 20px; overflow: hidden;
     border: 2.5px solid var(--pop-green); box-shadow: 0 6px 0 rgba(0,0,0,0.4);
     position: relative;
     background:
-      radial-gradient(circle 90px at 82% 16%, #fff6cf 0%, #ffe89a 55%, rgba(255,232,154,0) 72%),
+      radial-gradient(circle 20px at 88% 12%, #fff6cf 0%, #ffe89a 60%, rgba(255,232,154,0) 78%),
       linear-gradient(180deg, #6fb8e8 0%, #a9d9ee 45%, #dff1e0 85%, #eef6d9 100%);
   }
-  .clouds { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+  .clouds { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
   .clouds::before, .clouds::after {
-    content: ""; position: absolute; height: 22px; border-radius: 999px;
-    background: rgba(255,255,255,0.85);
-    box-shadow: 0 0 0 0 transparent;
+    content: ""; position: absolute; height: 6px; border-radius: 999px;
+    background: rgba(255,255,255,0.8);
   }
-  .clouds::before { width: 70px; top: 14%; left: 8%; animation: driftCloud 34s linear infinite; }
-  .clouds::after { width: 46px; top: 30%; left: 55%; animation: driftCloud 26s linear infinite reverse; }
+  .clouds::before { width: 16px; top: 10%; left: 14%; animation: driftCloud 34s linear infinite; }
+  .clouds::after { width: 11px; top: 24%; left: 58%; animation: driftCloud 26s linear infinite reverse; }
   @keyframes driftCloud {
     0% { transform: translateX(0); }
-    50% { transform: translateX(22px); }
+    50% { transform: translateX(10px); }
     100% { transform: translateX(0); }
   }
-  .hills { position: absolute; left: 0; right: 0; bottom: 0; height: 34%; pointer-events: none; z-index: 0; }
+  .hills { position: absolute; left: 0; right: 0; bottom: 0; height: 14%; pointer-events: none; z-index: 0; overflow: hidden; }
   .hills::before, .hills::after {
-    content: ""; position: absolute; bottom: -20%; border-radius: 50%;
+    content: ""; position: absolute; bottom: -40%; border-radius: 50%;
   }
-  .hills::before { left: -10%; width: 65%; height: 140%; background: #bfe3c2; opacity: 0.8; }
-  .hills::after { right: -15%; width: 75%; height: 160%; background: #a9d9b0; opacity: 0.7; }
+  .hills::before { left: -8%; width: 55%; height: 100%; background: #bfe3c2; opacity: 0.75; }
+  .hills::after { right: -10%; width: 60%; height: 110%; background: #a9d9b0; opacity: 0.65; }
   @media (prefers-reduced-motion: reduce) {
     .clouds::before, .clouds::after { animation: none; }
   }
