@@ -163,34 +163,13 @@
      a narrow phone's viewport on bigger levels (e.g. a 7-wide hard coop
      room) - scroll it inside its own box rather than widening the page. */
   .grid-scroll { max-width: 100%; overflow-x: auto; }
+  /* Plain flat sky, matching the asset pack's own in-game example - no
+     sun/cloud/hill scenery competing with the actual platforms and tiles. */
   #gridFrame {
     display: inline-block; padding: 18px 18px 0; border-radius: 20px; overflow: hidden;
     border: 2.5px solid var(--pop-green); box-shadow: 0 6px 0 rgba(0,0,0,0.4);
     position: relative;
-    background:
-      radial-gradient(circle 20px at 88% 12%, #fff6cf 0%, #ffe89a 60%, rgba(255,232,154,0) 78%),
-      linear-gradient(180deg, #6fb8e8 0%, #a9d9ee 45%, #dff1e0 85%, #eef6d9 100%);
-  }
-  .clouds { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
-  .clouds::before, .clouds::after {
-    content: ""; position: absolute; height: 6px; border-radius: 999px;
-    background: rgba(255,255,255,0.8);
-  }
-  .clouds::before { width: 16px; top: 10%; left: 14%; animation: driftCloud 34s linear infinite; }
-  .clouds::after { width: 11px; top: 24%; left: 58%; animation: driftCloud 26s linear infinite reverse; }
-  @keyframes driftCloud {
-    0% { transform: translateX(0); }
-    50% { transform: translateX(10px); }
-    100% { transform: translateX(0); }
-  }
-  .hills { position: absolute; left: 0; right: 0; bottom: 0; height: 14%; pointer-events: none; z-index: 0; overflow: hidden; }
-  .hills::before, .hills::after {
-    content: ""; position: absolute; bottom: -40%; border-radius: 50%;
-  }
-  .hills::before { left: -8%; width: 55%; height: 100%; background: #bfe3c2; opacity: 0.75; }
-  .hills::after { right: -10%; width: 60%; height: 110%; background: #a9d9b0; opacity: 0.65; }
-  @media (prefers-reduced-motion: reduce) {
-    .clouds::before, .clouds::after { animation: none; }
+    background: #8fc7ec;
   }
   #grid { position: relative; z-index: 1; }
 
@@ -443,7 +422,7 @@
   </div>
 
   <div class="stage">
-    <div class="grid-scroll"><div id="gridFrame"><div class="clouds"></div><div class="hills"></div><div id="grid"></div></div></div>
+    <div class="grid-scroll"><div id="gridFrame"><div id="grid"></div></div></div>
     <div id="log"></div>
   </div>
     </main>
